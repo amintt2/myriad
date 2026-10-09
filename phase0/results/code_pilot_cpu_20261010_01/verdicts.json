@@ -1,0 +1,167 @@
+[
+  {
+    "task": "affine-cipher",
+    "mode": "single",
+    "campaign_hash": "a8bb0897888734a1b6bd758c5975040d8cfc970e52cb85aec712559fe6187eab",
+    "status": "graded",
+    "passed": false,
+    "stopped": "submitted",
+    "steps": 3,
+    "source_hashes": {
+      "affine_cipher.py": "d3164dc77d13a429fb14899cd5e74a81d848ed0c7b95b02db3247a75e0bbd72b"
+    },
+    "verifier": {
+      "status": "graded",
+      "passed": false,
+      "tests": 1,
+      "tests_expected": 16,
+      "tests_complete": false,
+      "fail_fast": true,
+      "failures": 1,
+      "errors": 0,
+      "calls": [
+        {
+          "function": "decode",
+          "test": "official_affine_cipher_test.AffineCipherTest.test_decode_a_sentence",
+          "complete": true,
+          "seconds": 0.11739518299873453,
+          "isolation": {
+            "isolation_ready": "linux-shell-v2",
+            "landlock_abi": 7,
+            "seccomp": "on",
+            "namespaces": [
+              "user",
+              "mount",
+              "pid",
+              "net",
+              "ipc",
+              "uts"
+            ]
+          },
+          "diagnostics": ""
+        }
+      ],
+      "seconds": 0.13077618600073038,
+      "broken": []
+    },
+    "episode_seconds": 76.01021078899794,
+    "completion_tokens": 673,
+    "known_completion_tokens": 673,
+    "unknown_usage_requests": 0,
+    "charged_request_ceilings": 3072,
+    "requests": 3,
+    "request_seconds": 75.83868178100056,
+    "seconds": 76.14106847699986,
+    "transcript_sha256": "3d0c4792951fcdb6deae023f10550082f3fae8a4429b85b5d6f80ea8304494fd"
+  },
+  {
+    "task": "beer-song",
+    "mode": "single",
+    "campaign_hash": "a8bb0897888734a1b6bd758c5975040d8cfc970e52cb85aec712559fe6187eab",
+    "status": "graded",
+    "passed": false,
+    "stopped": "timeout",
+    "steps": 7,
+    "source_hashes": {
+      "beer_song.py": "942234e1d907d3867f9eee8102573a8c398520a28ad1ca10cd23a0d9247134bc"
+    },
+    "verifier": {
+      "status": "graded",
+      "passed": false,
+      "tests": 1,
+      "tests_expected": 8,
+      "tests_complete": false,
+      "fail_fast": true,
+      "failures": 1,
+      "errors": 0,
+      "calls": [
+        {
+          "function": "recite",
+          "test": "official_beer_song_test.BeerSongTest.test_all_verses",
+          "complete": true,
+          "seconds": 0.1785634129992104,
+          "isolation": {
+            "isolation_ready": "linux-shell-v2",
+            "landlock_abi": 7,
+            "seccomp": "on",
+            "namespaces": [
+              "user",
+              "mount",
+              "pid",
+              "net",
+              "ipc",
+              "uts"
+            ]
+          },
+          "diagnostics": ""
+        }
+      ],
+      "seconds": 0.20306038499984425,
+      "broken": []
+    },
+    "episode_seconds": 900.0798301290015,
+    "completion_tokens": null,
+    "known_completion_tokens": 7168,
+    "unknown_usage_requests": 1,
+    "charged_request_ceilings": 8192,
+    "requests": 8,
+    "request_seconds": 900.0089788529986,
+    "seconds": 900.2830540169998,
+    "transcript_sha256": "b76d0f7bba40e6c8daf159461b116a432d3ee08980e972c84bbd3e1c6a570234"
+  },
+  {
+    "task": "book-store",
+    "mode": "single",
+    "campaign_hash": "a8bb0897888734a1b6bd758c5975040d8cfc970e52cb85aec712559fe6187eab",
+    "status": "graded",
+    "passed": false,
+    "stopped": "submitted",
+    "steps": 1,
+    "source_hashes": {
+      "book_store.py": "5c22fe209f90b16dbbacff457199d0b14152b48616c875085c8ff1f6f7188ec2"
+    },
+    "verifier": {
+      "status": "graded",
+      "passed": false,
+      "tests": 1,
+      "tests_expected": 20,
+      "tests_complete": false,
+      "fail_fast": true,
+      "failures": 1,
+      "errors": 0,
+      "calls": [
+        {
+          "function": "total",
+          "test": "official_book_store_test.BookStoreTest.test_check_that_groups_of_four_are_created_properly_even_when_there_are_more_groups_of_three_than_groups_of_five",
+          "complete": true,
+          "seconds": 0.11297961700074666,
+          "isolation": {
+            "isolation_ready": "linux-shell-v2",
+            "landlock_abi": 7,
+            "seccomp": "on",
+            "namespaces": [
+              "user",
+              "mount",
+              "pid",
+              "net",
+              "ipc",
+              "uts"
+            ]
+          },
+          "diagnostics": ""
+        }
+      ],
+      "seconds": 0.12726363399997354,
+      "broken": []
+    },
+    "episode_seconds": 22.183432644000277,
+    "completion_tokens": 149,
+    "known_completion_tokens": 149,
+    "unknown_usage_requests": 0,
+    "charged_request_ceilings": 1024,
+    "requests": 1,
+    "request_seconds": 22.108572605999143,
+    "seconds": 22.310765678999815,
+    "transcript_sha256": "b89e81afb7f43ecdcaa99646cd2845bd35168b89067dcf379e6440e7d479a9d4"
+  }
+]
