@@ -21,6 +21,7 @@ from .priors import family_of, params_of
 from .routing import node_tags
 from .runtime import NodeRuntime
 from .ui import make_ui_app
+from .updater import Updater
 
 log = logging.getLogger("myriad")
 
@@ -71,13 +72,19 @@ class App:
         self.token = secrets.token_urlsafe(24)
         self.wizard = SetupWizard(self.home, self.runtime)
         cfg = self.runtime.config
+        # App updates: told by the tracker (Welcome and push frames), checked now and then (updater.py).
+        self.updater = Updater(self.home, tracker_url=lambda: self.runtime.config.tracker_url,
+                               auto_update=cfg.auto_update, install_on_quit=cfg.install_on_quit)
+        self.updater.on_install_request = self.request_stop  # then the desktop app installs (apply_pending)
+        self.runtime.update_listener = self.updater.offer
         port = ui_port or cfg.ui_port
         if ui_port is None and not port_free(port):
             with socket.socket() as s:  # the default port is taken (another program): use a free one
                 s.bind(("127.0.0.1", 0))
                 port = s.getsockname()[1]
         self.ui_port = port
-        self.ui = make_ui_app(config=cfg, home=self.home, token=self.token, runtime=self.runtime, wizard=self.wizard)
+        self.ui = make_ui_app(config=cfg, home=self.home, token=self.token, runtime=self.runtime, wizard=self.wizard,
+                              updater=self.updater)
         self.server = uvicorn.Server(uvicorn.Config(self.ui, host="127.0.0.1", port=port, log_level="warning"))
         self.stopped = asyncio.Event()
 
@@ -106,6 +113,7 @@ class App:
             print("Première utilisation : terminez l'installation dans l'interface.")
         print(f"  interface    : {self.url}", flush=True)
         serve = asyncio.create_task(self.server.serve())
+        self.updater.start()
         try:
             while not self.server.started:
                 if serve.done():
@@ -121,6 +129,7 @@ class App:
         finally:
             self.server.should_exit = True
             await self.wizard.cancel()
+            await self.updater.close()
             await self.runtime.stop()
             try:
                 await asyncio.wait_for(serve, 5)

@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import shutil
+import threading
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -44,6 +45,37 @@ def model_path(home: Path, m: catalog.CatalogModel, quant: str) -> Path:
     return models_dir(home) / m.repo.replace("/", "__") / m.file_for(quant).file
 
 
+EXTRACT_FACTOR = 3  # unpacked engine / its archive (llama.cpp zips and tarballs compress ~2-3x)
+
+
+def disk_needed(plan: list[tuple[str, str, Path, str, int]]) -> int:
+    """Bytes still to write: what is left to download (a resumable `.part` counts as already there),
+    plus the unpacked engine. Files already complete need nothing."""
+    need = 0
+    for sid, _, dest, _, size in plan:
+        if sid.startswith("engine:"):
+            need += EXTRACT_FACTOR * size  # unpacked next to its archive, then the archive is deleted
+        if dest.exists():
+            continue
+        part = dest.with_name(dest.name + ".part")
+        try:
+            have = part.stat().st_size if part.is_file() else 0
+        except OSError:
+            have = 0
+        need += size - have if 0 <= have <= size else size
+    return int(need * 1.1)
+
+
+async def _to_the_end(coro) -> None:
+    """Await `coro`; if the caller is cancelled meanwhile, let it finish first, then cancel."""
+    work = asyncio.ensure_future(coro)
+    try:
+        await asyncio.shield(work)
+    except asyncio.CancelledError:
+        await asyncio.wait({work})
+        raise
+
+
 class InstallJob:
     def __init__(self, choice: dict):
         self.choice = choice
@@ -52,6 +84,7 @@ class InstallJob:
         self.error: str | None = None
         self.cancel = asyncio.Event()
         self.task: asyncio.Task | None = None
+        self.finalizing = False  # configuration saved, node restarting: no longer cancellable
 
     def to_dict(self) -> dict:
         return {"state": self.state, "error": self.error, "choice": self.choice,
@@ -146,8 +179,12 @@ class SetupWizard:
                 "active_hours": hours, "tracker_url": check_tracker_url(body.get("tracker_url") or default_tracker()),
                 "backend": backend}
 
+    def _busy(self) -> bool:
+        job = self.job
+        return job is not None and (job.state == "en cours" or (job.task is not None and not job.task.done()))
+
     async def start(self, body: dict) -> dict:
-        if self.job is not None and self.job.state == "en cours":
+        if self._busy():
             raise SetupError("une installation est déjà en cours")
         choice = self.validate(body)
         hw = await self.hardware()
@@ -155,6 +192,10 @@ class SetupWizard:
             avail = llamacpp.variants(hw.os, hw.arch)
             if choice["backend"] is not None and choice["backend"] not in avail:
                 raise SetupError(f"moteur {choice['backend']} indisponible ici ({', '.join(avail) or 'aucun'})")
+        # Checked again after the await: another request may have started an installation meanwhile.
+        # From here to the reservation of the job there is no await, so two requests cannot both pass.
+        if self._busy():
+            raise SetupError("une installation est déjà en cours")
         job = InstallJob(choice)
         self.job = job
         job.task = asyncio.create_task(self._install(job, hw))
@@ -164,13 +205,30 @@ class SetupWizard:
         job = self.job
         if job is None or job.task is None or job.task.done():
             return
+        if job.finalizing:
+            # The configuration is saved and the node is restarting: too late to cancel, and cutting
+            # the restart would leave the node half-stopped. Wait for the end instead.
+            await asyncio.wait({job.task})
+            return
         job.cancel.set()
         job.task.cancel()
+        await asyncio.wait({job.task})  # the task waits for its extraction worker before it ends
+        if job.state == "en cours":
+            job.state = "annulé"
+
+    async def _extract(self, job: InstallJob, archive: Path, dest: Path) -> None:
+        """Unpack in a worker thread; on cancellation, stop the worker and wait for it, so that nothing
+        writes into the temporary directory once the job is over."""
+        stop = threading.Event()
+        work = asyncio.ensure_future(asyncio.to_thread(llamacpp.extract, archive, dest, cancel=stop))
         try:
-            await job.task
-        except (asyncio.CancelledError, Exception):
-            pass
-        job.state = "annulé"
+            await asyncio.shield(work)
+        except asyncio.CancelledError:
+            stop.set()
+            await asyncio.wait({work})
+            if not work.cancelled():
+                work.exception()  # retrieved (ExtractCancelled): the cancellation is what matters
+            raise
 
     async def _install(self, job: InstallJob, hw: hardware.Hardware) -> None:
         c = job.choice
@@ -189,15 +247,18 @@ class SetupWizard:
                     backend = backend or llamacpp.default_backend(hw.os, hw.arch, hardware.accelerator(hw))
                     binary = llamacpp.find_in(llamacpp.install_dir(self.home, backend))
                     if binary is None:
+                        why = llamacpp.unsupported_reason(hw.os)
+                        if why:
+                            raise SetupError(why)
                         for a in llamacpp.assets_for(hw.os, hw.arch, backend):
                             plan.append((f"engine:{a.name}", a.url, self.home / "downloads" / a.name, a.sha256,
                                          a.size))
                 mf = model.file_for(c["quant"])
                 plan.append(("model", model.url(c["quant"]), model_path(self.home, model, c["quant"]), mf.sha256,
                              mf.size))
-            need = sum(size for _, _, dest, _, size in plan if not dest.exists())
+            need = disk_needed(plan)
             free = shutil.disk_usage(self.home).free
-            if need and free < need * 1.1 + (1 << 30):
+            if need and free < need + (1 << 30):
                 raise SetupError(f"espace disque insuffisant : {need / 1e9:.1f} Go nécessaires, "
                                  f"{free / 1e9:.1f} Go libres")
             for sid, url, dest, _, size in plan:
@@ -218,7 +279,7 @@ class SetupWizard:
                     shutil.rmtree(tmp)
                 for sid, _, dest, _, _ in plan:
                     if sid.startswith("engine:"):
-                        await asyncio.to_thread(llamacpp.extract, dest, tmp)
+                        await self._extract(job, dest, tmp)
                 if target.exists():
                     shutil.rmtree(target)
                 tmp.rename(target)
@@ -229,6 +290,9 @@ class SetupWizard:
                 for sid, _, dest, _, _ in plan:  # the archives are no longer needed
                     if sid.startswith("engine:"):
                         dest.unlink(missing_ok=True)
+            # Finalisation: from here on the job is not cancellable (cancel() waits for it), so the
+            # configuration and the running node always match.
+            job.finalizing = True
             Identity.load_or_create(key_path(self.home))
             cfg = Config.load(self.home)
             cfg.tracker_url = c["tracker_url"]
@@ -243,7 +307,7 @@ class SetupWizard:
                 cfg.extra.update(catalog_id=model.id, quant=c["quant"], backend=backend or cfg.extra.get("backend"))
             cfg.save(self.home)
             if self.runtime is not None:
-                await self.runtime.restart()
+                await _to_the_end(self.runtime.restart())
             job.state = "terminé"
         except asyncio.CancelledError:
             job.state = "annulé"

@@ -14,32 +14,29 @@
 <div class="shell">
   <aside class="side" aria-label="Navigation">
     <div class="brand">
-      <img src="/static/icon.svg" alt="" width="36" height="36">
-      <div>
-        <div class="brand-name">Myriad</div>
-        <div class="brand-tag" data-i18n="tagline">une myriade de petits modèles, une seule réponse</div>
-      </div>
+      <img src="/static/icon.svg" alt="" width="28" height="28">
+      <span class="brand-name">Myriad</span>
     </div>
     <nav class="nav" role="tablist" aria-orientation="vertical">
       <button class="nav-item active" role="tab" aria-selected="true" data-view="dashboard" id="tab-dashboard" aria-controls="view-dashboard">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="1.6"/><circle cx="19.5" cy="6" r="1.6"/><circle cx="4.5" cy="18" r="1.6"/><circle cx="19.5" cy="18" r="1.6"/><path d="M6 6.8 9.6 10.4M18 6.8l-3.6 3.6M6 17.2l3.6-3.6M18 17.2l-3.6-3.6"/></svg>
-        <span data-i18n="nav.dashboard">Tableau de bord</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6.5" r="1.4"/><circle cx="19" cy="6.5" r="1.4"/><circle cx="5" cy="17.5" r="1.4"/><circle cx="19" cy="17.5" r="1.4"/><path d="M6.3 7.4 9.9 10.4M17.7 7.4l-3.6 3M6.3 16.6l3.6-3M17.7 16.6l-3.6-3"/></svg>
+        <span class="nav-label" data-i18n="nav.dashboard">Tableau de bord</span>
       </button>
       <button class="nav-item" role="tab" aria-selected="false" data-view="chat" id="tab-chat" aria-controls="view-chat">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
-        <span data-i18n="nav.chat">Discussion</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"/></svg>
+        <span class="nav-label" data-i18n="nav.chat">Discussion</span>
       </button>
       <button class="nav-item" role="tab" aria-selected="false" data-view="agents" id="tab-agents" aria-controls="view-agents">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="4" rx="1.2"/><rect x="2.5" y="16" width="6" height="4" rx="1.2"/><rect x="9" y="16" width="6" height="4" rx="1.2"/><rect x="15.5" y="16" width="6" height="4" rx="1.2"/><path d="M12 7v4.5M5.5 16v-2.5h13V16M12 11.5V16"/></svg>
-        <span data-i18n="nav.agents">Agents</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="4.5" rx="1.2"/><rect x="2.5" y="16" width="6" height="4.5" rx="1.2"/><rect x="9" y="16" width="6" height="4.5" rx="1.2"/><rect x="15.5" y="16" width="6" height="4.5" rx="1.2"/><path d="M12 8v8M5.5 16v-2.5h13V16"/></svg>
+        <span class="nav-label" data-i18n="nav.agents">Agents</span>
       </button>
       <button class="nav-item" role="tab" aria-selected="false" data-view="peers" id="tab-peers" aria-controls="view-peers">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        <span data-i18n="nav.peers">Pairs</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="6" cy="17" r="1.6"/><path d="M10.5 7H20M10.5 12H20M10.5 17H20"/></svg>
+        <span class="nav-label" data-i18n="nav.peers">Pairs</span>
       </button>
       <button class="nav-item" role="tab" aria-selected="false" data-view="about" id="tab-about" aria-controls="view-about">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
-        <span data-i18n="nav.about">À propos</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.4"/></svg>
+        <span class="nav-label" data-i18n="nav.about">À propos</span>
       </button>
     </nav>
     <div class="side-foot">
@@ -50,26 +47,62 @@
           <button type="button" data-lang="en" aria-pressed="false">EN</button>
         </div>
         <button type="button" class="icon-btn" id="theme-btn" data-i18n-title="theme" title="Thème">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+          <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.2A7.8 7.8 0 1 1 9.8 4.5a6.3 6.3 0 0 0 9.7 9.7z"/></svg>
+          <svg class="ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>
         </button>
       </div>
-      <div class="version">v__VERSION__</div>
+      <div class="version">Myriad v__VERSION__</div>
     </div>
   </aside>
 
   <main id="main" tabindex="-1">
-    <div class="banner" id="tracker-banner" role="alert" hidden>
-      <div class="banner-text">
-        <strong data-i18n="tracker.down_title">Traqueur injoignable.</strong>
-        <span id="tracker-down-text"></span>
+    <!-- App-wide notification slot. Any number of .banner elements can live here; they stack above the views.
+         Component (style.css, section "banner"):
+           <div class="banner info|success|warning" role="status">          (role="alert" for problems)
+             <svg class="banner-ico" viewBox="0 0 24 24" aria-hidden="true">…</svg>   (optional)
+             <div class="banner-text"><strong>Nouvelle version 1.2.0.</strong> <span>Détails…</span></div>
+             <div class="banner-actions">
+               <button type="button" class="btn small primary">Mettre à jour et redémarrer</button>
+               <button type="button" class="icon-btn banner-close" aria-label="Fermer">×</button>  (optional)
+             </div>
+           </div>
+         Show / hide it with the `hidden` attribute. The update banner below (#update-banner) is driven by
+         renderUpdate() in app.js, which also toggles .is-ready / .is-error on it. -->
+    <div class="banner-slot" id="banners">
+      <div class="banner info update-banner" id="update-banner" role="status" aria-live="polite" hidden>
+        <svg class="banner-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5.5 19.5h13"/></svg>
+        <div class="banner-text">
+          <strong id="upd-title"></strong>
+          <span id="upd-text"></span>
+          <a id="upd-notes" href="#" target="_blank" rel="noopener noreferrer" data-i18n="upd.notes">Notes de version</a>
+          <div class="upd-bar" id="upd-bar" hidden><span id="upd-fill"></span></div>
+        </div>
+        <div class="banner-actions upd-actions">
+          <button type="button" class="btn primary small" id="upd-apply" hidden data-i18n="upd.apply">Mettre à jour et redémarrer</button>
+          <button type="button" class="btn small" id="upd-download" hidden data-i18n="upd.download">Télécharger</button>
+          <a class="btn small" id="upd-open" href="#" target="_blank" rel="noopener noreferrer" hidden data-i18n="upd.open_page">Page de téléchargement</a>
+          <button type="button" class="icon-btn banner-close" id="upd-dismiss" data-i18n-title="upd.later" title="Plus tard">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>
+          </button>
+        </div>
       </div>
-      <button type="button" class="btn small" id="tracker-change-btn" data-i18n="tracker.change">Changer de traqueur</button>
-      <form class="banner-form" id="tracker-form" hidden>
-        <label class="sr-only" for="tracker-url" data-i18n="wz.tracker">Traqueur</label>
-        <input type="url" id="tracker-url" spellcheck="false" required>
-        <button type="submit" class="btn primary small" data-i18n="save">Enregistrer</button>
-      </form>
+      <div class="banner warning" id="tracker-banner" role="alert" hidden>
+        <svg class="banner-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4.2M12 16.8v.3"/></svg>
+        <div class="banner-text">
+          <strong data-i18n="tracker.down_title">Traqueur injoignable.</strong>
+          <span id="tracker-down-text"></span>
+        </div>
+        <div class="banner-actions">
+          <button type="button" class="btn small" id="tracker-change-btn" data-i18n="tracker.change">Changer de traqueur</button>
+          <form class="banner-form" id="tracker-form" hidden>
+            <label class="sr-only" for="tracker-url" data-i18n="wz.tracker">Traqueur</label>
+            <input type="url" id="tracker-url" spellcheck="false" required>
+            <button type="submit" class="btn primary small" data-i18n="save">Enregistrer</button>
+          </form>
+        </div>
+      </div>
     </div>
+
     <!-- ======================= DASHBOARD ======================= -->
     <section class="view active" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
       <header class="view-head">
@@ -82,48 +115,58 @@
         </button>
       </header>
 
-      <div class="counters" id="counters">
-        <div class="stat"><div class="stat-k" data-i18n="stat.peers">Pairs en ligne</div><div class="stat-v" id="s-peers">–</div><div class="stat-s" id="s-peers-sub"></div></div>
-        <div class="stat"><div class="stat-k" data-i18n="stat.families">Familles de modèles</div><div class="stat-v" id="s-fam">–</div><div class="stat-s" id="s-fam-sub"></div></div>
-        <div class="stat"><div class="stat-k" data-i18n="stat.net_tps">Débit du réseau</div><div class="stat-v"><span id="s-ntps">–</span><small> tok/s</small></div><div class="stat-s" id="s-ntps-sub"></div></div>
-        <div class="stat"><div class="stat-k" data-i18n="stat.my_tps">Votre débit</div><div class="stat-v"><span id="s-mtps">–</span><small> tok/s</small></div><div class="stat-s" id="s-mtps-sub"></div></div>
-        <div class="stat accent"><div class="stat-k" data-i18n="stat.earned">Crédits gagnés</div><div class="stat-v" id="s-earned">–</div><div class="stat-s" id="s-balance"></div></div>
-        <div class="stat"><div class="stat-k" data-i18n="stat.spent">Crédits dépensés</div><div class="stat-v" id="s-spent">–</div><div class="stat-s" id="s-spent-sub"></div></div>
-      </div>
+      <div class="dash">
+        <div class="dash-main">
+          <div class="viz">
+            <canvas id="netviz" role="img" aria-label="Carte du réseau"></canvas>
+            <div class="viz-legend" id="legend" aria-hidden="true"></div>
+            <div class="viz-tip" id="viz-tip" hidden></div>
+            <div class="viz-empty" id="viz-empty" hidden data-i18n="viz.empty">En attente des pairs…</div>
+          </div>
 
-      <div class="grid-main">
-        <div class="card viz-card">
-          <canvas id="netviz" role="img" aria-label="Carte du réseau"></canvas>
-          <div class="viz-legend" id="legend" aria-hidden="true"></div>
-          <div class="viz-tip" id="viz-tip" hidden></div>
-          <div class="viz-empty" id="viz-empty" hidden data-i18n="viz.empty">En attente des pairs…</div>
+          <div class="figures" id="counters">
+            <div class="fig"><div class="fig-k" data-i18n="stat.peers">Pairs en ligne</div><div class="fig-v" id="s-peers">–</div><div class="fig-s" id="s-peers-sub"></div></div>
+            <div class="fig"><div class="fig-k" data-i18n="stat.families">Familles de modèles</div><div class="fig-v" id="s-fam">–</div><div class="fig-s" id="s-fam-sub"></div></div>
+            <div class="fig"><div class="fig-k" data-i18n="stat.net_tps">Débit du réseau</div><div class="fig-v"><span id="s-ntps">–</span><small>tok/s</small></div><div class="fig-s" id="s-ntps-sub"></div></div>
+            <div class="fig"><div class="fig-k" data-i18n="stat.my_tps">Votre débit</div><div class="fig-v"><span id="s-mtps">–</span><small>tok/s</small></div><div class="fig-s" id="s-mtps-sub"></div></div>
+            <div class="fig fig-accent"><div class="fig-k" data-i18n="stat.earned">Crédits gagnés</div><div class="fig-v" id="s-earned">–</div><div class="fig-s" id="s-balance"></div></div>
+            <div class="fig"><div class="fig-k" data-i18n="stat.spent">Crédits dépensés</div><div class="fig-v" id="s-spent">–</div><div class="fig-s" id="s-spent-sub"></div></div>
+          </div>
+
+          <section class="activity-sec" aria-labelledby="activity-title">
+            <h2 class="sec-title" id="activity-title" data-i18n="activity.title">Activité récente</h2>
+            <ul class="activity" id="recent"><li class="skel-row"><span class="skeleton"></span></li><li class="skel-row"><span class="skeleton"></span></li><li class="skel-row"><span class="skeleton"></span></li></ul>
+          </section>
         </div>
 
-        <div class="card node-card" id="node-card">
-          <div class="node-head">
-            <div class="node-badge" id="node-badge"><span class="pulse-dot"></span><span id="node-state">…</span></div>
-            <h2 data-i18n="node.title">Mon nœud</h2>
+        <aside class="inspector" id="node-card" aria-labelledby="node-title">
+          <div class="insp-sec">
+            <div class="insp-head">
+              <h2 class="sec-title" id="node-title" data-i18n="node.title">Mon nœud</h2>
+              <div class="node-badge" id="node-badge"><span class="pulse-dot"></span><span id="node-state">…</span></div>
+            </div>
+            <div class="node-model" id="node-model"><span class="skeleton w60"></span></div>
+            <div class="node-sub" id="node-sub"></div>
+            <dl class="kv">
+              <dt data-i18n="node.gpu">Matériel</dt><dd id="node-gpu">…</dd>
+              <dt data-i18n="node.engine">Moteur</dt><dd id="node-engine">…</dd>
+              <dt data-i18n="node.jobs">Jobs</dt><dd id="node-jobs">…</dd>
+              <dt data-i18n="node.served">Servis</dt><dd id="node-served">…</dd>
+              <dt data-i18n="node.id">Identifiant</dt><dd class="mono trunc" id="node-id">…</dd>
+              <dt data-i18n="node.api">API locale</dt><dd class="mono trunc" id="node-api">…</dd>
+            </dl>
+            <p class="error" id="node-error" hidden></p>
+            <button type="button" class="link-btn" id="change-model" data-i18n="node.change">Changer de modèle…</button>
           </div>
-          <div class="node-model" id="node-model">…</div>
-          <div class="node-sub" id="node-sub"></div>
-          <dl class="kv">
-            <dt data-i18n="node.gpu">Matériel</dt><dd id="node-gpu">…</dd>
-            <dt data-i18n="node.engine">Moteur</dt><dd id="node-engine">…</dd>
-            <dt data-i18n="node.jobs">Jobs</dt><dd id="node-jobs">…</dd>
-            <dt data-i18n="node.served">Servis</dt><dd id="node-served">…</dd>
-            <dt data-i18n="node.id">Identifiant</dt><dd class="mono" id="node-id">…</dd>
-            <dt data-i18n="node.api">API locale</dt><dd class="mono" id="node-api">…</dd>
-          </dl>
-          <p class="error" id="node-error" hidden></p>
 
-          <form class="resources" id="limits">
-            <h3 data-i18n="res.title">Ressources partagées</h3>
+          <form class="insp-sec resources" id="limits">
+            <h2 class="sec-title" data-i18n="res.title">Ressources partagées</h2>
             <label class="switch-row">
               <span data-i18n="res.share">Partager avec le réseau</span>
               <input type="checkbox" id="accepting" class="switch" role="switch">
             </label>
             <label class="slider-row">
-              <span><span data-i18n="res.parallel">Jobs simultanés</span> <output id="mp-out">1</output></span>
+              <span class="slider-top"><span data-i18n="res.parallel">Jobs simultanés</span> <output id="mp-out">1</output></span>
               <input type="range" id="max-parallel" min="0" max="8" step="1" value="1">
             </label>
             <div class="sched-row">
@@ -137,67 +180,60 @@
               </div>
             </div>
             <div class="form-foot">
-              <button type="submit" class="btn primary" data-i18n="save">Enregistrer</button>
               <span class="hint" id="limits-msg" role="status" aria-live="polite"></span>
+              <button type="submit" class="btn small" data-i18n="save">Enregistrer</button>
             </div>
           </form>
-          <button type="button" class="btn ghost small" id="change-model" data-i18n="node.change">Changer de modèle…</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="activity.title">Activité récente</h2>
-        <ul class="activity" id="recent"></ul>
+        </aside>
       </div>
     </section>
 
     <!-- ======================= CHAT ======================= -->
-    <section class="view" id="view-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+    <section class="view view-chat" id="view-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
       <header class="view-head">
         <div>
           <h1 data-i18n="chat.title">Demander à l'essaim</h1>
           <p class="lead" data-i18n="chat.lead">La question part en même temps vers plusieurs pairs de familles différentes ; leurs réponses sont fusionnées par un vote pondéré.</p>
         </div>
+        <button type="button" class="btn ghost small" id="chat-new" hidden>
+          <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span data-i18n="chat.new">Nouvelle discussion</span>
+        </button>
       </header>
-      <form class="card ask" id="chat">
-        <label for="question" class="sr-only" data-i18n="chat.question">Question</label>
-        <textarea id="question" rows="3" data-i18n-ph="chat.ph" placeholder="Posez une question à l'essaim…"></textarea>
-        <div class="ask-row">
-          <label class="slider-row compact">
-            <span><span data-i18n="chat.k">Pairs</span> <output id="k-out">4</output></span>
-            <input type="range" id="k" min="1" max="8" step="1" value="4">
-          </label>
-          <div class="seg" role="radiogroup" aria-label="Type" id="hint-seg">
-            <button type="button" role="radio" aria-checked="true" data-hint="" data-i18n="hint.auto">auto</button>
-            <button type="button" role="radio" aria-checked="false" data-hint="math" data-i18n="hint.math">calcul</button>
-            <button type="button" role="radio" aria-checked="false" data-hint="mc" data-i18n="hint.mc">QCM</button>
-            <button type="button" role="radio" aria-checked="false" data-hint="free" data-i18n="hint.free">texte</button>
-          </div>
-          <button type="submit" class="btn primary" id="send"><span data-i18n="chat.send">Envoyer</span> <kbd>Ctrl ↵</kbd></button>
-        </div>
-        <div class="examples" id="examples"></div>
-      </form>
 
-      <div class="chat-grid" id="chat-out" hidden>
-        <div class="card answer-card">
-          <div class="answer-head">
-            <h2 data-i18n="chat.answer">Réponse</h2>
-            <div class="badges" id="answer-badges"></div>
-          </div>
-          <div class="answer-text" id="answer-text" aria-live="polite"></div>
-          <p class="hint" id="answer-meta"></p>
-          <p class="error" id="chat-error" hidden></p>
-        </div>
-        <div class="card vote-card">
-          <h2 data-i18n="chat.vote">Le vote</h2>
-          <div class="vote" id="vote"></div>
-          <div class="cert" id="cert"></div>
-        </div>
-        <div class="card peers-card">
-          <h2><span data-i18n="chat.peers">Les pairs interrogés</span> <span class="hint" id="peers-count"></span></h2>
-          <ol class="swarm" id="swarm"></ol>
+      <div class="thread" id="thread">
+        <div class="chat-empty" id="chat-empty">
+          <p class="chat-empty-k"><img src="/static/icon.svg" alt="" width="24" height="24"><span data-i18n="chat.try">Essayez par exemple</span></p>
+          <div class="examples" id="examples"></div>
         </div>
       </div>
+
+      <div class="sr-only" id="chat-announce" role="status" aria-live="polite"></div>
+      <form class="composer" id="chat">
+        <div class="composer-box">
+          <label for="question" class="sr-only" data-i18n="chat.question">Question</label>
+          <textarea id="question" rows="1" data-i18n-ph="chat.ph" placeholder="Posez une question à l'essaim…"></textarea>
+          <div class="composer-bar">
+            <div class="seg" role="radiogroup" aria-label="Type" id="hint-seg">
+              <button type="button" role="radio" aria-checked="true" data-hint="" data-i18n="hint.auto">auto</button>
+              <button type="button" role="radio" aria-checked="false" data-hint="math" data-i18n="hint.math">calcul</button>
+              <button type="button" role="radio" aria-checked="false" data-hint="mc" data-i18n="hint.mc">QCM</button>
+              <button type="button" role="radio" aria-checked="false" data-hint="free" data-i18n="hint.free">texte</button>
+            </div>
+            <label class="k-ctl">
+              <span data-i18n="chat.k">Pairs</span>
+              <input type="range" id="k" min="1" max="8" step="1" value="4">
+              <output id="k-out">4</output>
+            </label>
+            <span class="spacer"></span>
+            <span class="kbd-hint" aria-hidden="true"><kbd>Ctrl</kbd><kbd>↵</kbd></span>
+            <button type="submit" class="btn primary send-btn" id="send">
+              <span data-i18n="chat.send">Envoyer</span>
+              <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg>
+            </button>
+          </div>
+        </div>
+      </form>
     </section>
 
     <!-- ======================= AGENTS ======================= -->
@@ -208,51 +244,63 @@
           <p class="lead" data-i18n="ag.lead">Une tâche découpée en sous-tâches confiées en parallèle à des pairs différents, chacune avec son petit contexte, puis vérifiées et assemblées.</p>
         </div>
         <button type="button" class="btn" id="ag-demo">
-          <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+          <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
           <span data-i18n="ag.demo">Plan de démonstration</span>
         </button>
       </header>
 
-      <form class="card ask ag-form" id="ag-form">
+      <form class="composer-box ag-form" id="ag-form">
         <label for="ag-task" class="sr-only" data-i18n="ag.task">Tâche</label>
         <textarea id="ag-task" rows="2" data-i18n-ph="ag.task_ph" placeholder="Décrivez la tâche à découper…"></textarea>
-        <div class="ask-row">
-          <div class="seg" role="radiogroup" aria-label="Plan" id="ag-mode">
-            <button type="button" role="radio" aria-checked="true" data-mode="auto" data-i18n="ag.mode_auto">plan automatique</button>
-            <button type="button" role="radio" aria-checked="false" data-mode="plan" data-i18n="ag.mode_plan">plan JSON</button>
-          </div>
-          <label class="switch-row inline"><span data-i18n="ag.merge">Fusion finale</span><input type="checkbox" id="ag-merge" class="switch" role="switch"></label>
-          <button type="submit" class="btn primary" id="ag-run"><span data-i18n="ag.run">Lancer</span> <kbd>Ctrl ↵</kbd></button>
-        </div>
         <div class="ag-plan-box" id="ag-plan-box" hidden>
           <label for="ag-plan" class="sr-only" data-i18n="ag.mode_plan">plan JSON</label>
           <textarea id="ag-plan" class="mono" rows="9" spellcheck="false"></textarea>
           <p class="hint" data-i18n="ag.plan_hint">Liste de sous-tâches : id, prompt, role, skill (ou family, model), depends_on, k, verify (commande autorisée), context.</p>
         </div>
+        <div class="composer-bar">
+          <div class="seg" role="radiogroup" aria-label="Plan" id="ag-mode">
+            <button type="button" role="radio" aria-checked="true" data-mode="auto" data-i18n="ag.mode_auto">plan automatique</button>
+            <button type="button" role="radio" aria-checked="false" data-mode="plan" data-i18n="ag.mode_plan">plan JSON</button>
+          </div>
+          <label class="switch-row inline"><span data-i18n="ag.merge">Fusion finale</span><input type="checkbox" id="ag-merge" class="switch" role="switch"></label>
+          <span class="spacer"></span>
+          <span class="kbd-hint" aria-hidden="true"><kbd>Ctrl</kbd><kbd>↵</kbd></span>
+          <button type="submit" class="btn primary" id="ag-run"><span data-i18n="ag.run">Lancer</span>
+            <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></button>
+        </div>
       </form>
 
       <div class="ag-grid" id="ag-out" hidden>
-        <div class="card ag-graph-card">
-          <div class="answer-head">
-            <h2 data-i18n="ag.tree">L'arbre des sous-agents</h2>
+        <section class="ag-graph-sec">
+          <div class="sec-head">
+            <h2 class="sec-title" data-i18n="ag.tree">L'arbre des sous-agents</h2>
             <div class="badges" id="ag-badges"></div>
           </div>
           <div class="ag-graph" id="ag-graph">
             <svg class="ag-edges" id="ag-edges" aria-hidden="true"></svg>
             <div class="ag-cols" id="ag-cols"></div>
           </div>
-        </div>
-        <div class="card ag-side">
-          <h2 data-i18n="ag.summary">Résumé</h2>
+        </section>
+        <section class="ag-side">
+          <h2 class="sec-title" data-i18n="ag.summary">Résumé</h2>
           <div class="ag-stats" id="ag-stats"></div>
-          <h3 class="ag-sub" data-i18n="ag.timeline">Chronologie</h3>
+          <h3 class="sec-title sub" data-i18n="ag.timeline">Chronologie</h3>
           <div class="ag-gantt" id="ag-gantt"></div>
-        </div>
-        <div class="card ag-result-card">
-          <h2 data-i18n="ag.result">Résultat</h2>
+        </section>
+        <section class="ag-result-sec">
+          <h2 class="sec-title" data-i18n="ag.result">Résultat</h2>
           <p class="error" id="ag-error" hidden></p>
-          <div class="answer-text ag-result" id="ag-result" aria-live="polite"></div>
-        </div>
+          <div class="ag-result" id="ag-result" aria-live="polite"></div>
+        </section>
+      </div>
+      <div class="ag-empty" id="ag-empty">
+        <ol class="ag-steps">
+          <li><span class="n">01</span><b data-i18n="ag.e1">Découper</b><p data-i18n="ag.e1d"></p></li>
+          <li><span class="n">02</span><b data-i18n="ag.e2">Confier</b><p data-i18n="ag.e2d"></p></li>
+          <li><span class="n">03</span><b data-i18n="ag.e3">Vérifier</b><p data-i18n="ag.e3d"></p></li>
+          <li><span class="n">04</span><b data-i18n="ag.e4">Assembler</b><p data-i18n="ag.e4d"></p></li>
+        </ol>
+        <p class="hint" data-i18n="ag.empty_hint"></p>
       </div>
     </section>
 
@@ -264,39 +312,65 @@
           <p class="lead" data-i18n="peers.lead">Chaque pair sert un petit modèle ouvert. La fiabilité vient des mesures et de l'accord avec les votes.</p>
         </div>
       </header>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th data-i18n="peers.node">Nœud</th><th data-i18n="peers.model">Modèle</th><th data-i18n="peers.family">Famille</th>
-              <th class="num" data-i18n="peers.rel">Fiabilité</th><th class="num" data-i18n="peers.rep">Réputation</th>
-              <th class="num" data-i18n="peers.load">Charge</th><th data-i18n="peers.state">État</th>
-            </tr></thead>
-            <tbody id="peers"></tbody>
-          </table>
-        </div>
+      <div class="table-wrap">
+        <table class="peers-table">
+          <thead><tr>
+            <th data-i18n="peers.node">Nœud</th><th data-i18n="peers.model">Modèle</th><th data-i18n="peers.family">Famille</th>
+            <th class="num" data-i18n="peers.rel">Fiabilité</th><th class="num" data-i18n="peers.rep">Réputation</th>
+            <th class="num" data-i18n="peers.load">Charge</th><th data-i18n="peers.state">État</th>
+          </tr></thead>
+          <tbody id="peers"></tbody>
+        </table>
       </div>
     </section>
 
     <!-- ======================= ABOUT ======================= -->
     <section class="view" id="view-about" role="tabpanel" aria-labelledby="tab-about" hidden>
-      <header class="view-head"><div><h1 data-i18n="about.title">L'idée</h1></div></header>
-      <div class="card about">
-        <ol class="three">
-          <li><span class="n">1</span><p data-i18n="about.l1">Chaque ordinateur fait tourner un petit modèle ouvert et en prête la puissance au réseau.</p></li>
-          <li><span class="n">2</span><p data-i18n="about.l2">Votre question part en même temps vers plusieurs pairs de familles différentes (Qwen, Gemma, Granite, SmolLM…).</p></li>
-          <li><span class="n">3</span><p data-i18n="about.l3">Leurs réponses sont fusionnées par un vote pondéré : quatre petits modèles atteignent la précision d'un plus gros.</p></li>
-        </ol>
-        <p class="about-links">
-          <a id="research-link" href="#" target="_blank" rel="noopener" data-i18n="about.research">Lire la recherche</a>
-          <span class="sep">·</span><span data-i18n="about.licence">Logiciel libre, licence Apache-2.0</span>
-        </p>
-        <div class="api-box">
-          <h3 data-i18n="about.api">Votre API locale, compatible OpenAI</h3>
-          <pre class="mono" id="api-snippet"></pre>
+      <header class="view-head">
+        <div>
+          <h1 data-i18n="about.title">L'idée</h1>
+          <p class="lead" data-i18n="tagline">une myriade de petits modèles, une seule réponse</p>
         </div>
-        <p class="hint" data-i18n="about.privacy">Les questions ne sont pas chiffrées de bout en bout : n'envoyez rien de confidentiel.</p>
+      </header>
+      <div class="about">
+        <ol class="three">
+          <li><span class="n">01</span><p data-i18n="about.l1">Chaque ordinateur fait tourner un petit modèle ouvert et en prête la puissance au réseau.</p></li>
+          <li><span class="n">02</span><p data-i18n="about.l2">Votre question part en même temps vers plusieurs pairs de familles différentes (Qwen, Gemma, Granite, SmolLM…).</p></li>
+          <li><span class="n">03</span><p data-i18n="about.l3">Leurs réponses sont fusionnées par un vote pondéré : quatre petits modèles atteignent la précision d'un plus gros.</p></li>
+        </ol>
+        <div class="api-box">
+          <h2 class="sec-title" data-i18n="about.api">Votre API locale, compatible OpenAI</h2>
+          <pre class="code" id="api-snippet"></pre>
+        </div>
+        <p class="note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 7.8v.4"/></svg>
+          <span data-i18n="about.privacy">Les questions ne sont pas chiffrées de bout en bout : n'envoyez rien de confidentiel.</span>
+        </p>
+        <p class="about-links">
+          <a id="research-link" href="#" target="_blank" rel="noopener"><span data-i18n="about.research">Lire la recherche</span> <span aria-hidden="true">↗</span></a>
+          <span class="sep" aria-hidden="true">·</span><span data-i18n="about.licence">Logiciel libre, licence Apache-2.0</span>
+        </p>
       </div>
+      <section class="about upd-card" id="upd-card" aria-labelledby="upd-heading">
+        <div class="upd-head">
+          <h2 class="sec-title" id="upd-heading" data-i18n="upd.title">Mises à jour</h2>
+          <p class="upd-line"><span id="upd-cur"></span> <span class="upd-pill" id="upd-state"></span></p>
+        </div>
+        <p class="hint" id="upd-reason" hidden></p>
+        <label class="switch-row">
+          <span data-i18n="upd.auto">Télécharger les nouvelles versions automatiquement</span>
+          <input type="checkbox" id="upd-auto" class="switch" role="switch">
+        </label>
+        <label class="switch-row">
+          <span data-i18n="upd.on_quit">Installer la mise à jour en quittant Myriad</span>
+          <input type="checkbox" id="upd-quit" class="switch" role="switch">
+        </label>
+        <div class="form-foot">
+          <span class="hint" id="upd-msg" role="status" aria-live="polite"></span>
+          <button type="button" class="btn small" id="upd-check" data-i18n="upd.check">Rechercher une mise à jour</button>
+        </div>
+        <p class="hint upd-how" data-i18n="upd.how">Le traqueur annonce les nouvelles versions ; chaque fichier est téléchargé depuis GitHub et vérifié par son empreinte SHA-256 avant d'être installé.</p>
+      </section>
     </section>
   </main>
 </div>
@@ -306,13 +380,13 @@
   <div class="wz-backdrop"></div>
   <div class="wz-panel">
     <div class="wz-top">
-      <img src="/static/icon.svg" alt="" width="40" height="40">
+      <img src="/static/icon.svg" alt="" width="28" height="28">
       <ol class="wz-steps" id="wz-steps" aria-label="Étapes">
-        <li data-step="0" data-i18n="wz.s0">Bienvenue</li>
-        <li data-step="1" data-i18n="wz.s1">Matériel</li>
-        <li data-step="2" data-i18n="wz.s2">Modèle</li>
-        <li data-step="3" data-i18n="wz.s3">Partage</li>
-        <li data-step="4" data-i18n="wz.s4">Installation</li>
+        <li data-step="0"><span class="wz-n" aria-hidden="true">1</span><span data-i18n="wz.s0">Bienvenue</span></li>
+        <li data-step="1"><span class="wz-n" aria-hidden="true">2</span><span data-i18n="wz.s1">Matériel</span></li>
+        <li data-step="2"><span class="wz-n" aria-hidden="true">3</span><span data-i18n="wz.s2">Modèle</span></li>
+        <li data-step="3"><span class="wz-n" aria-hidden="true">4</span><span data-i18n="wz.s3">Partage</span></li>
+        <li data-step="4"><span class="wz-n" aria-hidden="true">5</span><span data-i18n="wz.s4">Installation</span></li>
       </ol>
       <div class="seg wz-lang" role="group" aria-label="Langue / Language">
         <button type="button" data-lang="fr" aria-pressed="true">FR</button>
@@ -321,22 +395,24 @@
     </div>
 
     <div class="wz-body">
-      <section class="wz-page" data-page="0">
+      <section class="wz-page wz-welcome" data-page="0">
         <canvas class="wz-hero" id="wz-hero" aria-hidden="true"></canvas>
-        <h2 id="wz-title" data-i18n="wz.welcome">Bienvenue dans Myriad</h2>
-        <p class="wz-lead" data-i18n="wz.welcome_lead">Une myriade de petits modèles, une seule réponse. Prêtez la puissance de votre ordinateur au réseau, et interrogez en échange l'intelligence de tous.</p>
-        <ul class="wz-points">
-          <li data-i18n="wz.p1">Un petit modèle ouvert tourne sur votre machine, quand vous le voulez.</li>
-          <li data-i18n="wz.p2">Vos questions sont confiées à plusieurs familles de modèles, puis fusionnées.</li>
-          <li data-i18n="wz.p3">Servir rapporte des crédits ; interroger en coûte.</li>
-        </ul>
+        <div class="wz-welcome-text">
+          <h2 id="wz-title" data-i18n="wz.welcome">Bienvenue dans Myriad</h2>
+          <p class="wz-lead" data-i18n="wz.welcome_lead">Une myriade de petits modèles, une seule réponse. Prêtez la puissance de votre ordinateur au réseau, et interrogez en échange l'intelligence de tous.</p>
+          <ul class="wz-points">
+            <li data-i18n="wz.p1">Un petit modèle ouvert tourne sur votre machine, quand vous le voulez.</li>
+            <li data-i18n="wz.p2">Vos questions sont confiées à plusieurs familles de modèles, puis fusionnées.</li>
+            <li data-i18n="wz.p3">Servir rapporte des crédits ; interroger en coûte.</li>
+          </ul>
+        </div>
       </section>
 
       <section class="wz-page" data-page="1" hidden>
         <h2 data-i18n="wz.hw_title">Votre machine</h2>
         <p class="wz-lead" data-i18n="wz.hw_lead">Détectée automatiquement, pour choisir un modèle adapté.</p>
-        <div class="hw-grid" id="hw-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
-        <button type="button" class="btn ghost small" id="hw-refresh" data-i18n="wz.redetect">Détecter à nouveau</button>
+        <div class="hw-grid" id="hw-grid"><div class="hw"><span class="skeleton w40"></span><span class="skeleton w80"></span></div><div class="hw"><span class="skeleton w40"></span><span class="skeleton w80"></span></div><div class="hw"><span class="skeleton w40"></span><span class="skeleton w80"></span></div></div>
+        <button type="button" class="link-btn" id="hw-refresh" data-i18n="wz.redetect">Détecter à nouveau</button>
       </section>
 
       <section class="wz-page" data-page="2" hidden>
@@ -357,7 +433,7 @@
         <p class="wz-lead" data-i18n="wz.share_lead">Modifiable à tout moment depuis le tableau de bord.</p>
         <div class="share-form">
           <label class="switch-row"><span data-i18n="res.share">Partager avec le réseau</span><input type="checkbox" id="wz-accepting" class="switch" role="switch" checked></label>
-          <label class="slider-row"><span><span data-i18n="res.parallel">Jobs simultanés</span> <output id="wz-mp-out">1</output></span><input type="range" id="wz-mp" min="1" max="8" step="1" value="1"></label>
+          <label class="slider-row"><span class="slider-top"><span data-i18n="res.parallel">Jobs simultanés</span> <output id="wz-mp-out">1</output></span><input type="range" id="wz-mp" min="1" max="8" step="1" value="1"></label>
           <label class="switch-row"><span data-i18n="res.schedule">Seulement certaines heures</span><input type="checkbox" id="wz-sched" class="switch" role="switch"></label>
           <div class="hours" id="wz-hours" hidden>
             <label><span data-i18n="res.from">de</span> <select id="wz-from"></select></label>

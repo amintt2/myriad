@@ -68,6 +68,32 @@ seulement entre pairs qui les annoncent ; `GET /v1/health` donne `protocol_versi
 - Santé : un nœud muet, au moteur en panne, ou qui dépasse deux fois de suite le délai d'un job, est
   suspendu (recul exponentiel) et n'est plus choisi ; il est réadmis après un pong sain.
 
+Fonction **`update`** (mises à jour de l'app, ajout compatible, même `protocol_version` `essaim/1.2`) :
+
+- Le nœud la demande dans l'URL du WebSocket (`/v1/ws?features=update`) ; un traqueur plus ancien ignore
+  la chaîne de requête. Seul un nœud qui l'a demandée reçoit `Welcome.latest_version` (champ omis sinon)
+  et la trame `update` (`{"t": "update", "version": "X.Y.Z"}`) quand une nouvelle version paraît : un
+  nœud plus ancien refuserait un champ ou une trame inconnus.
+- Le traqueur interroge `GET https://api.github.com/repos/{dépôt}/releases/latest` toutes les 10 minutes
+  (ETag et `If-None-Match` : une version inchangée coûte une réponse 304), ignore brouillons et
+  pré-versions, lit `SHA256SUMS.txt`, recule en cas d'erreur ou de limite de débit et ne s'arrête jamais
+  pour autant. `GET /v1/version` rend `{repo, latest: {version, tag, published_at, html_url, assets,
+  sha256}, checked_at}` avec `Cache-Control: public, max-age=300`. Désactivé dans les tests et avec
+  `MYRIAD_RELEASE_REPO=off`.
+- Le client (`myriad/updater.py`) ne croit le traqueur que pour un numéro de version : regex stricte
+  `X.Y.Z`, strictement supérieur à la version installée (jamais de retour en arrière). Il construit
+  l'URL à partir du dépôt épinglé, choisit le fichier de sa plateforme (`Myriad-Setup-X.Y.Z.exe`,
+  `Myriad-X.Y.Z-arm64.dmg` / `-x86_64.dmg`, `Myriad-X.Y.Z-x86_64.AppImage`), le télécharge (reprise par
+  `Range`) et vérifie son SHA-256 contre le `SHA256SUMS.txt` de la version sur GitHub. Repli sur l'API
+  GitHub seulement si le traqueur ne peut pas répondre. Crochet prévu pour une signature ed25519 de
+  `SHA256SUMS.txt` (clé publique épinglée, pas encore de clé).
+- Installation, après l'arrêt propre du nœud, de llama-server et de la passerelle : installateur Inno
+  Setup silencieux (`/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS`, relance par
+  `/MYRIADRELAUNCH=1`), échange du paquet `.app` sur macOS (`hdiutil attach`, `ditto`, renommages),
+  remplacement atomique de l'AppImage. Les autres installations (zip portable, `.deb`, `.tar.gz`,
+  sources, pip) sont seulement prévenues. La nouvelle instance, lancée avec `--after-update`, attend que
+  l'ancienne libère son verrou.
+
 ## Fusion (`myriad/fusion.py`, fonctions pures, très testées)
 
 - `extract_answer(text, task_hint)` : nombre final (style GSM8K « The answer is N », \\boxed{}, dernier
@@ -104,6 +130,7 @@ seulement entre pairs qui les annoncent ; `GET /v1/health` donne `protocol_versi
 - `myriad tracker [--host --port --db]` : le traqueur.
 - `myriad chat "question"` : client minimal de la passerelle.
 - `myriad status` : état du nœud.
+- `myriad update [--check]` : nouvelle version de Myriad ? (le traqueur répond, GitHub en repli).
 
 ## Tests (obligatoires)
 

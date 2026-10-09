@@ -29,6 +29,12 @@ selectable node sits in one pool per (tag, model), kept up to date by the same O
 job routed by tag (Route.tag) is given a peer in O(k) too: the tag's models are walked by decreasing
 reliability. When no selectable node has the tag, any node is chosen and Assigned.tag_match says so.
 Route.family restricts the choice to one model family (no fallback).
+
+App updates (feature "update", see release.py): with a release repository configured (`run()`: env
+MYRIAD_RELEASE_REPO, default amintt2/myriad; empty or "off" disables it), a background task polls GitHub
+for the latest release every MYRIAD_RELEASE_POLL_S seconds (600 by default) and serves it on
+GET /v1/version. Nodes that connect with `?features=update` get its version in their Welcome frame and an
+UpdateAvailable frame when it changes. A Tracker built directly (tests) watches nothing.
 """
 from __future__ import annotations
 
@@ -38,6 +44,7 @@ import itertools
 import json
 import logging
 import math
+import os
 import random
 import secrets
 import time
@@ -59,7 +66,8 @@ from .netem import WanDelay
 from .priors import MILLI, beta_mean, credit_factor, family_of, prior_accuracy, trusted_params
 from .protocol import (MAX_FRAME_BYTES, MAX_PROMPT_CHARS, Assigned, Cancel, Challenge, ErrorFrame, Hello, Job,
                        JobError, JobFrame, JobResult, NodeInfo, PeerCard, Ping, Pong, ReceiptFrame, ResultFrame,
-                       Route, Status, Welcome, dump_frame, parse_frame)
+                       Route, Status, UpdateAvailable, Welcome, dump_frame, parse_frame)
+from .release import DEFAULT_RELEASE_REPO, ReleaseWatcher
 
 log = logging.getLogger("myriad.tracker")
 HELLO_TIMEOUT_S = 10
@@ -71,6 +79,15 @@ MAX_GROUP_JOBS = 32  # jobs (first picks and replacements) of one request group
 MAX_SELECT_K = 16
 TIMEOUT_ERRORS = ("deadline",)  # node-reported job errors that count as timeouts
 REPUTATION_REFRESH_S = 5.0
+VERSION_CACHE_S = 300  # Cache-Control max-age of GET /v1/version
+NODE_FEATURES = frozenset({"update"})  # optional features a node may ask for (WebSocket query `features`)
+
+
+def requested_features(raw: str | None) -> frozenset:
+    """`?features=update,...` -> the known features asked for (unknown names and oversize input ignored)."""
+    if not raw or len(raw) > 200:
+        return frozenset()
+    return frozenset(x.strip() for x in raw.split(",")) & NODE_FEATURES
 
 
 class IndexedSet:
@@ -144,6 +161,7 @@ class Conn:
     level: int = 0  # suspension backoff exponent; back to 0 after a delivered result
     suspended_until: float | None = None
     suspend_reason: str | None = None
+    features: frozenset = frozenset()  # optional features this node asked for when it connected
 
     def send(self, frame) -> None:
         if self.closed:
@@ -208,7 +226,8 @@ class Tracker:
                  job_ttl_s: float = 600.0, seed: int | None = None, wan: WanDelay | None = None,
                  ping_s: float = 10.0, ping_timeout_s: float = 5.0, suspend_base_s: float = 10.0,
                  suspend_max_s: float = 300.0, timeout_strikes: int = 2, strike_min_deadline_s: float = 10.0,
-                 peers_snapshot_s: float = 3.0, landing: bool = True):
+                 peers_snapshot_s: float = 3.0, release_repo: str | None = None, release_poll_s: float = 600.0,
+                 release_http=None, landing: bool = True):
         self.landing = landing  # serve the public landing page at / (myriad/landing.py)
         self.ledger = Ledger(db_path, starter_credit)
         pem = self.ledger.get_meta("tracker_key")
@@ -256,6 +275,9 @@ class Tracker:
         self._snapshot_at = -1.0
         self._snapshot_task: asyncio.Task | None = None
         self.snapshot_stats: dict = {}
+        # Latest app release (feature "update"): None when no repository is watched.
+        self.releases = (ReleaseWatcher(release_repo, poll_s=release_poll_s, http=release_http,
+                                        on_change=self._on_release) if release_repo else None)
         self.app = self._make_app()
 
     # ---------- app ----------
@@ -263,10 +285,14 @@ class Tracker:
         @asynccontextmanager
         async def lifespan(app):
             self._sweeper = asyncio.create_task(self._sweep_loop())
+            if self.releases is not None:
+                self.releases.start()
             try:
                 yield
             finally:
                 self._sweeper.cancel()
+                if self.releases is not None:
+                    await self.releases.stop()
                 if self._snapshot_task is not None:
                     self._snapshot_task.cancel()
                 for c in list(self.conns.values()):
@@ -288,6 +314,14 @@ class Tracker:
                     "version": __version__, "tracker_id": self.identity.node_id, "nodes": len(self.conns),
                     "serving": sum(1 for c in self.conns.values() if c.info.model),
                     "selectable": sum(len(p) for p in self._pools.values())}
+
+        @app.get("/v1/version")
+        async def version():
+            """Latest app release known to the tracker (a hint: clients verify everything themselves)."""
+            body = self.releases.public() if self.releases is not None else {"repo": None, "latest": None,
+                                                                              "checked_at": None}
+            return Response(json.dumps(body, ensure_ascii=False, allow_nan=False), media_type="application/json",
+                            headers={"Cache-Control": f"public, max-age={VERSION_CACHE_S}"})
 
         @app.get("/v1/peers")
         async def peers():
@@ -694,7 +728,22 @@ class Tracker:
             self._strike(tj.target_conn, "timeout")
 
     # ---------- websocket ----------
+    def latest_version(self) -> str | None:
+        latest = self.releases.latest if self.releases is not None else None
+        return latest.get("version") if latest else None
+
+    def _on_release(self, info: dict) -> None:
+        """A new latest release: tell the connected nodes that asked for it (O(N), once per release)."""
+        frame = UpdateAvailable(version=info["version"])
+        n = 0
+        for c in list(self.conns.values()):
+            if "update" in c.features and not c.closed:
+                c.send(frame)
+                n += 1
+        log.info("release %s announced to %d node(s)", info["version"], n)
+
     async def _serve_ws(self, ws: WebSocket) -> None:
+        features = requested_features(ws.query_params.get("features"))
         await ws.accept()
         nonce = secrets.token_hex(32)
         await ws.send_text(dump_frame(Challenge(nonce=nonce, tracker_id=self.identity.node_id,
@@ -717,7 +766,7 @@ class Tracker:
         if old is not None:  # the same node reconnected: the new session wins
             self._drop(old)
         self.ledger.ensure_account(info.node_id, info.pubkey)
-        conn = Conn(node_id=info.node_id, info=info, ws=ws, wan=self.wan)
+        conn = Conn(node_id=info.node_id, info=info, ws=ws, wan=self.wan, features=features)
         if info.model:
             conn.spot = list(self.ledger.node_spot(info.node_id, info.model))
             self._refresh_reputation(conn)
@@ -729,7 +778,8 @@ class Tracker:
         if self.wan is not None:
             conn.inbox = asyncio.Queue(OUTBOX)
             delayed = asyncio.create_task(self._delayed_dispatch(conn))
-        conn.send(Welcome(node_id=info.node_id, balance=self.ledger.balance(info.node_id) or 0.0))
+        conn.send(Welcome(node_id=info.node_id, balance=self.ledger.balance(info.node_id) or 0.0,
+                          latest_version=self.latest_version() if "update" in features else None))
         if info.model:
             self._reindex(conn)
             self._schedule_ping(conn, self.rng.uniform(0.2, 1.0))  # the first ping tells an essaim/1.1 node
@@ -1211,6 +1261,11 @@ def reputation(agree: int, disagree: int, alpha: float) -> float:
 def run(host: str = "127.0.0.1", port: int = 8500, db: str | Path = "tracker.sqlite", **kw) -> None:
     import uvicorn
 
+    if "release_repo" not in kw:  # the public tracker watches the app's releases unless told not to
+        repo = os.environ.get("MYRIAD_RELEASE_REPO", DEFAULT_RELEASE_REPO).strip()
+        kw["release_repo"] = None if repo.lower() in ("", "off", "none", "0") else repo
+    if "release_poll_s" not in kw and os.environ.get("MYRIAD_RELEASE_POLL_S", "").strip():
+        kw["release_poll_s"] = float(os.environ["MYRIAD_RELEASE_POLL_S"])
     tracker = Tracker(db_path=db, **kw)
     if tracker.wan is not None:
         log.warning("WAN emulation ON: %s (experiments only)", tracker.wan.describe())

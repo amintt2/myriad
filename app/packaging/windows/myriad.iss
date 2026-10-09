@@ -38,7 +38,14 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile=..\..\..\LICENSE
+; Updates from the app (myriad/updater.py) run this installer with
+;   /SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS [/MYRIADRELAUNCH=1]
+; after Myriad has stopped its node and llama-server. A Myriad still exiting is closed through the
+; Restart Manager (the filter includes the bundle's .pyd modules); Myriad is not restarted by it but by
+; the [Run] entry below, only when the app asked for a relaunch.
 CloseApplications=yes
+CloseApplicationsFilter=*.exe,*.dll,*.pyd
+RestartApplications=no
 #ifdef SignTool
 SignTool=myriad
 SignedUninstaller=yes
@@ -62,6 +69,26 @@ Name: "{userstartup}\Myriad"; Filename: "{app}\Myriad.exe"; Parameters: "--hidde
 
 [Run]
 Filename: "{app}\Myriad.exe"; Description: "{cm:LaunchProgram,Myriad}"; Flags: nowait postinstall skipifsilent
+; Silent update started by the app ("Update and restart" button): start the new version again.
+; --after-update makes it wait for the old instance to release its lock; /MYRIADHOME= gives back the
+; data directory the old instance used (--home).
+Filename: "{app}\Myriad.exe"; Parameters: "{code:MyriadRelaunchParams}"; Flags: nowait runasoriginaluser; Check: MyriadRelaunch
+
+[Code]
+function MyriadRelaunch(): Boolean;
+begin
+  Result := WizardSilent() and (ExpandConstant('{param:MYRIADRELAUNCH|0}') = '1');
+end;
+
+function MyriadRelaunchParams(Param: String): String;
+var
+  Home: String;
+begin
+  Result := '--after-update';
+  Home := ExpandConstant('{param:MYRIADHOME|}');
+  if (Home <> '') and (Pos('"', Home) = 0) then
+    Result := Result + ' --home "' + Home + '"';
+end;
 
 [UninstallRun]
 ; Stop a running instance (and its llama-server) before removing the files.

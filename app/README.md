@@ -45,7 +45,7 @@ Télécharger la dernière version dans les
 | --- | --- | --- |
 | Windows 10/11 (x64) | `Myriad-Setup-X.Y.Z.exe` | installation pour l'utilisateur, sans droits d'administrateur |
 | Windows, sans installation | `Myriad-X.Y.Z-windows-x64-portable.zip` | décompresser, lancer `Myriad\Myriad.exe` |
-| macOS 11+ (Apple Silicon) | `Myriad-X.Y.Z-arm64.dmg` | glisser Myriad dans Applications |
+| macOS 13.3+ (Apple Silicon) | `Myriad-X.Y.Z-arm64.dmg` | glisser Myriad dans Applications |
 | macOS (Intel) | `Myriad-X.Y.Z-x86_64.dmg` | |
 | Linux x86_64 | `Myriad-X.Y.Z-x86_64.AppImage`, `myriad_X.Y.Z_amd64.deb`, `.tar.gz` | |
 
@@ -90,8 +90,9 @@ Les empreintes SHA-256 sont dans `SHA256SUMS.txt`.
   votre débit, crédits gagnés et dépensés (`GET /v1/stats` du traqueur).
 - **Votre nœud** : modèle, matériel, moteur, jobs, et les ressources partagées (modifiables, avec
   pause et reprise).
-- **La discussion** : la question part vers k pairs ; on voit en direct qui la reçoit, qui répond et
-  quoi, puis le poids de chaque pair, le vote et le **certificat d'arrêt** (la réponse en tête dépasse
+- **La discussion** : une conversation ; chaque question part vers k pairs, et chaque réponse est suivie
+  d'un volet repliable « Comment l'essaim a décidé » : qui a reçu la question, qui répond et quoi (en
+  direct), puis le poids de chaque pair, le vote et le **certificat d'arrêt** (la réponse en tête dépasse
   la suivante plus tout ce qui n'a pas encore répondu : les retardataires sont annulés).
 - **À propos** : l'idée en trois lignes, le lien vers la recherche, l'API locale compatible OpenAI.
 - Français par défaut, anglais en un clic ; thème sombre ou clair ; polices embarquées (Inter,
@@ -117,6 +118,34 @@ peut choisir un autre traqueur sans tout réinstaller.
   pour un serveur), `--stop` (arrêter proprement l'instance en cours), `--tracker URL`, `--home DOSSIER`.
 - Sans moteur de fenêtre (pywebview absent), l'interface s'ouvre dans le navigateur par défaut.
 - Journaux : `<dossier de données>/logs/` (`myriad.log`, et un journal par llama-server).
+
+### Mises à jour
+
+Myriad sait qu'une nouvelle version existe **sans interroger GitHub depuis chaque PC** : le traqueur
+surveille les versions publiées (une requête conditionnelle toutes les 10 minutes pour tout le réseau) et
+l'annonce aux nœuds, à la connexion puis dès qu'elle paraît. L'app redemande au traqueur au démarrage et
+toutes les 6 heures (`GET /v1/version`) ; elle n'interroge l'API GitHub elle-même que si le traqueur est
+injoignable ou trop ancien.
+
+- Par défaut, la nouvelle version est **téléchargée en arrière-plan** (reprise possible) dans
+  `<dossier de données>/updates/`, puis un bandeau propose **« Mettre à jour et redémarrer »** : le nœud
+  s'arrête proprement (llama-server compris), la mise à jour s'installe, Myriad redémarre. L'icône de
+  notification a aussi *Rechercher une mise à jour*.
+- Réglages (*À propos* → *Mises à jour*) : télécharger automatiquement ou seulement prévenir
+  (`auto_update`), installer en quittant Myriad (`install_on_quit`, désactivé par défaut).
+- **Sécurité** : le traqueur ne dit qu'un numéro de version, vérifié strictement (`X.Y.Z`, jamais
+  inférieur à la version installée). L'app construit elle-même l'adresse du fichier à partir du dépôt
+  épinglé (`github.com/amintt2/myriad/releases/download/vX.Y.Z/…`) et vérifie son SHA-256 avec le
+  `SHA256SUMS.txt` de la même version sur GitHub (jamais celui du traqueur) ; en cas d'écart, le fichier
+  est supprimé. Les versions ne sont pas encore signées (signature détachée prévue : `SUMS_SIGNING_KEY`
+  dans `myriad/updater.py`).
+- Qui se met à jour seul : l'installateur Windows (installation silencieuse Inno Setup), l'app macOS
+  dans *Applications* (l'image disque est montée, le paquet `.app` remplacé), l'AppImage Linux (fichier
+  remplacé). La version portable Windows, le `.deb`, le `.tar.gz` et les installations depuis les sources
+  ou pip reçoivent seulement l'avis et le lien.
+- En ligne de commande : `myriad update --check` (vérifier) ou `myriad update`.
+- Sur macOS, une app lancée depuis l'image disque ou depuis *Téléchargements* (copie isolée par
+  Gatekeeper) ne peut pas se remplacer : la déplacer dans *Applications*.
 
 ### Depuis les sources
 
@@ -558,6 +587,11 @@ d'encadrement ; cache d'un an pour les fichiers appelés avec le hachage courant
 la page à chaque visite. Rien ne change sous `/v1/`. `--no-landing` la désactive. Captures :
 `docs/landing-*.png` (`scripts/screenshots.py --landing http://127.0.0.1:8590/`, avec
 `scripts/demo_swarm.py --tracker-port 8590`) ; images de la page : `scripts/landing_images.py`.
+
+Le traqueur annonce aux nœuds la dernière version de l'app (voir *Mises à jour*) : il suit les versions
+publiées de `amintt2/myriad` sur GitHub, toutes les `MYRIAD_RELEASE_POLL_S` secondes (600 par défaut). Un
+autre dépôt : `MYRIAD_RELEASE_REPO=propriétaire/nom` (ou `--release-repo`) ; `MYRIAD_RELEASE_REPO=off`
+désactive le suivi. Les nœuds ne téléchargent de toute façon que depuis leur dépôt épinglé.
 
 ## Tests
 

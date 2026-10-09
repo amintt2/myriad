@@ -61,12 +61,19 @@ Download the latest build from **[Releases](https://github.com/amintt2/myriad/re
 | System | File |
 | --- | --- |
 | Windows 10/11 x64 | `Myriad-Setup-X.Y.Z.exe` (per-user, no admin rights) or the portable `.zip` |
-| macOS 11+ Apple Silicon / Intel | `Myriad-X.Y.Z-arm64.dmg` / `Myriad-X.Y.Z-x86_64.dmg` |
+| macOS 13.3+ Apple Silicon / Intel | `Myriad-X.Y.Z-arm64.dmg` / `Myriad-X.Y.Z-x86_64.dmg` |
 | Linux x86_64 | `.AppImage`, `.deb` or `.tar.gz` |
 
 Builds are **not code-signed yet**. Windows SmartScreen: *More info* → *Run anyway*. macOS Gatekeeper:
 right-click the app → *Open* (or *System Settings* → *Privacy & Security* → *Open Anyway*). Checksums
 are in `SHA256SUMS.txt`.
+
+**Updates.** The tracker watches GitHub once for the whole network and tells every node when a new
+version is out, so PCs never poll the GitHub API themselves. The app downloads the update in the
+background, checks its SHA-256 against the release's own `SHA256SUMS.txt` (the URL is always built from
+this repository, never taken from the tracker) and offers *Update and restart*. The Windows installer,
+the macOS app in *Applications* and the Linux AppImage update themselves; the portable zip, `.deb`,
+`.tar.gz` and source installs get a notice with a link. Details: [app/README.md](app/README.md#mises-à-jour).
 
 From source (Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/)):
 

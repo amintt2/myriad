@@ -39,6 +39,7 @@ class NodeRuntime:
         self._server: uvicorn.Server | None = None
         self._lock = asyncio.Lock()
         self._attached = False
+        self.update_listener = None  # callable (version, source): versions announced by the tracker
 
     @classmethod
     def attached(cls, node, gateway, config: Config, home: Path | None) -> "NodeRuntime":
@@ -77,6 +78,7 @@ class NodeRuntime:
                 self.state, self.error = "erreur", str(e)
                 raise RuntimeError(self.error) from None
             self.config, self.node, self.gateway, self.engine = cfg, node, gateway, engine
+            node.on_update = self.update_listener
             self._tasks = [asyncio.create_task(node.run(), name="node"),
                            asyncio.create_task(self._start_engine(), name="engine")]
             if self.gateway_server:
@@ -108,6 +110,17 @@ class NodeRuntime:
             log.error("llama-server n'a pas démarré : %s", e)
 
     async def stop(self) -> None:
+        """Stop everything. Cancelling the caller does not cut the stop in the middle (that would leave
+        the node half-stopped and llama-server running): the stop completes, then the cancellation
+        goes on."""
+        work = asyncio.ensure_future(self._stop())
+        try:
+            await asyncio.shield(work)
+        except asyncio.CancelledError:
+            await asyncio.wait({work})
+            raise
+
+    async def _stop(self) -> None:
         async with self._lock:
             node, gateway, engine, tasks = self.node, self.gateway, self.engine, self._tasks
             if node is None:

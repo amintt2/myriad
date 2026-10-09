@@ -96,7 +96,8 @@ parallel unless one needs the result of another (depends_on). Answer with ONE JS
 {"subtasks": [{"id": "short-id", "role": "what this agent is", "skill": "one tag or null", "prompt": "complete \
 instructions for this sub-task", "depends_on": ["ids of sub-tasks whose results it needs"], "uses_context": \
 [indices of the context items it needs], "kind": "code or text"}], "combine": "concat or merge"}
-Rules: at most {max} sub-tasks; ids are letters, digits, - or _; no other field; "kind" is "code" when the \
+Rules: at most {max} sub-tasks; ids are letters, digits, - or _ ("plan" and "merge" are reserved ids: \
+never use them); no other field; "kind" is "code" when the \
 sub-task must produce code; skills available on the network: {skills}."""
 MERGE_SYSTEM = ("You are the final agent of Myriad. Sub-agents solved parts of a task; combine their results into "
                 "one coherent, complete answer to the task. Keep code blocks intact; resolve contradictions.")
@@ -249,12 +250,11 @@ def parse_request(body: dict, config_commands: dict | None = None) -> RunRequest
         req = RunRequest.model_validate(body)
     except ValidationError as e:
         raise AgentsError(400, f"requête invalide : {_err(e)}") from e
+    contexts = [load_context(c, f"context[{i}]") for i, c in enumerate(req.context)]
     if req.plan != "auto":
-        validate_plan(req.plan, req, allowed_commands(config_commands, req.allow_commands))
+        validate_plan(req.plan, req, allowed_commands(config_commands, req.allow_commands), contexts)
     elif req.verify is not None and req.verify.run not in allowed_commands(config_commands, req.allow_commands):
         raise AgentsError(400, f"commande de vérification non autorisée : {req.verify.run}")
-    for i, c in enumerate(req.context):
-        load_context(c, f"context[{i}]")
     return req
 
 
@@ -270,9 +270,14 @@ def allowed_commands(config_commands: dict | None, request_commands: dict | None
     return out
 
 
-def validate_plan(subtasks: list[SubTask], req: RunRequest, allowed: dict) -> list[str]:
+def validate_plan(subtasks: list[SubTask], req: RunRequest, allowed: dict,
+                  contexts: list[str] | None = None) -> list[str]:
     """Ids unique, dependencies known and acyclic, budget respected, verification commands allowed,
-    context sizes within limits. Returns the ids in a topological order (plan order kept)."""
+    context sizes within limits. Returns the ids in a topological order (plan order kept).
+    `contexts`: the texts of the request's context items, if already loaded."""
+    if contexts is None:
+        contexts = [load_context(c, f"context[{i}]") for i, c in enumerate(req.context)]
+    globals_ = contexts
     if len(subtasks) > req.budget.max_subtasks:
         raise AgentsError(400, f"trop de sous-tâches : {len(subtasks)} > {req.budget.max_subtasks} (budget)")
     ids = [s.id for s in subtasks]
@@ -294,7 +299,9 @@ def validate_plan(subtasks: list[SubTask], req: RunRequest, allowed: dict) -> li
                                    "(à déclarer dans verify_commands ou allow_commands)")
         if sum(1 for _ in [s.model, s.family, s.skill] if _) > 1:
             raise AgentsError(400, f"{s.id} : une seule route parmi skill, family, model")
-        size = len(s.prompt) + sum(len(load_context(c, f"{s.id}.context")) for c in s.context)
+        # Everything the sub-task reads: its prompt, its own context and the global items it uses.
+        size = (len(s.prompt) + sum(len(load_context(c, f"{s.id}.context")) for c in s.context)
+                + sum(len(globals_[i]) for i in set(s.uses_context) if i < len(globals_)))
         if size > MAX_CONTEXT_CHARS:
             raise AgentsError(400, f"{s.id} : consigne et contexte trop longs ({size} > {MAX_CONTEXT_CHARS} caractères)")
     order = topological(subtasks)
@@ -436,8 +443,97 @@ def run_verification(argv: list[str], text: str, spec: VerifySpec, cancel=None) 
         return {"passed": code == 0, "exit_code": code, "error": None, "ms": ms(), "output": out}
     except AgentsError as e:
         return {"passed": False, "exit_code": None, "error": e.message, "ms": 0.0, "output": ""}
+    except (OSError, ValueError) as e:  # copy or write failed (e.g. the target is a directory): a verdict
+        return {"passed": False, "exit_code": None, "error": f"préparation impossible : {e}"[:300], "ms": 0.0,
+                "output": ""}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+class _ProcessGroup:
+    """Every process a verification command starts, killed together at the end, success included.
+    Unix: its own session / process group (start_new_session). Windows: a Job Object (kill on close),
+    the command being created suspended and resumed only once it is in the job, so that none of its
+    children can start outside it. Without a job (very old Windows), taskkill /T of the tree."""
+
+    def __init__(self) -> None:
+        self.job = None
+
+    def popen_kwargs(self) -> dict:
+        if os.name != "nt":
+            return {"start_new_session": True}
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        self.job = _win_job()
+        if self.job is not None:
+            flags |= 0x00000004  # CREATE_SUSPENDED
+        return {"creationflags": flags}
+
+    def attach(self, proc: subprocess.Popen) -> None:
+        if os.name != "nt" or self.job is None:
+            return
+        import ctypes
+        handle = ctypes.c_void_p(int(proc._handle))
+        try:
+            if not ctypes.windll.kernel32.AssignProcessToJobObject(ctypes.c_void_p(self.job), handle):
+                self.close()  # not contained: the tree kill remains
+        finally:
+            ctypes.windll.ntdll.NtResumeProcess(handle)  # created suspended: always resumed
+
+    def kill(self, proc: subprocess.Popen) -> None:
+        if os.name == "nt" and self.job is not None:
+            import ctypes
+            ctypes.windll.kernel32.TerminateJobObject(ctypes.c_void_p(self.job), 1)
+        elif os.name != "nt":
+            try:
+                os.killpg(proc.pid, 9)  # the group outlives its leader while a member is alive
+            except (OSError, ProcessLookupError):
+                pass
+        elif proc.poll() is None:  # never a taskkill of an exited process: its pid may be reused
+            _kill_tree(proc)
+
+    def close(self) -> None:
+        if self.job is not None:
+            import ctypes
+            ctypes.windll.kernel32.CloseHandle(ctypes.c_void_p(self.job))  # kill on close: what is left dies
+            self.job = None
+
+
+def _win_job():
+    """A Windows Job Object whose processes are all killed when it is closed (None if unavailable)."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class BASIC(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class IO(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("ReadOperationCount", "WriteOperationCount",
+                                                         "OtherOperationCount", "ReadTransferCount",
+                                                         "WriteTransferCount", "OtherTransferCount")]
+
+        class EXTENDED(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", BASIC), ("IoInfo", IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        k32 = ctypes.windll.kernel32
+        k32.CreateJobObjectW.restype = ctypes.c_void_p
+        job = k32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+        info = EXTENDED()
+        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not k32.SetInformationJobObject(ctypes.c_void_p(job), 9, ctypes.byref(info), ctypes.sizeof(info)):
+            k32.CloseHandle(ctypes.c_void_p(job))
+            return None
+        return job
+    except Exception:  # noqa: BLE001 - no job object: the tree kill remains
+        return None
 
 
 def _kill_tree(proc: subprocess.Popen) -> None:
@@ -459,13 +555,30 @@ def _kill_tree(proc: subprocess.Popen) -> None:
 
 def _run_bounded(cmd: list[str], cwd: Path, timeout_s: float, cancel=None) -> tuple[int | None, str, str | None]:
     """Run without a shell; keep only the last MAX_OUTPUT_CHARS of stdout+stderr (a noisy command
-    cannot fill the memory); kill the process tree at the timeout or when `cancel` is set.
-    Returns (exit code, output tail, None | "timeout" | "cancelled")."""
+    cannot fill the memory); kill the process tree at the timeout or when `cancel` is set, and in any
+    case once the command is over. Returns (exit code, output tail, None | "timeout" | "cancelled")."""
+    group = _ProcessGroup()
+    try:
+        proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, **group.popen_kwargs())
+    except BaseException:
+        group.close()
+        raise
+    try:
+        group.attach(proc)
+        return _supervise(proc, group, timeout_s, cancel)
+    finally:
+        # Always, success included: no process the command started outlives the verification
+        # (outside the timeout and the concurrency limit).
+        group.kill(proc)
+        group.close()
+
+
+def _supervise(proc: subprocess.Popen, group: "_ProcessGroup", timeout_s: float,
+               cancel=None) -> tuple[int | None, str, str | None]:
     import collections
     import threading
 
-    kw: dict = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if os.name == "nt" else {"start_new_session": True}
-    proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kw)
     tail: collections.deque = collections.deque()
     size = [0]
 
@@ -491,7 +604,7 @@ def _run_bounded(cmd: list[str], cwd: Path, timeout_s: float, cancel=None) -> tu
         elif time.monotonic() > end:
             why = "timeout"
         if why:
-            _kill_tree(proc)
+            group.kill(proc)
             try:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -504,8 +617,8 @@ def _run_bounded(cmd: list[str], cwd: Path, timeout_s: float, cancel=None) -> tu
                 pass
         else:
             reader.join(timeout=0.1)
-    # A leftover child that survived the kill (Windows: once its parent is gone, it is out of reach of
-    # the tree kill) may still hold the pipe: its reader, a daemon thread, is left to finish on its own.
+    # A leftover child out of reach (no job object) may still hold the pipe: its reader, a daemon
+    # thread, is left to finish on its own.
     reader.join(timeout=2)
     out = b"".join(tail).decode("utf-8", "replace")[-MAX_OUTPUT_CHARS:]
     return (None if why else proc.returncode), out, why
@@ -553,6 +666,25 @@ def pick_candidate(cands: list[dict]) -> int:
 
 
 # ======================================================================== execution
+CUT_MARK = "\n…[tronqué]"
+
+
+def _fit(texts: list[str], room: int) -> list[str]:
+    """Cut texts so that their total length is at most `room`: equal shares, the room a short text
+    does not use going to the longer ones; a cut text ends with CUT_MARK."""
+    out = list(texts)
+    left, todo = max(0, room), sorted(range(len(texts)), key=lambda i: len(texts[i]))
+    while todo:
+        share = left // len(todo)
+        i = todo.pop(0)
+        if len(texts[i]) <= share:
+            left -= len(texts[i])
+            continue
+        out[i] = texts[i][:max(0, share - len(CUT_MARK))] + CUT_MARK if share >= len(CUT_MARK) else ""
+        left -= len(out[i])
+    return out
+
+
 @dataclass
 class SubState:
     spec: SubTask
@@ -570,6 +702,7 @@ class SubState:
     escalated: bool = False
     error: str | None = None
     inputs: list | None = None  # the merge: the sub-tasks it combines (any number)
+    truncated: list | None = None  # contexts / dependency results cut to fit the prompt
 
     def public(self, t0: float) -> dict:
         s = self.spec
@@ -581,7 +714,7 @@ class SubState:
                 "route": self.route, "tokens": self.tokens, "started_ms": ms(self.started), "ended_ms": ms(self.ended),
                 "ms": round((self.ended - self.started) * 1000, 1) if self.started and self.ended else None,
                 "attempts": self.attempts, "candidates": self.candidates, "verify": self.verify,
-                "escalated": self.escalated, "error": self.error}
+                "escalated": self.escalated, "error": self.error, "truncated": self.truncated}
 
 
 class AgentRun:
@@ -603,6 +736,7 @@ class AgentRun:
         self.tokens_reserved = 0
         self.plan_source = "auto" if req.plan == "auto" else "explicit"
         self.planner: dict | None = None
+        self._planner_state: SubState | None = None  # live state behind `planner` (auto plans)
         self.merge_state: SubState | None = None
         self.combine = req.combine or "concat"
         self._jobs: dict[str, tuple] = {}  # job id -> (sub-task id, attempt)
@@ -676,11 +810,15 @@ class AgentRun:
                 await asyncio.wait_for(self._execute(), max(1.0, self.deadline - time.monotonic()))
             except asyncio.TimeoutError:
                 status, error = "timeout", f"délai de la tâche dépassé ({self.req.budget.deadline_s:g} s)"
-                for st in self.subs.values():
+                # Nothing may look active in the final result: the sub-tasks, the planner, the merge.
+                specials = [x for x in (self._planner_state, self.merge_state) if x is not None]
+                for st in [*self.subs.values(), *specials]:
                     if st.status in ("pending", "running", "verifying", "escalating"):
                         st.status = "cancelled" if st.status != "pending" else "skipped"
                         st.error = st.error or "délai dépassé"
                         st.ended = st.ended or time.perf_counter()
+                if self._planner_state is not None:
+                    self.planner = self._planner_state.public(self.t0)
             except AgentsError as e:
                 status, error = "failed", e.message
         finally:
@@ -694,7 +832,7 @@ class AgentRun:
             subtasks = await self._plan()
         else:
             subtasks = list(self.req.plan)
-        self.order = validate_plan(subtasks, self.req, self.allowed)
+        self.order = validate_plan(subtasks, self.req, self.allowed, self.contexts)
         lv = levels(subtasks)
         for s in subtasks:
             self.subs[s.id] = SubState(spec=s, level=lv[s.id])
@@ -748,21 +886,30 @@ class AgentRun:
             task = self.req.task.strip()
             parts.append(f"Overall task (for context only):\n{task[:2000]}{'…' if len(task) > 2000 else ''}")
         parts.append(f"Your sub-task{f' ({s.role})' if s.role else ''}:\n{s.prompt}")
-        for i in s.uses_context:
-            label = self.req.context[i].label or self.req.context[i].file or f"context {i}"
-            parts.append(f"## Context: {label}\n{self.contexts[i]}")
+        ctx: list[tuple[str, str]] = []
+        for i in dict.fromkeys(s.uses_context):
+            if i < len(self.contexts):
+                label = self.req.context[i].label or self.req.context[i].file or f"context {i}"
+                ctx.append((f"## Context: {label}\n", self.contexts[i]))
         for c in s.context:
-            label = c.label or c.file or "context"
-            parts.append(f"## Context: {label}\n{load_context(c, s.id)}")
-        fixed = sum(len(p) + 2 for p in parts)
-        deps = [self.subs[d] for d in s.depends_on]
+            ctx.append((f"## Context: {c.label or c.file or 'context'}\n", load_context(c, s.id)))
+        deps = [(f"## Result of sub-task {d.spec.id}{f' ({d.spec.role})' if d.spec.role else ''}:\n", d.text or "")
+                for d in (self.subs[x] for x in s.depends_on)]
+        # Room for the bodies once the fixed parts and the headers are counted. When everything does not
+        # fit, the dependencies' results keep at least half of it (a dependent sub-task needs them), the
+        # contexts the rest; unused room goes to the other side. Every cut is marked.
+        fixed = sum(len(p) + 2 for p in parts) + sum(len(h) + 2 for h, _ in ctx + deps)
         room = max(0, MAX_CONTENT_CHARS - 200 - fixed)
-        each = room // max(1, len(deps))
-        for d in deps:
-            text = d.text or ""
-            if len(text) > each:
-                text = text[:max(0, each - 40)] + "\n…[tronqué]"
-            parts.append(f"## Result of sub-task {d.spec.id}{f' ({d.spec.role})' if d.spec.role else ''}:\n{text}")
+        ctx_need, dep_need = sum(len(t) for _, t in ctx), sum(len(t) for _, t in deps)
+        if ctx_need + dep_need <= room:
+            ctx_room, dep_room = ctx_need, dep_need
+        else:
+            dep_room = min(dep_need, max(room // 2, room - ctx_need))
+            ctx_room = room - dep_room
+        items = ctx + deps
+        fitted = _fit([t for _, t in ctx], ctx_room) + _fit([t for _, t in deps], dep_room)
+        parts += [h + t for (h, _), t in zip(items, fitted)]
+        st.truncated = [h.strip("#: \n") for (h, t0), t in zip(items, fitted) if t != t0] or None
         user = "\n\n".join(parts)[:MAX_CONTENT_CHARS]
         system = s.system or (SUBAGENT_SYSTEM + (f" Your role: {s.role}." if s.role else ""))
         return [{"role": "system", "content": system[:MAX_CONTENT_CHARS]}, {"role": "user", "content": user}]
@@ -897,7 +1044,16 @@ class AgentRun:
             return None, [None] * len(cands)
         st.status = "verifying"
         self.emit("verifying", subtask=st.spec.id, attempt=attempt, command=spec.run, candidates=len(cands))
-        verdicts = await asyncio.gather(*(verify_async(argv, c["text"] or "", spec) for c in cands))
+        # Every verification ends before this returns (an error in one never abandons the others, which
+        # would keep running outside the run); an error becomes that candidate's failed verdict.
+        results = await asyncio.gather(*(verify_async(argv, c["text"] or "", spec) for c in cands),
+                                       return_exceptions=True)
+        for r in results:
+            if isinstance(r, asyncio.CancelledError):
+                raise r
+        verdicts = [r if isinstance(r, dict) else
+                    {"passed": False, "exit_code": None, "error": f"vérification impossible : {type(r).__name__}: {r}"[:300],
+                     "ms": 0.0, "output": ""} for r in results]
         for i, (c, v) in enumerate(zip(cands, verdicts)):
             self.emit("verified", subtask=st.spec.id, attempt=attempt, candidate=i, node_id=c.get("node_id"),
                       model=c.get("model"), passed=v["passed"], exit_code=v["exit_code"], ms=v["ms"],
@@ -926,6 +1082,7 @@ class AgentRun:
         state = SubState(spec=SubTask(id="plan", prompt="plan", role="orchestrator", skill=r.planner.skill,
                                       family=r.planner.family, model=r.planner.model), level=-1)
         state.status, state.started = "running", time.perf_counter()
+        self._planner_state = state
         self.planner = {"status": "running"}
         self.emit("planning", planner=state.public(self.t0))
         last_err = None
@@ -942,11 +1099,16 @@ class AgentRun:
             state.peer = {"node_id": c.get("node_id"), "model": c.get("model"), "family": c.get("family")}
             try:
                 plan = parse_auto_plan(ans.text, r.budget.max_subtasks)
-                if topological([SubTask(id=x.id, prompt=x.prompt, depends_on=x.depends_on) for x in plan.subtasks]) is None:
-                    raise ValueError("les dépendances forment un cycle")
-                ids = {x.id for x in plan.subtasks}
-                if len(ids) != len(plan.subtasks) or any(d not in ids for x in plan.subtasks for d in x.depends_on):
-                    raise ValueError("identifiants en double ou dépendance inconnue")
+                subtasks = [SubTask(id=x.id, prompt=x.prompt, role=x.role, skill=x.skill, depends_on=x.depends_on,
+                                    uses_context=[i for i in x.uses_context if i < len(r.context)],
+                                    verify=r.verify if x.kind == "code" else None, k=r.auto_k)
+                            for x in plan.subtasks]
+                # The same checks as the run applies (reserved ids, cycles, sizes…): an invalid plan gets
+                # its second chance here, not a failure after the planner was marked ok.
+                try:
+                    validate_plan(subtasks, r, self.allowed, self.contexts)
+                except AgentsError as e:
+                    raise ValueError(e.message) from None
             except ValueError as e:
                 last_err = str(e)
                 messages = messages + [{"role": "assistant", "content": ans.text[:MAX_CONTENT_CHARS]},
@@ -958,9 +1120,7 @@ class AgentRun:
             if r.combine is None and plan.combine:
                 self.combine = plan.combine
             self.emit("planning", planner=self.planner)
-            return [SubTask(id=x.id, prompt=x.prompt, role=x.role, skill=x.skill, depends_on=x.depends_on,
-                            uses_context=[i for i in x.uses_context if i < len(r.context)],
-                            verify=r.verify if x.kind == "code" else None, k=r.auto_k) for x in plan.subtasks]
+            return subtasks
         state.status, state.ended, state.error = "failed", time.perf_counter(), last_err
         self.planner = state.public(self.t0)
         self.emit("planning", planner=self.planner)

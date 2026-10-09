@@ -5,6 +5,8 @@
   const { t } = window.I18N;
   const $ = (id) => document.getElementById(id);
   const famColor = window.NetViz.familyColor;
+  // a key sent by the network (model, family): own properties only ("constructor" is just a name)
+  const own = (o, k) => (o && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
   const S = { status: null, network: null, setup: null, wizardOpen: false, wizardDismissed: false, seenJobs: new Map(),
               limitsDirty: false, prevCounters: {}, chatBusy: false, hint: "" };
 
@@ -63,14 +65,14 @@
       if (u < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-    const card = node.closest(".stat"); if (card) { card.classList.remove("bump"); void card.offsetWidth; card.classList.add("bump"); }
+    const card = node.closest(".fig"); if (card) { card.classList.remove("bump"); void card.offsetWidth; card.classList.add("bump"); }
   }
 
   // ---------------------------------------------------------------- theme & language
   function applyTheme(th) {
     document.documentElement.dataset.theme = th;
     try { localStorage.setItem("myriad.theme", th); } catch (e) { /* ignore */ }
-    if (viz) viz.readTheme();
+    if (viz) { viz.readTheme(); renderAll(); }  // family colours have a light and a dark variant
   }
   let theme = "dark";
   try { theme = localStorage.getItem("myriad.theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"); } catch (e) { /* ignore */ }
@@ -119,7 +121,7 @@
         const n = S.status && S.status.node;
         tip.append(el("b", { text: t("viz.you") }), el("div", { text: (n && n.model) || t("node.client_only") }));
       } else {
-        const rel = S.network && S.network.reliability && S.network.reliability[p.model];
+        const rel = S.network && own(S.network.reliability, p.model);
         tip.append(el("b", { text: p.model }),
           el("div", { text: `${p.family || "?"} · ${p.node_id.slice(0, 8)}` }),
           el("div", { text: `${t("peers.load")} ${p.busy}/${p.max_parallel} · ${p.accepting ? t("peers.available") : t("peers.paused")}` }),
@@ -168,7 +170,7 @@
     else m.append(t("node.client_only"));
     $("node-sub").textContent = n.model ? t("node.params", { p: fmt(n.params_b), f: n.family || "?" }) : t("node.no_model");
     const hw = (S.setup && S.setup.hardware) || S.hardware;
-    $("node-gpu").textContent = hw ? (hw.best_gpu ? `${hw.best_gpu.name}${hw.best_gpu.vram_gb ? ` · ${fmt(hw.best_gpu.vram_gb)} ${t("unit.gb")}` : ""}` : hw.cpu) : "–";
+    $("node-gpu").textContent = hw ? (hw.best_gpu ? `${hw.best_gpu.name}${hw.best_gpu.vram_gb ? ` · ${fmt(hw.best_gpu.vram_gb)}\u00a0${t("unit.gb")}` : ""}` : hw.cpu) : "–";
     $("node-engine").textContent = engineText(n);
     $("node-jobs").textContent = t("node.jobs_v", { r: n.running, m: n.max_parallel });
     $("node-served").textContent = t("node.served_v", { s: fmt(n.stats.served, 0), f: fmt(n.stats.failed, 0), t: fmt(n.stats.tokens, 0) });
@@ -201,7 +203,7 @@
       ul.append(el("li", {},
         el("time", { text: when }), el("span", { class: `tag ${cls}`, text: t(`status.${j.status}`) }),
         el("span", { text: t("activity.job", { id: j.job_id.slice(0, 8), who: j.requester }) }),
-        el("span", { class: "hint", text: `${extra}${j.ms !== undefined ? ` · ${fmt(j.ms, 0)} ms` : ""}` })));
+        el("span", { class: "hint", text: [extra, j.ms !== undefined ? `${fmt(j.ms, 0)} ms` : ""].filter(Boolean).join(" · ") })));
     }
   }
   function trackJobs() {
@@ -228,6 +230,7 @@
     const fams = st && st.families ? Object.keys(st.families) : [];
     countTo($("s-fam"), nw ? fams.length : null, 0);
     $("s-fam-sub").textContent = fams.slice(0, 4).join(" · ");
+    $("s-fam-sub").title = fams.join(" · ");
     countTo($("s-ntps"), st && st.tokens_per_s !== null && st.tokens_per_s !== undefined ? st.tokens_per_s : null, 1);
     $("s-ntps-sub").textContent = st && st.partial ? t("stat.partial") : st && st.jobs_per_min !== undefined ? t("stat.jobs_min", { n: fmt(st.jobs_per_min, 1) }) : "";
     countTo($("s-mtps"), n ? n.tokens_per_s : null, 1);
@@ -242,19 +245,23 @@
   function renderLegend() {
     const nw = S.network, lg = $("legend"); lg.replaceChildren();
     if (!nw) return;
-    const fams = {};
-    for (const p of nw.peers) if (p.node_id !== nw.me) fams[p.family || "?"] = (fams[p.family || "?"] || 0) + 1;
-    for (const [f, c] of Object.entries(fams).sort((a, b) => b[1] - a[1])) {
-      lg.append(el("span", { class: "chip" }, el("i", { style: { background: famColor(f) } }), `${f} · ${c}`));
+    const fams = new Map();  // a Map: a family named "constructor" or "__proto__" is just a name
+    for (const p of nw.peers) if (p.node_id !== nw.me) fams.set(p.family || "?", (fams.get(p.family || "?") || 0) + 1);
+    for (const [f, c] of [...fams].sort((a, b) => b[1] - a[1])) {
+      lg.append(el("span", { class: "chip" }, el("i", { style: { background: famColor(f) } }), f, el("b", { text: String(c) })));
     }
-    $("viz-empty").hidden = Object.keys(fams).length > 0;
+    $("viz-empty").hidden = fams.size > 0;
   }
   function renderPeersTable() {
     const nw = S.network, tb = $("peers"); tb.replaceChildren();
+    if (!nw && !S.netTried) {  // first load: placeholder rows rather than "no peer"
+      for (let i = 0; i < 4; i++) tb.append(el("tr", { class: "skel" }, ...Array.from({ length: 7 }, () => el("td", {}, el("span", { class: "skeleton" })))));
+      return;
+    }
     if (!nw || !nw.peers.length) { tb.append(el("tr", {}, el("td", { colspan: "7", class: "empty", text: t("peers.none") }))); return; }
     const rows = [...nw.peers].sort((a, b) => (a.family || "").localeCompare(b.family || "") || a.model.localeCompare(b.model));
     for (const p of rows) {
-      const rel = nw.reliability[p.model];
+      const rel = own(nw.reliability, p.model);
       const load = p.max_parallel ? Math.min(1, p.busy / p.max_parallel) : 0;
       tb.append(el("tr", { class: p.node_id === nw.me ? "me" : "" },
         el("td", { class: "mono", text: p.node_id.slice(0, 10) + (p.node_id === nw.me ? ` (${t("peers.you")})` : "") }),
@@ -296,7 +303,89 @@
       $("tracker-form").hidden = true; S.downSince = null; toast(t("tracker.saved")); refresh();
     } catch (e) { toast(t("err.prefix", { m: e.message })); }
   });
+  // ---------------------------------------------------------------- app updates
+  function dismissedUpdate() { try { return localStorage.getItem("myriad.update.later"); } catch (e) { return null; } }
+  function renderUpdate() {
+    const u = S.status && S.status.update, ban = $("update-banner"), card = $("upd-card");
+    card.hidden = !u;
+    if (!u) { ban.hidden = true; return; }
+    // About card: version, state, settings
+    $("upd-cur").textContent = t("upd.current", { v: u.current });
+    const st = $("upd-state");
+    st.textContent = t(`upd.s.${u.state}`, { v: u.latest || "" });
+    st.className = "upd-pill " + ({ up_to_date: "ok", ready: "ok", available: "info", downloading: "info", error: "bad" }[u.state] || "");
+    if (!S.updDirty) { $("upd-auto").checked = !!u.auto_update; $("upd-quit").checked = !!u.install_on_quit; }
+    $("upd-quit").closest(".switch-row").hidden = !u.can_apply && u.kind === "source";
+    const rs = $("upd-reason"); rs.hidden = !(u.available && !u.can_apply);
+    if (!rs.hidden) rs.textContent = t("upd.manual", { why: t(`upd.why.${u.kind}`) });
+    // Banner
+    const show = u.available && (u.state !== "available" || dismissedUpdate() !== u.latest || S.updShown === u.latest);
+    if (!show || u.state === "up_to_date") { ban.hidden = true; return; }
+    if (ban.hidden) S.updShown = u.latest;
+    ban.hidden = false;
+    ban.classList.toggle("is-ready", u.state === "ready");
+    ban.classList.toggle("is-error", u.state === "error");
+    const p = u.progress, v = u.latest;
+    let title = t("upd.available", { v }), text = "";
+    if (S.updRestarting || u.state === "installing") { title = t("upd.installing"); text = t("upd.restarting"); }
+    else if (u.state === "downloading") {
+      title = p && p.state === "vérification" ? t("upd.verifying") : t("upd.downloading", { v });
+      if (p && p.total) text = t("upd.progress", { done: fmtBytes(p.done), total: fmtBytes(p.total) }) + (p.eta_s ? ` · ${t("dl.eta", { s: fmtDur(p.eta_s) })}` : "");
+    } else if (u.state === "ready") {
+      title = t("upd.ready", { v }); text = u.pending === "quit" ? t("upd.ready_quit") : t("upd.ready_sub");
+    } else if (u.state === "error") { text = t("upd.error", { e: u.error || "?" }); }
+    else if (!u.can_apply) { text = t("upd.manual", { why: t(`upd.why.${u.kind}`) }); }
+    $("upd-title").textContent = title; $("upd-text").textContent = text;
+    $("upd-notes").href = u.notes_url || "#"; $("upd-notes").hidden = !u.notes_url;
+    $("upd-open").href = u.notes_url || "#";
+    const bar = $("upd-bar"), pct = p && p.total ? Math.min(100, (100 * p.done) / p.total) : 0;
+    bar.hidden = u.state !== "downloading";
+    $("upd-fill").style.width = `${pct.toFixed(1)}%`;
+    $("upd-apply").hidden = !(u.state === "ready" && u.can_apply) || S.updRestarting;
+    $("upd-download").hidden = !(u.can_apply && (u.state === "available" || u.state === "error"));
+    $("upd-open").hidden = u.can_apply;
+    $("upd-dismiss").hidden = u.state !== "available";
+  }
+  $("upd-dismiss").addEventListener("click", () => {
+    const u = S.status && S.status.update; if (!u) return;
+    try { localStorage.setItem("myriad.update.later", u.latest); } catch (e) { /* ignore */ }
+    S.updShown = null; $("update-banner").hidden = true;
+  });
+  async function updateCall(path, body) {
+    const r = await api(path, body === undefined ? {} : body);
+    if (S.status) S.status.update = r.update || r;
+    renderUpdate();
+    return r;
+  }
+  $("upd-apply").addEventListener("click", async () => {
+    $("upd-apply").disabled = true;
+    try { await updateCall("/api/update/apply"); S.updRestarting = true; renderUpdate(); toast(t("upd.restarting")); }
+    catch (e) { toast(t("err.prefix", { m: e.message })); }
+    finally { $("upd-apply").disabled = false; }
+  });
+  $("upd-download").addEventListener("click", async () => {
+    try { await updateCall("/api/update/download"); } catch (e) { toast(t("err.prefix", { m: e.message })); }
+  });
+  $("upd-check").addEventListener("click", async () => {
+    const b = $("upd-check"), msg = $("upd-msg"); b.disabled = true; msg.textContent = t("upd.s.checking");
+    try {
+      const r = await updateCall("/api/update/check");
+      msg.textContent = r.state === "error" ? t("upd.error", { e: r.error }) : r.available ? t("upd.available", { v: r.latest }) : t("upd.checked");
+      if (r.available) { S.updShown = r.latest; renderUpdate(); }
+    } catch (e) { msg.textContent = t("err.prefix", { m: e.message }); }
+    finally { b.disabled = false; }
+  });
+  for (const [id, key] of [["upd-auto", "auto_update"], ["upd-quit", "install_on_quit"]]) {
+    $(id).addEventListener("change", async (ev) => {
+      S.updDirty = true;
+      try { await updateCall("/api/update/settings", { [key]: ev.target.checked }); $("upd-msg").textContent = t("saved"); }
+      catch (e) { $("upd-msg").textContent = t("err.prefix", { m: e.message }); }
+      finally { S.updDirty = false; }
+    });
+  }
+
   function renderAll() {
+    renderUpdate();
     renderTrackerBanner();
     renderConn(); renderNode(); renderActivity(); renderCounters(); renderLegend(); renderPeersTable(); renderAbout();
   }
@@ -330,10 +419,12 @@
   // ---------------------------------------------------------------- polling
   async function refresh() {
     try { S.status = await api("/api/status"); } catch (e) { S.status = null; renderConn(); return; }
+    if (!S.status.node) S.netTried = true;  // no node: no network to wait for
     const s = S.status;
     if (!s.node && s.runtime && !s.runtime.configured && !S.wizardOpen && !S.wizardDismissed) openWizard(0);
     if (s.node) {
       try { S.network = await api("/api/network"); } catch (e) { /* tracker unreachable: state shows it */ }
+      S.netTried = true;
       if (S.network) {
         viz.setPeers(S.network.peers, S.network.me);
         const st = S.network.stats;
@@ -349,12 +440,23 @@
   }
 
   // ---------------------------------------------------------------- chat
+  // A conversation: each question becomes a turn (question, answer, then a collapsible "how the swarm
+  // decided" panel with the vote, the certificate and the peers asked). Only the last turn is live.
   const EX = ["chat.ex1", "chat.ex2", "chat.ex3"];
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function renderExamples() {
     const box = $("examples"); box.replaceChildren();
-    for (const k of EX) box.append(el("button", { type: "button", text: t(k), onclick: () => { $("question").value = t(k); $("question").focus(); } }));
+    for (const k of EX) {
+      box.append(el("button", { type: "button", text: t(k), onclick: () => { $("question").value = t(k); autosize(); $("question").focus(); } }));
+    }
   }
   renderExamples();
+  function autosize() {
+    const q = $("question");
+    q.style.height = "auto";
+    q.style.height = `${Math.min(220, q.scrollHeight)}px`;
+  }
+  $("question").addEventListener("input", autosize);
   $("k").addEventListener("input", (e) => { $("k-out").value = e.target.value; });
   document.querySelectorAll("#hint-seg button").forEach((b) => b.addEventListener("click", () => {
     S.hint = b.dataset.hint;
@@ -363,41 +465,109 @@
   $("question").addEventListener("keydown", (ev) => {
     if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $("chat").requestSubmit(); }
   });
+  $("chat-new").addEventListener("click", () => {
+    if (S.chatBusy) return;
+    $("thread").querySelectorAll(".turn").forEach((x) => x.remove());
+    $("chat-empty").hidden = false; $("chat-new").hidden = true;
+    $("question").focus();
+  });
+  function scrollToEnd() {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduced() ? "auto" : "smooth" });
+  }
+  // a label that follows the language switch (I18N.apply re-translates every [data-i18n])
+  const L = (tag, key, attrs) => el(tag, { ...(attrs || {}), "data-i18n": key, text: t(key) });
+  const chevron = () => {
+    const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "chev"); s.setAttribute("aria-hidden", "true");
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", "M6 9.5l6 6 6-6");
+    s.append(p); return s;
+  };
 
-  const C = { peers: new Map(), order: [], hint: null, final: null };
+  const C = { peers: new Map(), hint: null, final: null, T: null };
+  function newTurn(q) {
+    $("chat-empty").hidden = true; $("chat-new").hidden = false;
+    const T = {
+      meta: el("span", { class: "a-meta" }),
+      big: el("div", { class: "big-answer", hidden: true }),
+      text: el("div", { class: "a-text wait", text: t("chat.thinking") }),
+      err: el("p", { class: "error", hidden: true }),
+      dots: el("span", { class: "swarm-dots", "aria-hidden": "true" }),
+      sum: el("span", { class: "dec-sum" }),
+      vote: el("div", { class: "vote" }),
+      cert: el("div", { class: "cert" }),
+      swarm: el("ol", { class: "swarm" }),
+      count: el("span", { class: "count" }),
+    };
+    T.details = el("details", { class: "decision" },
+      el("summary", {}, T.dots, L("span", "chat.decided", { class: "dec-title" }), T.sum, chevron()),
+      el("div", { class: "dec-body" },
+        el("section", { class: "dec-vote" }, L("h3", "chat.vote"), T.vote, T.cert),
+        el("section", { class: "dec-peers" }, el("h3", {}, L("span", "chat.peers"), " ", T.count), T.swarm)));
+    T.root = el("article", { class: "turn" },
+      el("div", { class: "turn-q" }, el("p", { class: "q-bubble", text: q })),
+      el("div", { class: "turn-a" },
+        el("div", { class: "a-head" }, el("img", { src: "/static/icon.svg", alt: "", width: "20", height: "20" }),
+          L("span", "chat.swarm", { class: "a-who" }), T.meta),
+        T.big, T.text, T.err, T.details));
+    $("thread").append(T.root);
+    return T;
+  }
+  function renderDecisionSummary() {
+    const T = C.T; if (!T) return;
+    const peers = [...C.peers.values()];
+    const ok = peers.filter((p) => p.status === "ok").length;
+    const f = C.final;
+    T.count.textContent = `${ok}/${C.peers.size}`;
+    T.sum.replaceChildren();
+    if (!f) { T.sum.textContent = peers.length ? t("chat.live", { a: ok, n: peers.length }) : ""; return; }
+    const parts = [t(`rule.${f.decision}`), t("chat.agreed", { a: f.peers_answered, n: f.peers_asked })];
+    if (f.certificate) parts.push(t("badge.cert"));
+    if (f.early_stop) parts.push(t("badge.early"));
+    T.sum.textContent = parts.join(" · ");
+  }
+  function peerDot(p) {
+    if (!p.dot) { p.dot = el("span", { class: "sd" }); C.T.dots.append(p.dot); }
+    p.dot.style.setProperty("--fam", famColor(p.family));
+    p.dot.className = "sd " + ({ asked: "thinking", thinking: "thinking", ok: "ok", erreur: "err" }[p.status] || "off") + (p.chosen ? " chosen" : "");
+    p.dot.title = (p.model || "").split("/").pop();
+  }
   function peerCard(jid) {
     const p = C.peers.get(jid);
-    if (!p.el) {
-      p.el = el("li", { class: "peer", style: { "--fam": famColor(p.family) } });
-      $("swarm").append(p.el);
-    }
+    if (!p.el) { p.el = el("li", { class: "peer" }); C.T.swarm.append(p.el); }
+    peerDot(p);
     const e = p.el;
     e.replaceChildren();
+    e.style.setProperty("--fam", famColor(p.family));
     e.classList.toggle("chosen", !!p.chosen);
     e.classList.toggle("cancelled", p.status === "annulé" || p.status === "sans réponse");
     const name = (p.model || p.node_id || "?").split("/").pop().replace(/-GGUF$/i, "");
-    const top = el("div", { class: "peer-top" },
-      el("div", {}, el("div", { class: "peer-model", text: name }), el("div", { class: "peer-fam", text: `${p.family || "?"} · ${(p.node_id || "").slice(0, 8)}` })),
-      p.chosen ? el("span", { class: "tag ok", text: t("peer.chosen") }) : el("span", { class: "tag", text: t(`peer.${p.status}`) }));
-    const mid = el("div", { class: "peer-mid" });
-    if (p.status === "asked" || p.status === "thinking") mid.append(el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")));
+    const ans = el("div", { class: "p-ans" });
+    if (p.status === "asked" || p.status === "thinking") ans.append(el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")));
     else if (p.answer !== undefined && p.answer !== null) {
       const agree = C.final && C.final.answer !== null && C.final.answer !== undefined ? (p.answer === C.final.answer ? " agree" : " disagree") : "";
-      mid.append(el("span", { class: `peer-ans${agree}`, text: p.answer }));
-    } else if (p.error) mid.append(el("span", { class: "hint", text: p.error }));
-    if (p.ms) mid.append(el("span", { class: "peer-time", text: `${fmt(p.ms, 0)} ms${p.tokens ? ` · ${p.tokens} tok` : ""}` }));
-    e.append(top, mid);
+      ans.append(el("span", { class: `peer-ans${agree}`, text: p.answer }));
+    } else if (p.error) ans.append(el("span", { class: "hint", text: p.error }));
+    const time = el("span", { class: "peer-time", text: p.ms ? `${fmt(p.ms, 0)} ms${p.tokens ? ` · ${p.tokens} tok` : ""}` : "" });
+    const status = p.chosen ? el("span", { class: "tag ok", text: t("peer.chosen") })
+      : el("span", { class: `tag${p.status === "ok" ? " info" : p.status === "erreur" ? " bad" : ""}`, text: t(`peer.${p.status}`) });
+    const weight = el("span", { class: "p-weight" });
     if (p.weight !== undefined) {
       const wmax = Math.max(...[...C.peers.values()].map((x) => x.weight || 0), 0.001);
-      const bar = el("div", { class: "wbar", title: t("peer.weight", { w: fmt(p.weight, 2) }) }, el("span"));
-      e.append(bar, el("div", { class: "hint", text: t("peer.weight", { w: fmt(p.weight, 2) }) }));
+      const bar = el("span", { class: "wbar" }, el("span"));
+      weight.title = t("peer.weight", { w: fmt(p.weight, 2) });
+      weight.append(bar, t("peer.weight", { w: fmt(p.weight, 2) }));
       requestAnimationFrame(() => { bar.firstChild.style.width = `${(p.weight / wmax) * 100}%`; });
     }
+    e.append(el("span", { class: "p-dot" }),
+      el("div", { class: "p-who" }, el("span", { class: "p-name", text: name }),
+        el("span", { class: "p-meta", text: `${p.family || "?"} · ${(p.node_id || "").slice(0, 8)}` })),
+      ans, time, weight, el("span", { class: "p-status" }, status));
     if (p.text) e.append(el("details", {}, el("summary", { text: t("peer.show") }), el("pre", { text: p.text })));
-    $("peers-count").textContent = `(${[...C.peers.values()].filter((x) => x.status === "ok").length}/${C.peers.size})`;
+    renderDecisionSummary();
   }
   function renderVote() {
-    const box = $("vote"), cert = $("cert");
+    const T = C.T; if (!T) return;
+    const box = T.vote, cert = T.cert;
     box.replaceChildren(); cert.replaceChildren(); cert.className = "cert";
     const f = C.final;
     const peers = [...C.peers.values()];
@@ -414,7 +584,7 @@
     const total = Math.max(0.001, peers.reduce((a, p) => a + (f ? p.weight || 0 : 1), 0));
     const sorted = [...groups.entries()].sort((a, b) => b[1].reduce((s, p) => s + w(p), 0) - a[1].reduce((s, p) => s + w(p), 0));
     if (!sorted.length) box.append(el("p", { class: "hint", text: t("vote.waiting") }));
-    sorted.forEach(([ans, ps], i) => {
+    sorted.forEach(([ans, ps]) => {
       const sum = ps.reduce((s, p) => s + w(p), 0);
       const bar = el("div", { class: "bar" });
       for (const p of ps) {
@@ -423,10 +593,10 @@
         requestAnimationFrame(() => { seg.style.width = `${(w(p) / total) * 100}%`; });
       }
       box.append(el("div", { class: `vote-row${f && f.answer === ans ? " win" : ""}` },
-        el("span", { class: "lbl", text: ans }), bar, el("span", { class: "val", text: f ? fmt(sum, 2) : `×${ps.length}` })));
+        el("span", { class: "lbl", text: ans, title: ans }), bar, el("span", { class: "val", text: f ? fmt(sum, 2) : `×${ps.length}` })));
     });
     if (pendingW > 0) {
-      box.append(el("div", { class: "vote-row pending" }, el("span", { class: "lbl hint", text: "…" }), el("div", { class: "bar" }),
+      box.append(el("div", { class: "vote-row pending" }, el("span", { class: "lbl", text: "…" }), el("div", { class: "bar" }),
         el("span", { class: "val", text: f ? fmt(pendingW, 2) : `×${pendingW}` })));
     }
     if (!f) return;
@@ -442,7 +612,7 @@
   }
   function typewrite(node, text) {
     node.classList.remove("wait"); node.replaceChildren();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { node.textContent = text; return; }
+    if (reduced()) { node.textContent = text; return; }
     const span = document.createTextNode(""), caret = el("span", { class: "caret" });
     node.append(span, caret);
     let i = 0; const step = Math.max(2, Math.ceil(text.length / 160));
@@ -453,6 +623,7 @@
     tick();
   }
   function handle(ev) {
+    const T = C.T;
     if (ev.type === "start") { C.hint = ev.task_hint; return; }
     if (ev.type === "asked" || ev.type === "assigned") {
       const p = C.peers.get(ev.job_id) || {};
@@ -473,33 +644,42 @@
       Object.assign(p, { status: "erreur", error: ev.error, ms: ev.ms }); peerCard(ev.job_id); renderVote(); return;
     }
     if (ev.type === "final") {
+      // The gateway's validated outcome wins over what the stream showed: a result it rejected (bad
+      // signature…) loses its answer and its text.
       const m = ev.body.myriad; C.final = m;
+      const texts = ev.texts || {};
       for (const fp of m.peers) {
         let jid = [...C.peers.entries()].find(([, p]) => p.node_id === fp.node_id && !p.matched);
         if (!jid) { jid = [`x-${fp.node_id}`, {}]; C.peers.set(jid[0], jid[1]); }
-        const p = jid[1];
+        const p = jid[1], ok = fp.status === "ok";
+        const text = Object.prototype.hasOwnProperty.call(texts, jid[0]) ? texts[jid[0]] : ok ? p.text : undefined;
         Object.assign(p, { matched: true, node_id: fp.node_id, model: fp.model, family: fp.family, weight: fp.weight, chosen: fp.chosen,
-                           answer: fp.answer ?? p.answer, error: fp.error, ms: p.ms || fp.latency_ms, tokens: fp.completion_tokens || p.tokens,
-                           status: fp.status === "ok" ? "ok" : fp.status === "en attente" ? "sans réponse" : fp.status });
+                           answer: ok ? fp.answer : null, text, error: fp.error, ms: p.ms || fp.latency_ms, tokens: fp.completion_tokens || p.tokens,
+                           status: ok ? "ok" : fp.status === "en attente" ? "sans réponse" : fp.status });
+      }
+      for (const p of C.peers.values()) {  // asked, but not in the gateway's list: nothing to show
+        if (!p.matched) Object.assign(p, { answer: null, text: undefined, status: ["asked", "thinking", "ok"].includes(p.status) ? "sans réponse" : p.status });
       }
       for (const k of C.peers.keys()) peerCard(k);
       renderVote();
       const text = ev.body.choices[0].message.content;
-      const ansBox = $("answer-text");
-      ansBox.replaceChildren();
-      if (m.answer) { ansBox.append(el("div", { class: "big-answer" }, el("small", { text: t("chat.answer") }), m.answer)); }
-      const body = el("div"); ansBox.append(body); typewrite(body, text);
-      const badges = $("answer-badges"); badges.replaceChildren(...[
-        el("span", { class: "tag info", text: t(`badge.${m.decision === "vote" ? "vote" : "medoid"}`) }),
-        m.certificate ? el("span", { class: "tag ok", text: t("badge.cert") }) : null,
-        m.early_stop ? el("span", { class: "tag warn", text: t("badge.early") }) : null].filter(Boolean));
-      $("answer-meta").textContent = t("chat.meta", { rule: t(`rule.${m.decision}`), a: m.peers_answered, n: m.peers_asked,
+      if (m.answer) { T.big.hidden = false; T.big.replaceChildren(el("b", { text: m.answer }), L("small", "chat.answer")); }
+      typewrite(T.text, text);
+      // one polite announcement of the whole answer (the typewriter itself is not a live region: too chatty)
+      $("chat-announce").textContent = `${t("chat.swarm")}. ${m.answer ? `${m.answer}. ` : ""}${text}`;
+      T.meta.textContent = t("chat.meta", { rule: t(`rule.${m.decision}`), a: m.peers_answered, n: m.peers_asked,
         ms: fmt(m.latency_ms, 0), hint: t(`hint.${m.task_hint}`) });
+      renderDecisionSummary();
       return;
     }
     if (ev.type === "error") {
-      const e = $("chat-error"); e.hidden = false; e.textContent = t("err.prefix", { m: ev.message });
-      $("answer-text").textContent = ""; $("answer-text").classList.remove("wait");
+      T.err.hidden = false; T.err.textContent = t("err.prefix", { m: ev.message });
+      $("chat-announce").textContent = T.err.textContent;
+      T.text.textContent = ""; T.text.classList.remove("wait"); T.text.hidden = true;
+      // nothing runs any more: no peer may look busy
+      for (const [jid, p] of C.peers) if (p.status === "asked" || p.status === "thinking") { p.status = "sans réponse"; peerCard(jid); }
+      renderVote();
+      if (!C.peers.size) T.details.hidden = true;
     }
   }
   $("chat").addEventListener("submit", async (ev) => {
@@ -507,17 +687,18 @@
     const q = $("question").value.trim();
     if (!q || S.chatBusy) return;
     S.chatBusy = true;
-    const btn = $("send"); btn.disabled = true;
+    const btn = $("send"); btn.disabled = true; $("chat-new").disabled = true;
     C.peers = new Map(); C.final = null;
-    $("swarm").replaceChildren(); $("vote").replaceChildren(); $("cert").replaceChildren(); $("answer-badges").replaceChildren();
-    $("chat-out").hidden = false; $("chat-error").hidden = true; $("answer-meta").textContent = "";
-    const at = $("answer-text"); at.classList.add("wait"); at.textContent = t("chat.thinking");
+    C.T = newTurn(q);
+    $("chat-announce").textContent = "";
+    $("question").value = ""; autosize();
+    scrollToEnd();
     try {
       const r = await fetch("/api/chat/stream", { method: "POST", headers: { "Content-Type": "application/json", "X-Myriad-Token": TOKEN },
         body: JSON.stringify({ message: q, k: Number($("k").value) || null, task_hint: S.hint || null }) });
       if (!r.ok || !r.body) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `HTTP ${r.status}`); }
       const reader = r.body.getReader(), dec = new TextDecoder();
-      let buf = "";
+      let buf = "", ended = false;  // ended: a final or error event arrived
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -525,13 +706,20 @@
         let i;
         while ((i = buf.indexOf("\n\n")) >= 0) {
           const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
-          for (const line of chunk.split("\n")) if (line.startsWith("data: ")) { try { handle(JSON.parse(line.slice(6))); } catch (e) { /* ignore */ } }
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            let ev; try { ev = JSON.parse(line.slice(6)); } catch (e) { continue; }
+            if (ev.type === "final" || ev.type === "error") ended = true;
+            try { handle(ev); } catch (e) { /* ignore a bad event */ }
+          }
         }
       }
+      if (!ended) throw new Error(t("chat.interrupted"));  // the stream closed before its result
     } catch (e) {
       handle({ type: "error", message: e.message });
     } finally {
-      S.chatBusy = false; btn.disabled = false; refresh();
+      S.chatBusy = false; btn.disabled = false; $("chat-new").disabled = false; refresh();
+      scrollToEnd();
     }
   });
 
@@ -559,7 +747,9 @@
       $("wz-tracker").value = d.tracker_url;
       $("wz-mp").value = d.max_parallel; $("wz-mp-out").value = d.max_parallel;
       $("wz-accepting").checked = d.accepting;
-      if (d.active_hours) { const [a, b] = d.active_hours.split("-"); $("wz-sched").checked = true; $("wz-hours").hidden = false; $("wz-from").value = a; $("wz-to").value = b; }
+      // always in step with the server, "no hours" included (else an old range would be sent again)
+      $("wz-sched").checked = !!d.active_hours; $("wz-hours").hidden = !d.active_hours;
+      if (d.active_hours) { const [a, b] = d.active_hours.split("-"); $("wz-from").value = a; $("wz-to").value = b; }
       if (S.setup.job && S.setup.job.state === "en cours") { W.step = 4; startPolling(); }
       renderWizard();
     } catch (e) { $("wz-error").hidden = false; $("wz-error").textContent = t("err.prefix", { m: e.message }); }

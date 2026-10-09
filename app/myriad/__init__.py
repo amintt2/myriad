@@ -16,5 +16,8 @@ PROTOCOL = "essaim/1"
 # server-side peer selection (route), application-level pings with an engine check (ping) and the
 # selection endpoint GET /v1/select (select).
 # essaim/1.2 adds skill tags (tags): nodes advertise tags, jobs can be routed by tag or by model family.
+# "update" (additive, same protocol version): a node that asks for it when it connects (WebSocket query
+# `?features=update`) gets the latest app version in its Welcome frame and an UpdateAvailable frame when
+# a new release appears. Nodes that do not ask never receive either (their parser forbids both).
 PROTOCOL_VERSION = "essaim/1.2"
-FEATURES = ("route", "ping", "select", "tags")
+FEATURES = ("route", "ping", "select", "tags", "update")

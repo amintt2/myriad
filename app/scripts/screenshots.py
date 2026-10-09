@@ -174,9 +174,17 @@ async def run(args) -> None:
             await p.goto(d + "#chat", 1.5)
             await p.js("document.querySelector('#examples button').click();"
                        "document.getElementById('chat').requestSubmit(); true")
-            await asyncio.sleep(1.2)
+            # the conversation: the question, the answer and its "how the swarm decided" panel, opened
+            show_turn = ("const d = document.querySelector('.turn:last-of-type .decision'); if (d) d.open = true;"
+                         "const t = document.querySelector('.turn:last-of-type');"
+                         "if (t) window.scrollTo(0, t.getBoundingClientRect().top + window.scrollY - 24); true")
+            await asyncio.sleep(0.5)  # while the peers are still thinking
+            await p.js(show_turn)
+            await asyncio.sleep(0.2)
             await p.shot(OUT / "screenshot-chat-live.png")
             await asyncio.sleep(6)
+            await p.js(show_turn)
+            await asyncio.sleep(1.0)
             await p.shot(OUT / "screenshot-chat.png")
             await p.goto(d + "#peers", 2.5)
             await p.shot(OUT / "screenshot-peers.png")

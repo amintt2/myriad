@@ -21,6 +21,11 @@ Skill tags (feature "tags", additive, every new field optional and left out of t
 - PeerCard.tags and Assigned.tag_match: only set for a job routed by tag.
 A node sends tags only while the tracker accepts them (an older tracker refuses the Hello: the node
 reconnects without them), and a gateway routes by tag or family only when the tracker announces "tags".
+
+App updates (feature "update", additive): a node asks for it in the query string of its WebSocket URL
+(`/v1/ws?features=update`), which an older tracker simply ignores. Only for such a node, the tracker
+sets Welcome.latest_version and sends an UpdateAvailable frame when a newer release is published. Both
+are hints: the node validates the version strictly and builds every download URL itself (updater.py).
 """
 from __future__ import annotations
 
@@ -161,10 +166,20 @@ class Hello(_Model):
                       self.signature)
 
 
+VersionHint = Annotated[str, Field(max_length=64)]  # validated strictly by the receiver (release.py)
+
+
 class Welcome(_Model):
     t: Literal["welcome"] = "welcome"
     node_id: Hex32
     balance: float
+    latest_version: VersionHint | None = None  # feature "update": only for a node that asked for it
+
+
+class UpdateAvailable(_Model):
+    """Feature "update", tracker -> node: a new app release was published (a hint, see updater.py)."""
+    t: Literal["update"] = "update"
+    version: VersionHint
 
 
 class Status(_Model):
@@ -265,7 +280,7 @@ class ErrorFrame(_Model):
 
 
 Frame = Annotated[Union[Challenge, Hello, Welcome, Status, JobFrame, ResultFrame, JobError, Cancel, ReceiptFrame,
-                        ErrorFrame, Assigned, Ping, Pong], Field(discriminator="t")]
+                        ErrorFrame, Assigned, Ping, Pong, UpdateAvailable], Field(discriminator="t")]
 FRAME = TypeAdapter(Frame)
 
 
@@ -289,6 +304,8 @@ def dump_frame(frame: _Model) -> str:
                 exclude["route"] = sub
     elif isinstance(frame, Hello) and frame.info.tags is None:
         exclude["info"] = {"tags"}
+    elif isinstance(frame, Welcome) and frame.latest_version is None:
+        exclude["latest_version"] = True
     elif isinstance(frame, Assigned):
         if frame.peer.tags is None:
             exclude["peer"] = {"tags"}

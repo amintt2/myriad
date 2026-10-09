@@ -1,5 +1,5 @@
 """Local web interface (127.0.0.1:8401): setup wizard, dashboard (network, counters, node card, limits),
-chat playground with a live view of the peers, about panel.
+chat playground with a live view of the peers, about panel, app updates (banner, settings).
 
 Mutating calls need a per-process token embedded in the page: another web site open in the same
 browser cannot read the page (same-origin policy), so it cannot obtain the token."""
@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingRes
 
 from . import __version__
 from .config import APP_NAME, Config, parse_active_hours
+from .crypto import pubkey_matches
 from .fusion import detect_task_hint, extract_answer
 from .gateway import SWARM_MODEL, GatewayError, check_local, completion_body, normalize_messages, read_json
 from .protocol import Assigned, JobError, JobFrame, ResultFrame
@@ -54,7 +55,7 @@ def my_tokens_per_s(recent: list[dict], now: float | None = None, window_s: floa
 
 
 def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Path | None = None, token: str = "",
-                runtime: NodeRuntime | None = None, wizard=None) -> FastAPI:
+                runtime: NodeRuntime | None = None, wizard=None, updater=None) -> FastAPI:
     if not token:
         raise ValueError("token required")
     rt = runtime or NodeRuntime.attached(node, gateway, config or Config(), home)
@@ -100,7 +101,8 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
     async def status():
         n, gw = rt.node, rt.gateway
         base = {"app": APP_NAME, "version": __version__, "runtime": rt.status(), "research": RESEARCH_URL,
-                "setup_job": wizard.progress() if wizard is not None else None}
+                "setup_job": wizard.progress() if wizard is not None else None,
+                "update": updater.status() if updater is not None else None}
         if n is None:
             return {**base, "node": None, "balance": None, "history": [], "gateway": None, "default_k": 4}
         st = n.status()
@@ -178,17 +180,34 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             return JSONResponse({"error": f"valeur invalide : {e}"}, status_code=400)
         if n is None:
             return not_ready()
+        # llama-server has a fixed number of slots (-np): the node never accepts more jobs at once than
+        # its engine can run. More jobs than slots needs a new llama-server: the runtime restarts it
+        # when it can (the setting is saved first); otherwise the limit is capped to the slots.
+        slots = getattr(rt.engine, "parallel", None) if rt.engine is not None else None
+        want = mp
+        restart = False
+        if mp is not None and isinstance(slots, int) and mp > slots:
+            restart = rt.home is not None and not getattr(rt, "_attached", False)
+            mp = slots
         try:
             await n.set_limits(max_parallel=mp, accepting=acc, active_hours=hours)
         except ConnectionError:
             pass  # saved locally, sent to the tracker at the next connection
+        saved_mp = want if restart else n.max_parallel
         cfg = rt.config
-        cfg.max_parallel, cfg.accepting, cfg.active_hours = n.max_parallel, n.accepting, n.active_hours
+        cfg.max_parallel, cfg.accepting, cfg.active_hours = saved_mp, n.accepting, n.active_hours
         if rt.home is not None:
             saved = Config.load(rt.home) if (rt.home / "config.json").exists() else cfg
-            saved.max_parallel, saved.accepting, saved.active_hours = n.max_parallel, n.accepting, n.active_hours
+            saved.max_parallel, saved.accepting, saved.active_hours = saved_mp, n.accepting, n.active_hours
             saved.save(rt.home)
-        return {"ok": True, "node": n.status()}
+        if restart:
+            try:
+                await rt.restart()  # a new llama-server with `want` slots
+            except Exception as e:  # noqa: BLE001 - reported to the UI
+                return JSONResponse({"error": f"redémarrage du nœud : {e}"}, status_code=500)
+            n = rt.node or n
+        return {"ok": True, "node": n.status(), "restarted": restart,
+                "capped_to": None if restart or want is None or want == n.max_parallel else n.max_parallel}
 
     async def _chat_args(request: Request) -> tuple[list[dict], dict]:
         body = await read_json(request)
@@ -233,11 +252,22 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             by_id = {}
         q: asyncio.Queue = asyncio.Queue()
         mine: dict[str, float] = {}
+        peer_of: dict[str, dict] = {}  # job id -> the peer it went to (identity to check its result)
         tag = object()
         t0 = time.perf_counter()
 
         def ms() -> float:
             return round((time.perf_counter() - t0) * 1000, 1)
+
+        def genuine(jid: str, res) -> bool | None:
+            """The gateway's own check of a result, done here before anything is shown: from the peer
+            the job went to, signed by it. None: that peer is not known here (only the final event,
+            built from the gateway's validated answer, will show this result)."""
+            p = peer_of.get(jid)
+            if not p or not p.get("pubkey") or not p.get("node_id"):
+                return None
+            return bool(res.node_id == p["node_id"] and res.model == p.get("model")
+                        and pubkey_matches(p["node_id"], p["pubkey"]) and res.verify(p["pubkey"]))
 
         def observe(direction: str, frame) -> None:
             if direction == "out" and isinstance(frame, JobFrame) and _CHAT_STREAM.get() is tag:
@@ -245,6 +275,8 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
                 mine[jid] = time.perf_counter()
                 target = getattr(frame, "target", None)
                 p = by_id.get(target or "", {})
+                if p:
+                    peer_of[jid] = p
                 q.put_nowait({"type": "asked", "job_id": jid, "node_id": target, "model": p.get("model"),
                               "family": p.get("family"), "ms": ms()})
             elif direction == "in":
@@ -253,13 +285,21 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
                 if jid not in mine:
                     return
                 if isinstance(frame, ResultFrame):
-                    q.put_nowait({"type": "answered", "job_id": jid, "node_id": res.node_id, "model": res.model,
-                                  "answer": extract_answer(res.text, hint), "text": res.text[:6000],
-                                  "tokens": res.completion_tokens, "compute_ms": res.compute_ms, "ms": ms()})
+                    ok = genuine(jid, res)
+                    if ok is False:  # forged or misattributed: the gateway rejects it too
+                        q.put_nowait({"type": "failed", "job_id": jid, "error": "signature invalide", "ms": ms()})
+                    elif ok:
+                        q.put_nowait({"type": "answered", "job_id": jid, "node_id": res.node_id, "model": res.model,
+                                      "answer": extract_answer(res.text, hint), "text": res.text[:6000],
+                                      "tokens": res.completion_tokens, "compute_ms": res.compute_ms, "ms": ms()})
+                    else:  # unverifiable here: a reply arrived, its content waits for the final event
+                        q.put_nowait({"type": "answered", "job_id": jid, "node_id": None, "model": None,
+                                      "answer": None, "text": None, "pending": True, "ms": ms()})
                 elif isinstance(frame, JobError):
                     q.put_nowait({"type": "failed", "job_id": jid, "error": frame.error, "ms": ms()})
                 elif isinstance(frame, Assigned):  # essaim/1.1: the tracker names the peer it chose
                     card = frame.peer
+                    peer_of[jid] = card.model_dump(mode="json")
                     q.put_nowait({"type": "assigned", "job_id": jid, "node_id": card.node_id, "model": card.model,
                                   "family": card.family, "ms": ms()})
 
@@ -267,7 +307,10 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             _CHAT_STREAM.set(tag)
             try:
                 ans = await gw.ask(messages, **kw)
-                q.put_nowait({"type": "final", "body": completion_body(ans, SWARM_MODEL), "ms": ms()})
+                # the texts of the results the gateway validated, by job (the peer cards' "show answer")
+                texts = {c["job_id"]: (c.get("text") or "")[:6000] for c in (ans.candidates or []) if c.get("job_id")}
+                q.put_nowait({"type": "final", "body": completion_body(ans, SWARM_MODEL), "texts": texts,
+                              "ms": ms()})
             except GatewayError as e:
                 q.put_nowait({"type": "error", "message": e.message, "status": e.status})
             except Exception as e:  # never leave the stream hanging
@@ -335,6 +378,65 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
         except Exception as e:  # noqa: BLE001 - reported to the UI
             return JSONResponse({"error": f"redémarrage du nœud : {e}"}, status_code=500)
         return {"ok": True, "tracker_url": url}
+
+    # ---------- app updates (updater.py) ----------
+    def no_updater() -> JSONResponse:
+        return JSONResponse({"error": "mises à jour indisponibles ici"}, status_code=404)
+
+    @app.get("/api/update")
+    async def update_status():
+        return updater.status() if updater is not None else no_updater()
+
+    @app.post("/api/update/check")
+    async def update_check():
+        if updater is None:
+            return no_updater()
+        return await updater.check(force=True)
+
+    @app.post("/api/update/download")
+    async def update_download():
+        from .updater import UpdateError
+        if updater is None:
+            return no_updater()
+        try:
+            return await updater.download_now()
+        except UpdateError as e:
+            return JSONResponse({"error": str(e)}, status_code=409)
+
+    @app.post("/api/update/apply")
+    async def update_apply():
+        """« Mettre à jour et redémarrer » : the app stops the node cleanly, installs, relaunches."""
+        from .updater import UpdateError
+        if updater is None:
+            return no_updater()
+        try:
+            updater.request_install()
+        except UpdateError as e:
+            return JSONResponse({"error": str(e)}, status_code=409)
+        return {"ok": True, "update": updater.status()}
+
+    @app.post("/api/update/settings")
+    async def update_settings(request: Request):
+        if updater is None:
+            return no_updater()
+        try:
+            body = await read_json(request)
+        except GatewayError as e:
+            return JSONResponse({"error": e.message}, status_code=e.status)
+        changes = {k: body[k] for k in ("auto_update", "install_on_quit") if k in body}
+        if not changes or not all(isinstance(v, bool) for v in changes.values()):
+            return JSONResponse({"error": "auto_update / install_on_quit : true ou false"}, status_code=400)
+        for k, v in changes.items():
+            setattr(updater, k, v)
+            setattr(rt.config, k, v)
+        if rt.home is not None and (rt.home / "config.json").exists():
+            saved = Config.load(rt.home)
+            for k, v in changes.items():
+                setattr(saved, k, v)
+            saved.save(rt.home)
+        if changes.get("auto_update") and updater.available():
+            updater.start_download()
+        return updater.status()
 
     # ---------- setup wizard ----------
     if wizard is not None:

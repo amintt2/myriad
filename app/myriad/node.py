@@ -19,7 +19,7 @@ from .config import within_hours
 from .crypto import Identity, pubkey_matches
 from .protocol import (MAX_FRAME_BYTES, MAX_TEXT_CHARS, MAX_TOKENS, Assigned, Cancel, Challenge, ErrorFrame, Hello,
                        Job, JobError, JobFrame, JobResult, NodeInfo, Ping, Pong, ReceiptFrame, ResultFrame, Route,
-                       Status, Welcome, dump_frame, parse_frame)
+                       Status, UpdateAvailable, Welcome, dump_frame, parse_frame)
 
 log = logging.getLogger("myriad.node")
 HEARTBEAT_S = 15.0
@@ -48,6 +48,10 @@ def http_url(tracker_url: str) -> str:
 
 
 class NodeClient:
+    # Optional features asked for in the WebSocket URL (`?features=...`): an older tracker ignores the
+    # query string, a newer one only sends the matching optional frames to nodes that asked.
+    FEATURES: tuple = ("update",)
+
     def __init__(self, identity: Identity, tracker_url: str, engine=None, model: str | None = None,
                  family: str | None = None, gguf: str | None = None, params_b: float | None = None, ctx: int = 0,
                  max_parallel: int = 1, accepting: bool = True, active_hours: str | None = None,
@@ -80,6 +84,10 @@ class NodeClient:
         self._last_ping = -1e9  # monotonic time of the last essaim/1.1 ping received
         self._pongs: set[asyncio.Task] = set()
         self._observers: set = set()  # callables (direction, frame), e.g. the UI's live chat view
+        # Feature "update": latest app version announced by the tracker (a hint, validated by updater.py),
+        # and the callable (version, source) told about it.
+        self.latest_version: str | None = None
+        self.on_update = None
 
     # ---------- limits ----------
     def serving(self) -> bool:
@@ -156,7 +164,10 @@ class NodeClient:
             await self._ws.close()
 
     async def _session(self) -> None:
-        async with connect(ws_url(self.tracker_url), max_size=MAX_FRAME_BYTES, open_timeout=10,
+        url = ws_url(self.tracker_url)
+        if self.FEATURES:
+            url += "?features=" + ",".join(self.FEATURES)
+        async with connect(url, max_size=MAX_FRAME_BYTES, open_timeout=10,
                            ping_interval=20, ping_timeout=20) as ws:
             ch = parse_frame(await asyncio.wait_for(ws.recv(), 10))
             if not isinstance(ch, Challenge) or not pubkey_matches(ch.tracker_id, ch.tracker_pubkey):
@@ -177,6 +188,8 @@ class NodeClient:
             self.state, self.last_error = "connecté", None
             self.connected.set()
             log.info("connected to tracker as %s", self.node_id[:8])
+            if first.latest_version:
+                self._update_hint(first.latest_version, "welcome")
             beat = asyncio.create_task(self._heartbeat())
             try:
                 async for raw in ws:
@@ -264,9 +277,20 @@ class NodeClient:
             q = self.waiters.get(job_id)
             if q is not None:
                 q.put_nowait(frame)
+        elif isinstance(frame, UpdateAvailable):
+            self._update_hint(frame.version, "push")
         elif isinstance(frame, ErrorFrame):
             self.last_error = frame.error
             log.warning("tracker error: %s", frame.error)
+
+    def _update_hint(self, version: str, source: str) -> None:
+        self.latest_version = version
+        cb = self.on_update
+        if cb is not None:
+            try:
+                cb(version, source)
+            except Exception as e:  # the updater must never break the protocol
+                log.warning("update listener failed: %s", e)
 
     # ---------- serving ----------
     async def _reject(self, job: Job, error: str) -> None:

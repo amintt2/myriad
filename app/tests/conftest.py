@@ -17,6 +17,12 @@ from myriad.protocol import MAX_FRAME_BYTES
 from myriad.tracker import Tracker
 
 
+@pytest.fixture(autouse=True)
+def _no_update_checks(monkeypatch):
+    """No periodic update check against the network during the tests (updater.py)."""
+    monkeypatch.setenv("MYRIAD_UPDATE_CHECK", "0")
+
+
 async def wait_until(pred, timeout: float = 5.0, step: float = 0.02):
     end = asyncio.get_running_loop().time() + timeout
     while True:

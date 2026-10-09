@@ -6,6 +6,8 @@ Digests come from the GitHub release b11505 of ggml-org/llama.cpp (asset `digest
 from __future__ import annotations
 
 import os
+import platform
+import re
 import shutil
 import sys
 import tarfile
@@ -63,6 +65,33 @@ ASSETS: dict[tuple[str, str, str], tuple[Asset, ...]] = {
 del A
 
 
+# The macOS builds of this release target macOS 13.3 (CMAKE_OSX_DEPLOYMENT_TARGET=13.3 in the upstream
+# release workflow); the app's LSMinimumSystemVersion (packaging/myriad.spec) says the same.
+MACOS_MIN = (13, 3)
+
+
+def macos_version() -> tuple[int, ...] | None:
+    """This Mac's version, (major, minor); None elsewhere or if unknown."""
+    if sys.platform != "darwin":
+        return None
+    try:
+        return tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2] if x.isdigit()) or None
+    except ValueError:
+        return None
+
+
+def unsupported_reason(os_name: str, version: tuple[int, ...] | None | type(...) = ...) -> str | None:
+    """Why the pinned llama.cpp build cannot run on this system (None: it can, or unknown)."""
+    if os_name != "macos":
+        return None
+    v = macos_version() if version is ... else version
+    if v and tuple(v) < MACOS_MIN:
+        need = ".".join(map(str, MACOS_MIN))
+        return (f"llama.cpp {BUILD} demande macOS {need} ou plus récent (ce Mac : "
+                f"{'.'.join(map(str, v))}) : installez un llama-server compatible et indiquez-le dans LLAMA_SERVER")
+    return None
+
+
 def variants(os_name: str, arch: str) -> list[str]:
     return [b for (o, a, b) in ASSETS if o == os_name and a == arch]
 
@@ -115,7 +144,9 @@ def bundled_dirs() -> list[Path]:
 def find_existing(home: Path, configured: str | None = None) -> str | None:
     """Configured path, LLAMA_SERVER, a bundled copy, an earlier download, then the PATH."""
     for cand in (configured, os.environ.get("LLAMA_SERVER")):
-        if cand and Path(cand).is_file():
+        # (a path into a half-extracted <build>-<backend>.tmp may have been saved by an older version)
+        if cand and Path(cand).is_file() and not any(p.name.endswith(".tmp") and p.name.startswith(BUILD)
+                                                     for p in Path(cand).parents):
             return str(Path(cand))
     for d in bundled_dirs():
         p = find_in(d)
@@ -124,7 +155,9 @@ def find_existing(home: Path, configured: str | None = None) -> str | None:
     root = Path(home) / "llama.cpp"
     if root.is_dir():
         for d in sorted(root.iterdir(), reverse=True):
-            if d.name.startswith(BUILD):
+            # Only finished installs (<build>-<backend>, renamed from .tmp once fully unpacked): a
+            # half-extracted <build>-<backend>.tmp may hold llama-server without its libraries.
+            if re.fullmatch(rf"{re.escape(BUILD)}-[a-z0-9]+", d.name):
                 p = find_in(d)
                 if p:
                     return str(p)
@@ -139,19 +172,34 @@ def _safe_target(root: Path, name: str) -> Path:
     return target
 
 
-def extract(archive: Path, dest: Path) -> None:
-    """Unpack a release archive; refuses absolute paths, '..' and links that leave `dest`."""
+class ExtractCancelled(Exception):
+    pass
+
+
+def extract(archive: Path, dest: Path, cancel=None) -> None:
+    """Unpack a release archive; refuses absolute paths, '..' and links that leave `dest`. `cancel`:
+    a threading.Event checked between members (raises ExtractCancelled)."""
+    def check() -> None:
+        if cancel is not None and cancel.is_set():
+            raise ExtractCancelled("extraction annulée")
+
     dest.mkdir(parents=True, exist_ok=True)
     if archive.name.endswith(".zip"):
         with zipfile.ZipFile(archive) as z:
-            for info in z.infolist():
+            infos = z.infolist()
+            for info in infos:
                 _safe_target(dest, info.filename)
-            z.extractall(dest)
+            for info in infos:
+                check()
+                z.extract(info, dest)
     else:
         with tarfile.open(archive, "r:*") as t:
-            for m in t.getmembers():
+            members = t.getmembers()
+            for m in members:
                 _safe_target(dest, m.name)
-            t.extractall(dest, filter="data")
+            for m in members:
+                check()
+                t.extract(m, dest, filter="data")
     if os.name != "nt":
         for p in dest.rglob("*"):
             if p.is_file() and not p.is_symlink() and (p.name.startswith("llama-") or p.suffix in (".so", ".dylib")):

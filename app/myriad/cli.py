@@ -1,4 +1,5 @@
-"""Command line: myriad init | node | tracker | chat | agents run | status (`essaim` is a deprecated alias)."""
+"""Command line: myriad init | node | tracker | chat | agents run | status | update (`essaim` is a deprecated
+alias)."""
 from __future__ import annotations
 
 import argparse
@@ -101,9 +102,13 @@ def cmd_tracker(args) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     from .netem import wan_from_rtt
 
+    kw = {}
+    if args.release_repo is not None:  # else MYRIAD_RELEASE_REPO, default amintt2/myriad ("off": none)
+        repo = args.release_repo.strip()
+        kw["release_repo"] = None if repo.lower() in ("", "off", "none", "0") else repo
     run(host=args.host, port=args.port, db=args.db, starter_credit=args.starter_credit, spot_rate=args.spot_rate,
         receipt_grace_s=args.receipt_grace, wan=wan_from_rtt(args.wan_rtt_ms, args.wan_sigma),
-        landing=not args.no_landing)
+        landing=not args.no_landing, **kw)
     return 0
 
 
@@ -254,6 +259,56 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_update(args) -> int:
+    """`myriad update [--check]`: is there a newer Myriad? The tracker answers (GitHub if it cannot);
+    an installed desktop build downloads and verifies the update, then installs it on the next restart
+    of the app; other installs get the link and the command to run."""
+    from .updater import Updater
+
+    home = _home(args)
+    cfg = Config.load(home)
+    tracker = args.tracker or cfg.tracker_url
+
+    async def go() -> tuple[dict, Updater]:
+        up = Updater(home, tracker_url=tracker, auto_update=False)
+        try:
+            st = await up.check(force=True)
+            if not args.check and st["available"] and up.kind.asset(st["latest"]) and up.kind.can_apply:
+                await up.download_now()
+                await up.wait_download()
+                st = up.status()
+            return st, up
+        finally:
+            await up.close()
+
+    st, up = asyncio.run(go())
+    print(f"Version installée : {st['current']} ({st['kind']})")
+    if st["state"] == "error" and not st["available"]:
+        print(f"Vérification impossible : {st['error']}", file=sys.stderr)
+        return 2
+    if not st["available"]:
+        print("Myriad est à jour.")
+        return 0
+    print(f"Nouvelle version  : {st['latest']} (source : {st['source']})")
+    print(f"Notes de version  : {st['notes_url']}")
+    if args.check:
+        return 0
+    if st["state"] == "ready":
+        print(f"Téléchargée et vérifiée (SHA-256) : {up.file}")
+        print("Elle s'installe depuis l'application : « Mettre à jour et redémarrer ».")
+        return 0
+    if st["state"] == "error":
+        print(f"Téléchargement impossible : {st['error']}", file=sys.stderr)
+        return 1
+    hints = {"source": "Depuis les sources : git pull puis uv sync (ou pip install -U myriad).",
+             "linux-deb": f"Paquet .deb : télécharger myriad_{st['latest']}_amd64.deb depuis la page ci-dessus, "
+                          "puis sudo apt install ./myriad_….deb",
+             "linux-archive": "Archive : télécharger la nouvelle archive depuis la page ci-dessus.",
+             "windows-portable": "Version portable : télécharger le nouveau zip depuis la page ci-dessus."}
+    print(hints.get(st["kind"]) or (st.get("reason") or "Télécharger la nouvelle version depuis la page ci-dessus."))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -290,6 +345,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="EXPÉRIENCES SEULEMENT : retard réseau simulé, aller-retour médian client-traqueur (ms) ; 0 = désactivé")
     p.add_argument("--wan-sigma", type=float, default=0.25, help="dispersion lognormale du retard simulé")
     p.add_argument("--no-landing", action="store_true", help="ne pas servir la page d'accueil publique sur /")
+    p.add_argument("--release-repo", default=None,
+                   help="dépôt GitHub dont les versions sont annoncées aux nœuds (défaut : MYRIAD_RELEASE_REPO, "
+                        "sinon amintt2/myriad ; « off » : aucun)")
     p.set_defaults(func=cmd_tracker)
 
     p = sub.add_parser("chat", help="poser une question à l'essaim par la passerelle locale")
@@ -319,6 +377,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("status", help="état du nœud")
     p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser("update", help="rechercher une nouvelle version de Myriad")
+    p.add_argument("--check", action="store_true", help="vérifier seulement, sans rien télécharger")
+    p.add_argument("--tracker", help="URL du traqueur à interroger (défaut : celui de la configuration)")
+    p.set_defaults(func=cmd_update)
 
     args = ap.parse_args(argv)
     return args.func(args)

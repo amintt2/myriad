@@ -24,6 +24,11 @@
     "ag.bad_json": "Plan JSON invalide : {m}", "ag.need_task": "Décrivez d'abord la tâche (ou chargez le plan de démonstration).",
     "ag.result_wait": "Les résultats s'assembleront ici.", "ag.merged": "fusionné", "ag.concat": "concaténé",
     "ag.deps": "après {d}", "ag.interrupted": "le flux s'est interrompu avant la fin de l'exécution",
+    "ag.e1": "Découper", "ag.e1d": "L'orchestrateur écrit un plan de sous-tâches, ou vous le donnez en JSON.",
+    "ag.e2": "Confier", "ag.e2d": "Chaque sous-tâche part vers un pair différent, avec son petit contexte.",
+    "ag.e3": "Vérifier", "ag.e3d": "Une commande autorisée contrôle la sortie\u00a0; un échec fait escalader.",
+    "ag.e4": "Assembler", "ag.e4d": "Les résultats sont mis bout à bout, ou fusionnés par un dernier pair.",
+    "ag.empty_hint": "Pour voir l'arbre s'exécuter, lancez le plan de démonstration.",
   });
   I.extend("en", {
     "nav.agents": "Agents",
@@ -46,6 +51,11 @@
     "ag.bad_json": "Invalid JSON plan: {m}", "ag.need_task": "Describe the task first (or load the demo plan).",
     "ag.result_wait": "The results will be assembled here.", "ag.merged": "merged", "ag.concat": "concatenated",
     "ag.deps": "after {d}", "ag.interrupted": "the stream stopped before the run ended",
+    "ag.e1": "Split", "ag.e1d": "The orchestrator writes a plan of sub-tasks, or you give it as JSON.",
+    "ag.e2": "Delegate", "ag.e2d": "Each sub-task goes to a different peer, with its own small context.",
+    "ag.e3": "Verify", "ag.e3d": "An allowed command checks the output; a failure escalates.",
+    "ag.e4": "Assemble", "ag.e4d": "The results are put end to end, or merged by one last peer.",
+    "ag.empty_hint": "To watch the tree run, start the demo plan.",
   });
   const t = I.t;
   const $ = (id) => document.getElementById(id);

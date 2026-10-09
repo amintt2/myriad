@@ -85,7 +85,7 @@ if sys.platform == "darwin":
             "CFBundleShortVersionString": VERSION,
             "CFBundleVersion": VERSION,
             "NSHighResolutionCapable": True,
-            "LSMinimumSystemVersion": "11.0",
+            "LSMinimumSystemVersion": "13.3",  # the llama.cpp build the wizard installs (llamacpp.MACOS_MIN)
             "NSHumanReadableCopyright": "Apache-2.0",
         },
     )
