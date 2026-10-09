@@ -91,8 +91,13 @@ SOT = {"tag": "sot1", "outline": "Qwen/Qwen3.5-4B",
 SOT_JUDGE_PARALLEL, SOT_JUDGE_CTX = SOLO[SOT["judge"]][3] // 2, 6144
 PLANS["sot-1"] = ([("sot-base", m, "all") for m in SOT["peers"]] + [("sot-expand", m, "all") for m in SOT["peers"]]
                   + [("sot-judge", SOT["judge"], "all")])
+# E11 (run_code.py, exec_code.py): every SOLO model writes code (greedy + 4 samples per problem), then one CPU job
+# runs every distinct program in the sandbox (Linux: rlimits, per-case timeouts, no network if unshare works).
+CODE_TAG = "e11"
+PLANS["code-1"] = [("code", m, "all") for m in SOLO] + [("code-exec", CODE_TAG, "all")]
 # Jobs run stage by stage: a stage starts once every job of the earlier stages has succeeded.
-STAGE = {"sot-base": 0, "sot-expand": 1, "sot-judge": 2}
+STAGE = {"sot-base": 0, "sot-expand": 1, "sot-judge": 2, "code": 0, "code-exec": 1}
+NO_MODEL = ("gen", "genref", "code-exec")  # job kinds whose second field is not a model to download
 
 
 # Experiment 2 peers, all on this VM (one llama-server each); the coordinator talks to them over HTTP.
@@ -192,7 +197,24 @@ def download(model: str):
         raise RuntimeError(f"téléchargement {fname} : {r.stdout[-400:]} {r.stderr[-400:]}")
 
 
+def exec_workers(per_child_gib: int = 4) -> int:
+    """Sandbox children in parallel: one per CPU, at most one per `per_child_gib` of available RAM (a hidden-test
+    child may use up to 4 GiB, essaim/sandbox.MEM_MB)."""
+    try:
+        with open("/proc/meminfo") as f:
+            avail = next(int(l.split()[1]) for l in f if l.startswith("MemAvailable")) / 2**20
+    except (OSError, StopIteration, ValueError):
+        avail = 16
+    return max(1, min(os.cpu_count() or 1, int(avail // per_child_gib)))
+
+
 def job_cmd(kind: str, model: str, split: str) -> list[str]:
+    if kind == "code":
+        return [sys.executable, "run_code.py", "--model", model, "--gguf", str(MODELS / SOLO[model][1]),
+                "--suffix", SUFFIX, "--parallel", str(SOLO[model][3])]
+    if kind == "code-exec":
+        return [sys.executable, "exec_code.py", "--suffix", SUFFIX, "--tag", model, "--models", *SOLO,
+                "--workers", str(exec_workers())]
     if kind == "gen":
         return [sys.executable, "run_gen.py", "--peers", *(f"http://127.0.0.1:{p}" for p in GEN_PEERS.values()),
                 "--split", split, "--n", str(GEN_N[split]), "--tag", model + SUFFIX]
@@ -294,9 +316,9 @@ def start_peers(peers: dict[str, int]) -> list[subprocess.Popen]:
 
 def run_job(job, budget: MemoryBudget) -> bool:
     kind, model, split = job
-    if kind in ("gen", "genref"):  # the peers' memory is already taken by start_peers
+    if kind in ("gen", "genref", "code-exec"):  # peers' memory already taken by start_peers; code-exec: CPU only
         need = 0
-    elif kind == "solo" or kind.startswith("sot-"):
+    elif kind in ("solo", "code") or kind.startswith("sot-"):
         need = SOLO[model][2]
     else:
         need = GGUF[model][2] + (THINK_EXTRA_GIB if kind == "think" else 0)
@@ -375,7 +397,7 @@ def main():
     kill_orphan_servers()
     jobs = PLANS[a.plan]
     gen = any(j[0] in ("gen", "genref") for j in jobs)
-    models = list(dict.fromkeys([j[1] for j in jobs if j[0] not in ("gen", "genref")]
+    models = list(dict.fromkeys([j[1] for j in jobs if j[0] not in NO_MODEL]
                                 + (list(GEN_PEERS) + list(GEN_REF) if gen else [])))
     # Everything shared is prepared before the parallel part: GGUF files, pinned revisions, data caches.
     for m in models:
@@ -390,6 +412,10 @@ def main():
     if any(j[0].startswith("sot-") for j in jobs):
         for split in data.MT_SPLITS:
             data.mt_bench(split=split)
+    if any(j[0].startswith("code") for j in jobs):
+        for split in data.SPLITS:
+            for load in data.CODE_LOADERS.values():
+                load(split=split)
     free = gpu_free_gib()
     budget = MemoryBudget(free)
     print(f"GPU : {free:.0f} Gio libres, {len(jobs)} jobs", flush=True)

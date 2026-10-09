@@ -13,6 +13,14 @@ A new frame is only sent to a peer known to support it: a gateway routes jobs th
 when the tracker announces the "route" feature (GET /v1/health), and the tracker keeps pinging only
 the nodes that answered a first ping. JobFrame.route is left out of the JSON when unset, so an
 essaim/1 tracker still parses every frame of a new node.
+
+Skill tags (feature "tags", additive, every new field optional and left out of the JSON when unset):
+- NodeInfo.tags: skills a node advertises (base model capabilities, loaded adapters), e.g. "python";
+- Route.tag / Route.family: route a job to a node with that tag (any node if none has it: the
+  Assigned frame then says tag_match=false) or of that model family (strict);
+- PeerCard.tags and Assigned.tag_match: only set for a job routed by tag.
+A node sends tags only while the tracker accepts them (an older tracker refuses the Hello: the node
+reconnects without them), and a gateway routes by tag or family only when the tracker announces "tags".
 """
 from __future__ import annotations
 
@@ -38,6 +46,10 @@ Sig = Annotated[str, Field(pattern=r"^([0-9a-f]{128})?$")]
 JobId = Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
 ShortStr = Annotated[str, Field(max_length=200)]
 TaskHint = Literal["math", "mc", "free"]
+TAG_PATTERN = r"^[a-z0-9][a-z0-9_.+-]{0,31}$"
+MAX_TAGS = 16
+Tag = Annotated[str, Field(pattern=TAG_PATTERN)]
+Tags = Annotated[list[Tag], Field(max_length=MAX_TAGS)]
 
 
 class _Model(BaseModel):
@@ -60,6 +72,14 @@ class NodeInfo(_Model):
     max_parallel: Annotated[int, Field(ge=0, le=64)] = 1
     version: Literal["essaim/1"] = PROTOCOL
     accepting: bool = False
+    tags: Tags | None = None  # skill tags (feature "tags"); None: left out of the wire format
+
+    def wire(self) -> dict:
+        """The signed form: without `tags` when unset, exactly as a node without tags signs it."""
+        d = self.model_dump(mode="json")
+        if self.tags is None:
+            d.pop("tags", None)
+        return d
 
 
 class _Signed(_Model):
@@ -133,11 +153,11 @@ class Hello(_Model):
 
     @staticmethod
     def make(ident: Identity, info: NodeInfo, nonce: str) -> "Hello":
-        sig = ident.sign("hello", {"info": info.model_dump(mode="json"), "nonce": nonce})
+        sig = ident.sign("hello", {"info": info.wire(), "nonce": nonce})
         return Hello(info=info, nonce=nonce, signature=sig)
 
     def valid(self) -> bool:
-        return verify(self.info.pubkey, "hello", {"info": self.info.model_dump(mode="json"), "nonce": self.nonce},
+        return verify(self.info.pubkey, "hello", {"info": self.info.wire(), "nonce": self.nonce},
                       self.signature)
 
 
@@ -164,6 +184,8 @@ class Route(_Model):
     model: ShortStr | None = None  # only nodes serving this model
     exclude: Annotated[list[Hex32], Field(max_length=64)] = []  # never these nodes
     replaces: JobId | None = None
+    tag: Tag | None = None  # feature "tags": a node advertising this tag, else any node (tag_match false)
+    family: ShortStr | None = None  # feature "tags": only nodes of this model family
 
 
 class JobFrame(_Model):
@@ -186,6 +208,7 @@ class PeerCard(_Model):
     gguf: ShortStr | None = None
     params_b: Annotated[float, Field(ge=0, le=2000, allow_inf_nan=False)] | None = None
     reliability: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
+    tags: Tags | None = None  # set only for a job routed by tag
 
 
 class Assigned(_Model):
@@ -194,6 +217,7 @@ class Assigned(_Model):
     t: Literal["assigned"] = "assigned"
     job_id: JobId
     peer: PeerCard
+    tag_match: bool | None = None  # job routed by tag: does the peer advertise it (False: fallback)
 
 
 class Ping(_Model):
@@ -253,6 +277,21 @@ def parse_frame(raw: str | bytes):
 
 
 def dump_frame(frame: _Model) -> str:
-    if isinstance(frame, JobFrame) and frame.route is None:  # an essaim/1 peer forbids unknown fields
-        return frame.model_dump_json(exclude={"route"})
-    return frame.model_dump_json()
+    """JSON text of a frame. Optional fields added after essaim/1 are left out when unset: an older
+    peer forbids unknown fields."""
+    exclude: dict = {}
+    if isinstance(frame, JobFrame):
+        if frame.route is None:
+            exclude["route"] = True
+        else:
+            sub = {f for f in ("tag", "family") if getattr(frame.route, f) is None}
+            if sub:
+                exclude["route"] = sub
+    elif isinstance(frame, Hello) and frame.info.tags is None:
+        exclude["info"] = {"tags"}
+    elif isinstance(frame, Assigned):
+        if frame.peer.tags is None:
+            exclude["peer"] = {"tags"}
+        if frame.tag_match is None:
+            exclude["tag_match"] = True
+    return frame.model_dump_json(exclude=exclude) if exclude else frame.model_dump_json()

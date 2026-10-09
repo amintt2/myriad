@@ -204,6 +204,195 @@ Options propres à Myriad, dans le champ `myriad` de la requête (l'ancien nom `
 `myriad` (l'essaim ; `essaim` est accepté) ou un modèle précis du réseau (un seul pair, sans fusion).
 `stream: true` est accepté : la réponse fusionnée est envoyée en quelques morceaux (flux émulé).
 
+## Noms de modèles : l'essaim, une famille, une compétence
+
+Le champ `model` choisit la route (essaim/1.2, rétrocompatible) :
+
+| `model` | qui répond |
+| --- | --- |
+| `myriad` (ou `essaim`) | l'essaim fusionné : k pairs de familles différentes (comportement habituel) |
+| `myriad:<famille>` (`myriad:qwen`, `myriad:gemma`…) | un pair de cette famille, strictement |
+| `myriad:<compétence>` (`myriad:python`, `myriad:typescript`, `myriad:review`, `myriad:orchestrator`…) | un pair qui annonce cette étiquette ; s'il n'y en a aucun, n'importe quel pair, et `route.fallback` vaut `true` dans les métadonnées |
+| un modèle du réseau (`Qwen/Qwen3-1.7B-GGUF`) | un pair qui sert ce modèle |
+
+`myriad:<x>` désigne une famille quand `x` en est une (a priori connus ou annuaire), sinon une
+compétence ; `myriad:family=<x>` et `myriad:tag=<x>` lèvent l'ambiguïté. Avec une compétence, un seul
+pair répond par défaut ; `myriad.k` en demande plusieurs (de familles différentes, fusionnés).
+
+Chaque nœud annonce ses étiquettes dans son `Hello` : celles de `config.json` (`"tags": ["python",
+"review"]`) et celles lues dans le nom du modèle de base (`code` pour un modèle « coder »,
+`orchestrator` et `review` à partir d'environ 4 G paramètres) ; les adaptateurs LoRA chargés plus tard
+ajouteront les leurs. Le traqueur range chaque nœud sélectionnable dans un index par (étiquette, modèle),
+mis à jour en O(1) comme les autres : choisir un pair par compétence coûte O(k), quel que soit le
+nombre de nœuds. Un traqueur antérieur refuse un `Hello` avec étiquettes : le nœud se reconnecte aussitôt
+sans elles. Une passerelle ne route par étiquette ou famille que si le traqueur annonce la fonction
+`tags` (`GET /v1/health`) ; sinon elle choisit dans l'annuaire.
+
+`GET /v1/models` liste toutes les routes avec des comptes en direct (champ `myriad` de chaque entrée :
+`kind`, `peers`, `available`), ce qui permet à un client de proposer les compétences disponibles.
+
+### Avec un agent de programmation (Aider, OpenHands, Continue…)
+
+La passerelle parle l'API OpenAI : il suffit de lui donner l'adresse et un nom de modèle.
+
+```bash
+# Aider (via LiteLLM : préfixe openai/)
+aider --openai-api-base http://127.0.0.1:8400/v1 --openai-api-key inutile \
+      --model openai/myriad:python --weak-model openai/myriad
+
+# OpenHands : Paramètres > LLM > avancé
+#   Custom model : openai/myriad:orchestrator   Base URL : http://127.0.0.1:8400/v1   API key : inutile
+#   (OpenHands en Docker : la passerelle n'accepte que l'hôte 127.0.0.1/localhost, lancer le conteneur
+#    avec --network host, ou OpenHands hors Docker)
+```
+
+```yaml
+# Continue (config.yaml)
+models:
+  - name: Myriad (Python)
+    provider: openai
+    model: myriad:python
+    apiBase: http://127.0.0.1:8400/v1
+    apiKey: inutile
+```
+
+```python
+# OpenAI Agents SDK / LangGraph : un modèle par rôle
+from openai import AsyncOpenAI
+from agents import Agent, OpenAIChatCompletionsModel
+client = AsyncOpenAI(base_url="http://127.0.0.1:8400/v1", api_key="inutile")
+reviewer = Agent(name="review", model=OpenAIChatCompletionsModel(model="myriad:review", openai_client=client))
+```
+
+La passerelle ne fait pas d'appel d'outils natif (`tools` est ignoré) : utiliser le mode « sans
+function calling » de l'outil (format d'édition texte d'Aider, mode simulé d'OpenHands).
+
+## Sous-agents (mode multi-agents)
+
+Comme un agent de programmation qui délègue à des sous-agents : une tâche est découpée en sous-tâches,
+chacune confiée à un pair différent **en parallèle**, avec son propre petit contexte ; les résultats
+sont vérifiés localement, escaladés en cas d'échec, puis assemblés.
+
+![Vue Agents : l'arbre des sous-agents](docs/screenshot-agents.png)
+
+- **Plan** : explicite (liste de sous-tâches) ou `"auto"` : un pair orchestrateur (étiquette
+  `orchestrator`, n'importe quel pair sinon) écrit le plan en JSON, validé par un schéma strict (tout
+  champ inconnu est refusé ; un pair ne peut nommer ni fichier local ni commande). Un plan invalide est
+  redemandé une fois avec l'erreur.
+- **Parallélisme** : les sous-tâches prêtes partent ensemble, un aller-retour chacune ; une sous-tâche
+  attend ses dépendances (`depends_on`) et reçoit leurs résultats dans sa consigne, et seulement eux
+  (petit contexte). Les pairs déjà occupés par la même exécution sont évités tant qu'un autre convient ;
+  si tous les pairs sont occupés, la sous-tâche attend qu'un se libère. Une dépendance en échec fait
+  sauter les sous-tâches qui en dépendent.
+- **Candidats et vérification** : `k` candidats (pairs de familles différentes) par sous-tâche ;
+  `verify` exécute une commande **autorisée** sur chaque candidat, dans une copie temporaire d'un dossier
+  local (`workdir`), le code du candidat écrit dans `target`. Les candidats qui passent sont gardés ; à
+  plusieurs, le code identique cumule le poids de ses pairs, puis médoïde pondéré.
+- **Escalade** : une sous-tâche en échec (pas de réponse, aucun candidat vérifié) est relancée une fois
+  sur une route plus forte : par défaut l'essaim fusionné avec 3 candidats (familles les plus fiables
+  d'abord) ; `escalate_to` la change, `escalate: false` la désactive.
+- **Assemblage** : concaténation dans l'ordre du plan, ou `combine: "merge"` : un dernier appel
+  (compétence `orchestrator` par défaut) écrit une réponse unique ; s'il échoue, la concaténation est
+  rendue avec le statut `partial`.
+- **Budgets** (`budget`) : `max_subtasks` (12 par défaut, 32 au plus), `max_parallel` (8, 16 au plus),
+  `max_tokens` (jetons générés pour toute l'exécution : réservés avant chaque appel, comptés après ;
+  32 000 par défaut), `deadline_s` (300 s, 1 800 au plus). Limites de taille : 16 000 caractères par
+  consigne, 30 000 de contexte par sous-tâche, fichiers de contexte de 256 Kio au plus.
+
+### L'API
+
+`POST http://127.0.0.1:8400/v1/agents/run` (JSON ; `"stream": true` pour des événements SSE) et
+`GET /v1/agents/schema` (schémas JSON complets de la requête et d'un plan automatique).
+
+```json
+{
+  "task": "Petite application de liste de tâches : module Python et client TypeScript",
+  "plan": [
+    {"id": "api", "role": "développeur Python", "skill": "python", "k": 2,
+     "prompt": "Écris todo.py : add, complete, open_items.",
+     "verify": {"run": "pytest", "workdir": "C:/projets/todo", "target": "todo.py", "timeout_s": 60}},
+    {"id": "client", "skill": "typescript", "prompt": "Écris un client TypeScript TodoClient.",
+     "context": [{"file": "C:/projets/todo/openapi.yaml"}]},
+    {"id": "review", "skill": "review", "depends_on": ["api", "client"],
+     "prompt": "Relis le module et le client : bogues et risques, 8 points au plus."}
+  ],
+  "combine": "merge",
+  "allow_commands": {"pytest": ["python", "-m", "pytest", "-q"]},
+  "budget": {"max_subtasks": 8, "max_tokens": 20000, "deadline_s": 180}
+}
+```
+
+Champs d'une sous-tâche : `id`, `prompt`, `role`, une route parmi `skill` / `family` / `model` (aucune :
+n'importe quel pair), `system`, `context` (`{"text": …}` ou `{"file": …}`, lu par le demandeur),
+`uses_context` (indices du `context` de la tâche), `depends_on`, `k` (1 à 4), `verify`, `max_tokens`,
+`temperature`, `task_hint`, `escalate`, `timeout_s`. En plan `"auto"` : `verify` (appliqué aux sous-tâches
+de type `code`), `auto_k`, `planner` (route de l'orchestrateur).
+
+Événements du flux (`data: {...}`) : `start`, `planning` (orchestrateur), `plan` (l'arbre), `subtask`
+(état d'une sous-tâche), `job` (pair choisi : modèle, famille, `tag_match`), `answered`, `job_failed`,
+`verifying`, `verified` (résultat et fin de la sortie de la commande), `escalate`, `done` (le résultat
+complet), puis `data: [DONE]`. Le résultat : `status` (`ok`, `partial`, `failed`, `timeout`), `result`
+(le texte assemblé), chaque sous-tâche (pair, candidats, vérifications, tentatives, jetons, durées),
+`usage` et `timing` (`wall_ms`, `subtasks_sum_ms`, `parallel_speedup`).
+
+```python
+from myriad.agents import run_remote          # aide Python (flux SSE)
+res = run_remote({"task": "…", "plan": "auto"}, on_event=print)
+print(res["result"], res["timing"])
+```
+
+```bash
+uv run myriad agents run plan.json                     # requête complète, ou simple liste de sous-tâches
+uv run myriad agents run --task "…" --auto             # plan écrit par un orchestrateur
+uv run myriad agents run plan.json --allow "pytest=python -m pytest -q" --json
+```
+
+Dans l'interface, la vue **Agents** montre l'arbre en direct : une colonne par profondeur de dépendance,
+chaque sous-agent avec son pair et sa famille, son état, ses jetons, sa durée, sa vérification et son
+escalade, plus une chronologie et le parallélisme obtenu. Le bouton « Plan de démonstration » lance un
+plan de six sous-agents sur le réseau de démonstration (`scripts/demo_swarm.py`, sans GPU), avec une
+vérification de syntaxe Python et une escalade.
+
+![Vue Agents pendant l'exécution](docs/screenshot-agents-live.png)
+![Vue Agents, thème clair, anglais](docs/screenshot-agents-light-en.png)
+
+### Sécurité
+
+- **Les commandes de vérification sont locales et sur liste blanche.** Seules les commandes nommées
+  par l'utilisateur s'exécutent : `verify_commands` dans `config.json` (par exemple `{"pytest":
+  ["python", "-m", "pytest", "-q"]}`) et `allow_commands` de la requête. Ce sont des listes d'arguments,
+  sans shell ; `{file}` et `{workdir}` sont remplacés par le fichier du candidat et le dossier
+  temporaire. Une commande proposée par un pair n'est jamais exécutée : le schéma d'un plan automatique
+  n'a aucun champ de commande ni de fichier.
+- **Le code d'un pair est exécuté par la commande que vous avez choisie** (pytest importe le module
+  candidat, par exemple) : la vérification tourne dans une copie temporaire (le dossier d'origine n'est
+  jamais modifié ; `.git`, `node_modules`, `.venv` ne sont pas copiés ; liens symboliques ignorés), avec
+  un délai, la sortie bornée et l'arbre de processus tué à l'expiration (sous Windows, un processus
+  petit-enfant dont le parent est déjà sorti peut survivre), mais **sans bac à sable** :
+  choisissez des commandes qui n'exécutent que ce que vous accepteriez d'exécuter (vérification de
+  syntaxe, linter), ou lancez le nœud dans un conteneur.
+- **Les pairs n'exécutent rien sur la machine du demandeur** : ils ne reçoivent que des consignes et
+  renvoient du texte signé.
+- **Le code envoyé aux pairs leur est visible** (consignes, contexte, fichiers joints) ainsi qu'au
+  traqueur : pour du code privé, utiliser un essaim privé (son propre traqueur et ses propres nœuds).
+- L'API n'écoute que sur 127.0.0.1 et refuse les requêtes d'un autre site (en-têtes `Host` et
+  `Origin`) ; dans l'interface, le lancement demande le jeton de la page.
+
+### Mesure : le parallélisme sur l'essaim de démonstration
+
+`uv run python -m bench.bench_agents` : les 16 pairs simulés de `scripts/demo_swarm.py` (six familles),
+chaque génération durant exactement 3 s ; résultats dans `bench/results/agents_parallel.json`.
+
+| plan | sous-tâches | temps réel | somme des sous-tâches | parallélisme | pairs distincts |
+| --- | --- | --- | --- | --- | --- |
+| 6 indépendantes | 6 | 3,15 s | 18,9 s | ×6,0 | 6 |
+| chaîne a → b → c | 3 | 9,05 s | 9,0 s | ×1,0 | 1 |
+| 6 indépendantes puis 1 qui dépend des 6 | 7 | 6,03 s | 21,1 s | ×3,5 | 6 |
+
+Six sous-tâches indépendantes prennent le temps d'une seule (plus 0,15 s de coordination) ; une chaîne
+prend la somme de ses étapes, et chaque étape reçoit le résultat de la précédente, et pas celui des
+étapes plus anciennes.
+
 ## Comment ça marche
 
 ### Décentralisation et passage derrière une box (NAT)
@@ -358,6 +547,18 @@ Les nœuds utilisent alors `--tracker https://traqueur.exemple.org` (la connexio
 Docker : `uv run myriad tracker --host 0.0.0.0 --port 8500 --db /var/lib/myriad/tracker.sqlite`. La
 base SQLite contient aussi la clé du traqueur : la sauvegarder et ne pas la publier.
 
+**Page d'accueil.** Le traqueur sert aussi le site public du projet sur `/` : une page statique
+(`myriad/landing/` : HTML, CSS, JS, captures en WebP ; polices et icône partagées avec l'interface),
+ses fichiers sous `/static/landing/`, et `/robots.txt`. Elle affiche les chiffres du réseau
+(`GET /v1/stats` et `/v1/health` du même traqueur, toutes les 10 s) et trouve les liens de
+téléchargement de la dernière version par l'API publique de GitHub, depuis le navigateur du visiteur
+(repli sur la page des versions si l'API est limitée). En-têtes : CSP stricte (aucun script ni style en
+ligne ; seule origine extérieure, `connect-src https://api.github.com`), `nosniff`, `no-referrer`, pas
+d'encadrement ; cache d'un an pour les fichiers appelés avec le hachage courant (`?v=`), revalidation de
+la page à chaque visite. Rien ne change sous `/v1/`. `--no-landing` la désactive. Captures :
+`docs/landing-*.png` (`scripts/screenshots.py --landing http://127.0.0.1:8590/`, avec
+`scripts/demo_swarm.py --tracker-port 8590`) ; images de la page : `scripts/landing_images.py`.
+
 ## Tests
 
 ```bash
@@ -373,6 +574,11 @@ aléatoires et la protection des serveurs locaux. `tests/test_scale_v11.py` couv
 pairs par le traqueur (familles distinctes, nœuds libres, exclusions, coût indépendant de N), instantané
 de l'annuaire, nœuds figés (ping manqué, moteur en panne, dépassements de délai, recul exponentiel,
 réadmission, nœud essaim/1), remplacement des pairs refusés et certificat compté avec les remplaçants.
+`tests/test_routing_tags.py` couvre le routage par compétence et par famille (index du traqueur, repli
+signalé, noms `myriad:…`, `/v1/models`, compatibilité avec un traqueur ou un nœud antérieur) ;
+`tests/test_agents.py` et `tests/test_agents_ui.py` les sous-agents (validation des plans, parallélisme
+mesuré, dépendances, liste blanche, copie temporaire, délai et annulation des vérifications, escalade,
+budgets, plan automatique, flux SSE, commande `myriad agents run`, vue Agents).
 
 ## Bancs d'essai de l'article (E6, E7)
 
@@ -525,6 +731,12 @@ petits modèles, dix questions), pas un résultat.
   fige, la sonde de santé répondant encore, n'est détecté qu'après deux dépassements de délai. Quand
   tous les nœuds d'une famille sont occupés, la requête part avec moins de pairs, sans file d'attente.
   Le choix des pairs fait confiance au traqueur, comme l'annuaire avant lui.
+- **Sous-agents** : la vérification n'est pas isolée (pas de bac à sable : la commande autorisée tourne
+  avec les droits de l'utilisateur) ; le plan automatique dépend de la qualité d'un petit orchestrateur
+  (il est validé, pas jugé) ; une sous-tâche reçoit les résultats de ses dépendances tronqués pour tenir
+  dans 32 000 caractères ; pas d'appel d'outils natif ; les étiquettes sont déclarées par les nœuds et
+  ne sont pas vérifiées (un nœud peut se dire `python` à tort : la vérification et l'escalade
+  rattrapent une partie des erreurs).
 - Pas d'appel du minoritaire ni de diffusion en essaim dans cette version.
 - Le flux SSE est émulé : la réponse arrive d'un coup, après la fusion.
 

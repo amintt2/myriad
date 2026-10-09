@@ -29,6 +29,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
         <span data-i18n="nav.chat">Discussion</span>
       </button>
+      <button class="nav-item" role="tab" aria-selected="false" data-view="agents" id="tab-agents" aria-controls="view-agents">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="4" rx="1.2"/><rect x="2.5" y="16" width="6" height="4" rx="1.2"/><rect x="9" y="16" width="6" height="4" rx="1.2"/><rect x="15.5" y="16" width="6" height="4" rx="1.2"/><path d="M12 7v4.5M5.5 16v-2.5h13V16M12 11.5V16"/></svg>
+        <span data-i18n="nav.agents">Agents</span>
+      </button>
       <button class="nav-item" role="tab" aria-selected="false" data-view="peers" id="tab-peers" aria-controls="view-peers">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         <span data-i18n="nav.peers">Pairs</span>
@@ -196,6 +200,62 @@
       </div>
     </section>
 
+    <!-- ======================= AGENTS ======================= -->
+    <section class="view" id="view-agents" role="tabpanel" aria-labelledby="tab-agents" hidden>
+      <header class="view-head">
+        <div>
+          <h1 data-i18n="ag.title">Sous-agents</h1>
+          <p class="lead" data-i18n="ag.lead">Une tâche découpée en sous-tâches confiées en parallèle à des pairs différents, chacune avec son petit contexte, puis vérifiées et assemblées.</p>
+        </div>
+        <button type="button" class="btn" id="ag-demo">
+          <svg class="btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+          <span data-i18n="ag.demo">Plan de démonstration</span>
+        </button>
+      </header>
+
+      <form class="card ask ag-form" id="ag-form">
+        <label for="ag-task" class="sr-only" data-i18n="ag.task">Tâche</label>
+        <textarea id="ag-task" rows="2" data-i18n-ph="ag.task_ph" placeholder="Décrivez la tâche à découper…"></textarea>
+        <div class="ask-row">
+          <div class="seg" role="radiogroup" aria-label="Plan" id="ag-mode">
+            <button type="button" role="radio" aria-checked="true" data-mode="auto" data-i18n="ag.mode_auto">plan automatique</button>
+            <button type="button" role="radio" aria-checked="false" data-mode="plan" data-i18n="ag.mode_plan">plan JSON</button>
+          </div>
+          <label class="switch-row inline"><span data-i18n="ag.merge">Fusion finale</span><input type="checkbox" id="ag-merge" class="switch" role="switch"></label>
+          <button type="submit" class="btn primary" id="ag-run"><span data-i18n="ag.run">Lancer</span> <kbd>Ctrl ↵</kbd></button>
+        </div>
+        <div class="ag-plan-box" id="ag-plan-box" hidden>
+          <label for="ag-plan" class="sr-only" data-i18n="ag.mode_plan">plan JSON</label>
+          <textarea id="ag-plan" class="mono" rows="9" spellcheck="false"></textarea>
+          <p class="hint" data-i18n="ag.plan_hint">Liste de sous-tâches : id, prompt, role, skill (ou family, model), depends_on, k, verify (commande autorisée), context.</p>
+        </div>
+      </form>
+
+      <div class="ag-grid" id="ag-out" hidden>
+        <div class="card ag-graph-card">
+          <div class="answer-head">
+            <h2 data-i18n="ag.tree">L'arbre des sous-agents</h2>
+            <div class="badges" id="ag-badges"></div>
+          </div>
+          <div class="ag-graph" id="ag-graph">
+            <svg class="ag-edges" id="ag-edges" aria-hidden="true"></svg>
+            <div class="ag-cols" id="ag-cols"></div>
+          </div>
+        </div>
+        <div class="card ag-side">
+          <h2 data-i18n="ag.summary">Résumé</h2>
+          <div class="ag-stats" id="ag-stats"></div>
+          <h3 class="ag-sub" data-i18n="ag.timeline">Chronologie</h3>
+          <div class="ag-gantt" id="ag-gantt"></div>
+        </div>
+        <div class="card ag-result-card">
+          <h2 data-i18n="ag.result">Résultat</h2>
+          <p class="error" id="ag-error" hidden></p>
+          <div class="answer-text ag-result" id="ag-result" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ======================= PEERS ======================= -->
     <section class="view" id="view-peers" role="tabpanel" aria-labelledby="tab-peers" hidden>
       <header class="view-head">
@@ -335,6 +395,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script src="/static/i18n.js"></script>
 <script src="/static/netviz.js"></script>
+<script src="/static/agents.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

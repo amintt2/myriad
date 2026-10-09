@@ -15,8 +15,10 @@ import sys
 
 def key(r):
     """Row identity for every result kind: QCM (bench, id, run), generation (mode, id), E10 parallel
-    sections: expansions (id, point) and judge verdicts (id, vs, order)."""
-    return (r.get("bench"), r.get("mode"), r.get("id"), r.get("run", 0), r.get("point"), r.get("vs"), r.get("order"))
+    sections: expansions (id, point) and judge verdicts (id, vs, order), E11 code: solutions (id, sample) and
+    executions (id, prog)."""
+    return (r.get("bench"), r.get("mode"), r.get("id"), r.get("run", 0), r.get("point"), r.get("vs"), r.get("order"),
+            r.get("sample"), r.get("prog") if "sample" not in r else None)
 
 
 def rows(path):

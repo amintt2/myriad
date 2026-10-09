@@ -7,6 +7,7 @@
 <i>Une myriade de petits modèles, une seule réponse.</i></p>
 
 <p align="center">
+  <a href="https://myriad.french-web.com/">Website</a> ·
   <a href="https://github.com/amintt2/myriad/releases">Download</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="RESEARCH.md">Research</a> ·
@@ -101,8 +102,12 @@ uv run python scripts/demo_swarm.py    # a local demo network, no GPU needed
 The research behind it — the experiments, their results and how to reproduce them — is summarised in
 [`RESEARCH.md`](RESEARCH.md); the code and raw results are in [`phase0/`](phase0/README.md),
 [`app/bench/`](app/bench/) and [`paper/`](paper/).
-The default public tracker is `https://myriad.french-web.com` (not deployed yet; you can run your own:
-`myriad tracker`, see [`app/README.md`](app/README.md#déployer-le-traqueur)).
+The default public tracker is `https://myriad.french-web.com`; the same address serves the project's
+website (download links for your system, live figures of the network), a static page that the tracker
+itself serves on `/` (`app/myriad/landing/`, disabled with `myriad tracker --no-landing`). You can run
+your own tracker: `myriad tracker`, see [`app/README.md`](app/README.md#déployer-le-traqueur).
+
+![Myriad website: the murmuration gathers into one answer](app/docs/landing-desktop.png)
 
 **Limits today.** The tracker is a central point (rendezvous, relay, ledger); questions are not
 end-to-end encrypted (the tracker and the peers asked can read them); a new key gets starter credits

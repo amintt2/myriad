@@ -1,0 +1,45 @@
+{
+  "gen_s": 3.0,
+  "peers": 16,
+  "families": 6,
+  "runs": {
+    "parallel": {
+      "status": "ok",
+      "subtasks": 6,
+      "wall_s": 3.15,
+      "sum_s": 18.91,
+      "speedup": 6.0,
+      "distinct_peers": 6,
+      "families": [
+        "gemma",
+        "mistral",
+        "smollm"
+      ]
+    },
+    "chain": {
+      "status": "ok",
+      "subtasks": 3,
+      "wall_s": 9.05,
+      "sum_s": 9.05,
+      "speedup": 1.0,
+      "distinct_peers": 1,
+      "families": [
+        "smollm"
+      ],
+      "context_passed": true
+    },
+    "fan-in": {
+      "status": "ok",
+      "subtasks": 7,
+      "wall_s": 6.04,
+      "sum_s": 21.22,
+      "speedup": 3.51,
+      "distinct_peers": 6,
+      "families": [
+        "gemma",
+        "mistral",
+        "smollm"
+      ]
+    }
+  }
+}

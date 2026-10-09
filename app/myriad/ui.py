@@ -29,6 +29,7 @@ STATIC = {
     "app.js": "text/javascript; charset=utf-8",
     "i18n.js": "text/javascript; charset=utf-8",
     "netviz.js": "text/javascript; charset=utf-8",
+    "agents.js": "text/javascript; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
     "icon.svg": "image/svg+xml",
     "fonts/inter-latin-wght-normal.woff2": "font/woff2",
@@ -363,4 +364,6 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             await wizard.cancel()
             return {"job": wizard.progress()}
 
+    from .agents import install_ui as install_agents_ui
+    install_agents_ui(app, rt)  # Agents view: POST /api/agents/run (events), GET /api/agents/demo
     return app

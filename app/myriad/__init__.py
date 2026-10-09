@@ -15,5 +15,6 @@ PROTOCOL = "essaim/1"
 # essaim/1.1 adds optional frames, used only when both sides support them (backward compatible):
 # server-side peer selection (route), application-level pings with an engine check (ping) and the
 # selection endpoint GET /v1/select (select).
-PROTOCOL_VERSION = "essaim/1.1"
-FEATURES = ("route", "ping", "select")
+# essaim/1.2 adds skill tags (tags): nodes advertise tags, jobs can be routed by tag or by model family.
+PROTOCOL_VERSION = "essaim/1.2"
+FEATURES = ("route", "ping", "select", "tags")

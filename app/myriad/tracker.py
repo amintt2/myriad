@@ -23,6 +23,12 @@ essaim/1.1 (backward compatible, see protocol.py):
 - GET /v1/peers (the full directory, for the UI and essaim/1 gateways) is a cached snapshot, rebuilt
   in the background in chunks at most every `peers_snapshot_s`: answering it never costs O(N).
 - Housekeeping uses deadline heaps and FIFO queues: no periodic scan of all jobs.
+
+essaim/1.2 (feature "tags"): nodes advertise skill tags (NodeInfo.tags). Besides its model pool, a
+selectable node sits in one pool per (tag, model), kept up to date by the same O(1) reindexing, so a
+job routed by tag (Route.tag) is given a peer in O(k) too: the tag's models are walked by decreasing
+reliability. When no selectable node has the tag, any node is chosen and Assigned.tag_match says so.
+Route.family restricts the choice to one model family (no fallback).
 """
 from __future__ import annotations
 
@@ -159,6 +165,10 @@ class Conn:
     def family(self) -> str:
         return self.info.family or self.info.model or ""
 
+    @property
+    def tags(self) -> tuple:
+        return tuple(self.info.tags or ())
+
 
 @dataclass(eq=False)
 class TrackedJob:
@@ -198,7 +208,8 @@ class Tracker:
                  job_ttl_s: float = 600.0, seed: int | None = None, wan: WanDelay | None = None,
                  ping_s: float = 10.0, ping_timeout_s: float = 5.0, suspend_base_s: float = 10.0,
                  suspend_max_s: float = 300.0, timeout_strikes: int = 2, strike_min_deadline_s: float = 10.0,
-                 peers_snapshot_s: float = 3.0):
+                 peers_snapshot_s: float = 3.0, landing: bool = True):
+        self.landing = landing  # serve the public landing page at / (myriad/landing.py)
         self.ledger = Ledger(db_path, starter_credit)
         pem = self.ledger.get_meta("tracker_key")
         if pem:
@@ -222,6 +233,9 @@ class Tracker:
         self.health_events: Counter = Counter()  # suspensions per reason, readmissions, missed pings...
         # selection indexes
         self._pools: dict[str, Pool] = {}
+        self._tag_pools: dict[str, dict[str, Pool]] = {}  # tag -> model -> selectable nodes with that tag
+        self._tag_order: dict[str, tuple[float, list[str]]] = {}  # tag -> (sorted at, models by reliability)
+        self._tag_match: bool | None = None  # set by _route_target for a job routed by tag
         self._order: list[str] = []
         self._order_at = -1.0
         self._order_dirty = True
@@ -281,12 +295,12 @@ class Tracker:
 
         @app.get("/v1/select")
         async def select(k: int = Query(4, ge=1, le=MAX_SELECT_K), model: str | None = Query(None, max_length=200),
-                         exclude: str = Query("", max_length=64 * 33)):
+                         exclude: str = Query("", max_length=64 * 33), tag: str | None = Query(None, max_length=32)):
             ids = {x for x in exclude.split(",") if x}
             if len(ids) > 64 or any(len(x) != 32 or any(ch not in "0123456789abcdef" for ch in x) for x in ids):
                 raise HTTPException(422, "exclude : jusqu'à 64 identifiants de nœud séparés par des virgules")
-            chosen = self.select(k, model=model or None, exclude=ids)
-            return {"peers": [self._card(c).model_dump(mode="json") for c in chosen]}
+            chosen = self.select(k, model=model or None, exclude=ids, tag=tag or None)
+            return {"peers": [self._card(c, with_tags=True).model_dump(mode="json") for c in chosen]}
 
         @app.get("/v1/reliability")
         async def reliability():
@@ -320,6 +334,9 @@ class Tracker:
 
         from .stats import install as install_stats
         install_stats(app, self)  # GET /v1/stats (read-only dashboard figures)
+        if self.landing:
+            from .landing import install as install_landing
+            install_landing(app)  # GET / and /static/landing/* (static page, never under /v1/)
         return app
 
     def _peer_view(self, c: Conn) -> dict:
@@ -421,6 +438,24 @@ class Tracker:
                 pool = self._pools[new[0]] = Pool(new[0], c.family)
                 self._order_dirty = True
             getattr(pool, new[1]).add(c)
+        for tag in c.tags:  # the same move in the node's tag pools: O(number of tags)
+            pools = self._tag_pools.get(tag)
+            if c.slot is not None and pools is not None:
+                tp = pools.get(c.slot[0])
+                if tp is not None:
+                    getattr(tp, c.slot[1]).discard(c)
+                    if not len(tp):
+                        del pools[tp.model]
+                        self._tag_order.pop(tag, None)
+                if not pools:
+                    del self._tag_pools[tag]
+            if new is not None:
+                pools = self._tag_pools.setdefault(tag, {})
+                tp = pools.get(new[0])
+                if tp is None:
+                    tp = pools[new[0]] = Pool(new[0], c.family)
+                    self._tag_order.pop(tag, None)
+                getattr(tp, new[1]).add(c)
         c.slot = new
 
     def _ordered_models(self) -> list[str]:
@@ -431,6 +466,19 @@ class Tracker:
             self._order = sorted(self._pools, key=lambda m: (-self.model_p(m), m))
             self._order_dirty, self._order_at = False, now
         return self._order
+
+    def _ordered_tag_models(self, tag: str) -> list[str]:
+        """Models with selectable nodes advertising `tag`, most reliable first (re-sorted when that set
+        changes, and at least every second, like `_ordered_models`)."""
+        pools = self._tag_pools.get(tag)
+        if not pools:  # nothing cached for a tag no selectable node has (any string can be asked for)
+            self._tag_order.pop(tag, None)
+            return []
+        now = time.monotonic()
+        hit = self._tag_order.get(tag)
+        if hit is None or now - hit[0] > 1.0:
+            hit = self._tag_order[tag] = (now, sorted(pools, key=lambda m: (-self.model_p(m), m)))
+        return hit[1]
 
     @staticmethod
     def _load_key(c: Conn) -> tuple:
@@ -464,18 +512,22 @@ class Tracker:
         return None
 
     def select(self, k: int, model: str | None = None, exclude=(), exclude_families=(),
-               only_family: str | None = None) -> list[Conn]:
-        """Up to k selectable nodes of distinct families, most reliable model of each family first.
-        Cost: O(models walked + k * |exclude|), independent of the number of nodes."""
+               only_family: str | None = None, tag: str | None = None) -> list[Conn]:
+        """Up to k selectable nodes of distinct families, most reliable model of each family first;
+        with `tag`, only nodes advertising it. Cost: O(models walked + k * |exclude|), independent of
+        the number of nodes."""
         exclude = set(exclude)
+        pools = self._pools if tag is None else self._tag_pools.get(tag, {})
         if model is not None:
-            pool = self._pools.get(model)
+            pool = pools.get(model)
+            if pool is not None and only_family is not None and pool.family != only_family:
+                pool = None
             c = self._pick(pool, exclude) if pool is not None else None
             return [c] if c is not None and k >= 1 else []
         out: list[Conn] = []
         fams = set(exclude_families)
-        for m in self._ordered_models():
-            pool = self._pools.get(m)
+        for m in (self._ordered_models() if tag is None else self._ordered_tag_models(tag)):
+            pool = pools.get(m)
             if pool is None or pool.family in fams or (only_family is not None and pool.family != only_family):
                 continue
             c = self._pick(pool, exclude)
@@ -487,13 +539,16 @@ class Tracker:
                 break
         return out
 
-    def _card(self, c: Conn) -> PeerCard:
+    def _card(self, c: Conn, with_tags: bool = False) -> PeerCard:
         return PeerCard(node_id=c.node_id, pubkey=c.info.pubkey, model=c.info.model, family=c.info.family,
-                        gguf=c.info.gguf, params_b=c.info.params_b, reliability=round(self.model_p(c.info.model), 6))
+                        gguf=c.info.gguf, params_b=c.info.params_b, reliability=round(self.model_p(c.info.model), 6),
+                        tags=list(c.tags) if with_tags else None)
 
     def _route_target(self, req: Conn, job: Job, route: Route) -> Conn | None:
         """Pick the peer of a routed job: a family not yet used by its group (for a replacement, else
-        the replaced job's family), never a node already used by the group or excluded."""
+        the replaced job's family), never a node already used by the group or excluded.
+        route.family: only that family (a replacement stays in it). route.tag: a node advertising the
+        tag first, else any node; `self._tag_match` tells which."""
         key = (req.node_id, route.group)
         g = self.groups.get(key)
         if g is None:
@@ -502,15 +557,29 @@ class Tracker:
         if len(g.job_family) >= MAX_GROUP_JOBS:
             return None
         excl = g.nodes | set(route.exclude)
-        if route.model:
-            chosen = self.select(1, model=route.model, exclude=excl)
+        tag = route.tag
+        self._tag_match = None
+        if route.family:  # strict family; within it, the tag is a preference
+            chosen = self.select(1, model=route.model, exclude=excl, only_family=route.family, tag=tag) if tag else []
+            if not chosen:
+                chosen = self.select(1, model=route.model, exclude=excl, only_family=route.family)
+        elif route.model:
+            chosen = self.select(1, model=route.model, exclude=excl, tag=tag) if tag else []
+            if not chosen:
+                chosen = self.select(1, model=route.model, exclude=excl)
         else:
-            chosen = self.select(1, exclude=excl, exclude_families=g.families)
+            chosen = self.select(1, exclude=excl, exclude_families=g.families, tag=tag) if tag else []
+            if not chosen:
+                chosen = self.select(1, exclude=excl, exclude_families=g.families)
             fam = g.job_family.get(route.replaces) if route.replaces else None
             if not chosen and fam is not None:
-                chosen = self.select(1, exclude=excl, only_family=fam)
+                chosen = self.select(1, exclude=excl, only_family=fam, tag=tag) if tag else []
+                if not chosen:
+                    chosen = self.select(1, exclude=excl, only_family=fam)
         if not chosen:
             return None
+        if tag:
+            self._tag_match = tag in chosen[0].tags
         c = chosen[0]
         g.nodes.add(c.node_id)
         g.families.add(c.family)
@@ -853,7 +922,9 @@ class Tracker:
             tgt = self._route_target(req, job, f.route)
             if tgt is None:
                 return reject("no_peer")
-            req.send(Assigned(job_id=job.job_id, peer=self._card(tgt)))
+            tagged = f.route.tag is not None  # only a tags-aware requester sets it: it parses the new fields
+            req.send(Assigned(job_id=job.job_id, peer=self._card(tgt, with_tags=tagged),
+                              tag_match=self._tag_match if tagged else None))
         else:
             tgt = self.conns.get(f.target)
             if tgt is None or not tgt.info.model:

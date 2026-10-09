@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import random
 import re
 import secrets
@@ -19,6 +20,7 @@ from pathlib import Path
 
 import uvicorn
 
+from myriad.agents import demo_verify_commands
 from myriad.config import Config
 from myriad.crypto import Identity
 from myriad.engine import FakeEngine, free_port
@@ -26,6 +28,7 @@ from myriad.gateway import Gateway
 from myriad.node import NodeClient
 from myriad.priors import family_of, params_of
 from myriad.protocol import MAX_FRAME_BYTES
+from myriad.routing import node_tags
 from myriad.runtime import NodeRuntime
 from myriad.tracker import Tracker
 from myriad.ui import make_ui_app
@@ -55,8 +58,85 @@ FREE = {
 }
 
 
-def make_reply(p: float, family: str, rng: random.Random):
+# Skill tags of the demo peers (sub-agents, "myriad:<tag>"), on top of those read from the model name
+# (orchestrator and review for the 4B-class models).
+DEMO_TAGS = {"Qwen3-1.7B": ["python"], "granite-3.3": ["python"], "Ministral": ["typescript"],
+             "Phi-4": ["typescript"], "SmolLM3": ["docs"]}
+
+AGENT_CODE = {
+    "todo.py": "```python\nfrom dataclasses import dataclass\nfrom datetime import date\n\n\n@dataclass\nclass Todo:\n"
+               "    id: int\n    title: str\n    done: bool = False\n    due: date | None = None\n\n\n_items: list[Todo] = []\n\n\n"
+               "def add(title: str, due: date | None = None) -> Todo:\n    todo = Todo(len(_items) + 1, title, due=due)\n"
+               "    _items.append(todo)\n    return todo\n\n\ndef complete(todo_id: int) -> None:\n    for t in _items:\n"
+               "        if t.id == todo_id:\n            t.done = True\n            return\n    raise KeyError(todo_id)\n\n\n"
+               "def open_items() -> list[Todo]:\n    return [t for t in _items if not t.done]\n```",
+    "parse_due": "```python\nimport re\nfrom datetime import date, timedelta\n\n\ndef parse_due(text: str) -> date:\n"
+                 "    s = text.strip().lower()\n    if s == \"today\":\n        return date.today()\n    if s == \"tomorrow\":\n"
+                 "        return date.today() + timedelta(days=1)\n    m = re.fullmatch(r\"in (\\d+) days?\", s)\n    if m:\n"
+                 "        return date.today() + timedelta(days=int(m.group(1)))\n    return date.fromisoformat(s)\n```",
+    "parse_due_bad": "```python\nfrom datetime import date, timedelta\n\ndef parse_due(text)\n    if text == 'today':\n"
+                     "        return date.today()\n    return date.fromisoformat(text)\n```",
+    "TodoClient": "```typescript\nexport interface Todo { id: number; title: string; done: boolean; due?: string }\n\n"
+                  "export class TodoClient {\n  constructor(private base = \"/todos\") {}\n\n"
+                  "  async add(title: string, due?: string): Promise<Todo> {\n    const r = await fetch(this.base, { method: \"POST\", "
+                  "headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify({ title, due }) });\n"
+                  "    return r.json();\n  }\n\n  async complete(id: number): Promise<void> {\n"
+                  "    await fetch(`${this.base}/${id}/done`, { method: \"POST\" });\n  }\n\n"
+                  "  async list(): Promise<Todo[]> {\n    return (await fetch(this.base)).json();\n  }\n}\n```",
+    "pytest tests": "```python\nimport pytest\n\nfrom todo import add, complete, open_items\nfrom dates import parse_due\n\n\n"
+                    "def test_add_and_complete():\n    t = add(\"write docs\")\n    complete(t.id)\n"
+                    "    assert t not in open_items()\n\n\ndef test_parse_due_rejects_garbage():\n"
+                    "    with pytest.raises(ValueError):\n        parse_due(\"someday\")\n```",
+    "Review": "- `complete()` raises KeyError for an unknown id: the client expects a 404, map it in the API layer.\n"
+              "- `_items` is a module global: not thread-safe, and ids are reused after a restart.\n"
+              "- `TodoClient.add` ignores HTTP errors: check `r.ok` before `r.json()`.\n"
+              "- `due` is a string on the TypeScript side and a `date` in Python: document the ISO format.\n"
+              "- `list()` loads every item: add paging before the list grows.",
+    "README section": "## Using the TypeScript client\n\n```ts\nconst todos = new TodoClient();\n"
+                      "const t = await todos.add(\"Buy milk\", \"2026-10-12\");\nawait todos.complete(t.id);\n"
+                      "console.log(await todos.list());\n```\n\nEvery method returns a promise; `due` is an ISO date (YYYY-MM-DD).",
+}
+
+
+def agent_reply(messages, model: str) -> str | None:
+    """Scripted sub-agent answers for the Agents view (None: not a sub-agent call)."""
+    system = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
+    user = messages[-1]["content"]
+    if "orchestrator of Myriad" in system:
+        task = user.split("Task:\n", 1)[-1].split("\n\n## ", 1)[0][:300]
+        return json.dumps({"subtasks": [
+            {"id": "outline", "role": "analyst", "skill": "review", "prompt": f"List the parts and risks of: {task}"},
+            {"id": "core", "role": "Python developer", "skill": "python", "kind": "code",
+             "prompt": f"Write the core Python module for: {task}"},
+            {"id": "client", "role": "TypeScript developer", "skill": "typescript", "kind": "code",
+             "prompt": f"Write the TypeScript client for: {task}"},
+            {"id": "review", "role": "reviewer", "skill": "review", "depends_on": ["core", "client"],
+             "prompt": "Review the code of the other sub-agents."}], "combine": "merge"})
+    if "final agent of Myriad" in system:
+        parts = re.findall(r"## Result of (\w+)", user)
+        return ("Delivery note: a Python to-do module with due-date parsing (todo.py, dates.py), a typed TypeScript "
+                "client (client.ts), pytest tests and a README section. Assembled from " + ", ".join(parts) + ".\n\n"
+                "Open review points: map unknown ids to 404, check HTTP errors in the client, document ISO dates.")
+    if "sub-agent of Myriad" not in system:
+        return None
+    sub = user.split("Your sub-task", 1)[-1].split("\n\n## ", 1)[0]
+    if "parse_due" in sub and "pytest" not in sub:
+        bad = any(k in model for k in ("Qwen3-1.7B", "granite-3.3"))  # the small python specialists slip here
+        return AGENT_CODE["parse_due_bad" if bad else "parse_due"]
+    for needle, key in (("pytest", "pytest tests"), ("todo.py", "todo.py"), ("TodoClient", "TodoClient"),
+                        ("Review", "Review"), ("README", "README section")):
+        if needle in sub:
+            return AGENT_CODE[key]
+    if "Python" in sub or "python" in sub:
+        return AGENT_CODE["todo.py"]
+    return f"Done: {sub.strip().splitlines()[-1][:200] if sub.strip() else 'ok'}"
+
+
+def make_reply(p: float, family: str, rng: random.Random, model: str = ""):
     def reply(messages):
+        a = agent_reply(messages, model)
+        if a is not None:
+            return a
         q = messages[-1]["content"]
         right = rng.random() < p
         if re.search(r"\bA\)", q):
@@ -75,7 +155,7 @@ async def main(args) -> None:
     tmp = Path(tempfile.mkdtemp(prefix="myriad-demo-"))
     rng = random.Random(7)
     tracker = Tracker(db_path=tmp / "tracker.sqlite", starter_credit=1000.0, spot_rate=0.0, sweep_s=0.1)
-    tport = free_port()
+    tport = args.tracker_port or free_port()
     tserver = uvicorn.Server(uvicorn.Config(tracker.app, host="127.0.0.1", port=tport, log_level="warning",
                                             ws_max_size=MAX_FRAME_BYTES))
     tasks = [asyncio.create_task(tserver.serve())]
@@ -84,23 +164,26 @@ async def main(args) -> None:
     url = f"http://127.0.0.1:{tport}"
 
     def node(model, engine, mp=2):
+        extra = [t for key, tags in DEMO_TAGS.items() if model and key in model for t in tags]
         return NodeClient(Identity.generate(), url, engine=engine, model=model, family=family_of(model) if model else None,
                           gguf="model.gguf" if model else None, params_b=params_of(model) if model else None, ctx=4096,
-                          max_parallel=mp)
+                          max_parallel=mp, tags=node_tags(model, extra))
 
     for i, (model, p, d) in enumerate(PEERS):
         fam = family_of(model)
-        eng = FakeEngine(model, make_reply(p, fam, rng), delay_s=lambda m, d=d: max(0.3, rng.lognormvariate(0, 0.35) * d),
-                         tokens=rng.randint(60, 220))
+        eng = FakeEngine(model, make_reply(p, fam, rng, model),
+                         delay_s=lambda m, d=d: max(0.3, rng.lognormvariate(0, 0.35) * d), tokens=rng.randint(60, 220))
         n = node(model, eng, mp=rng.choice([1, 2, 2, 4]))
         if i % 7 == 6:
             n.accepting = False
         tasks.append(asyncio.create_task(n.run()))
     me_model = "ggml-org/SmolLM3-3B-GGUF"
-    me_engine = FakeEngine(me_model, make_reply(0.86, "smollm", rng), delay_s=lambda m: rng.uniform(0.8, 2.0), tokens=140)
+    me_engine = FakeEngine(me_model, make_reply(0.86, "smollm", rng, me_model), delay_s=lambda m: rng.uniform(0.8, 2.0),
+                           tokens=140)
     me = node(me_model, me_engine, mp=2)
     tasks.append(asyncio.create_task(me.run()))
     gw = Gateway(me, default_k=4, timeout_s=30)
+    gw.verify_commands = demo_verify_commands()  # the Agents view's demo plan checks Python syntax locally
     home = tmp / "me"
     home.mkdir()
     cfg = Config(tracker_url=url, model=f"{me_model}:SmolLM3-Q4_K_M.gguf", family="smollm", params_b=3.1, max_parallel=2)
@@ -146,12 +229,15 @@ async def main(args) -> None:
             for g in clients:
                 tracker.ledger.db.execute("UPDATE accounts SET balance = ? WHERE node_id = ?",
                                           (10**12, g.node.node_id))
+            # your own node: never below 5000 credits (agent runs spend a lot in a demo)
+            tracker.ledger.db.execute("UPDATE accounts SET balance = MAX(balance, 5000000) WHERE node_id = ?",
+                                      (me.node_id,))
             await asyncio.sleep(2)
 
     for g in clients:
         tasks.append(asyncio.create_task(traffic(g)))
     tasks.append(asyncio.create_task(top_up()))
-    print(f"Tracker      : {url}")
+    print(f"Tracker      : {url}  (it serves the landing page on /)")
     print(f"Dashboard    : http://127.0.0.1:{uport}/")
     print(f"Setup wizard : http://127.0.0.1:{wport}/", flush=True)
     try:
@@ -165,6 +251,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--wizard-port", type=int, default=0)
+    ap.add_argument("--tracker-port", type=int, default=0, help="port of the demo tracker (0: any free port)")
     ap.add_argument("--load", type=float, default=1.0, help="traffic multiplier")
     try:
         asyncio.run(main(ap.parse_args()))

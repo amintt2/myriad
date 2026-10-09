@@ -117,6 +117,58 @@ uv run python analyze_sot.py --tag sot1 --outline-model Qwen/Qwen3.5-4B --judge 
 uv run python -m unittest discover -s tests   # tests sans modèle
 ```
 
+## E11 : du code choisi en l'exécutant (idée 2 de `docs/07_idees_codex_2.md`)
+
+La question : sur la génération de code, un essaim de petits modèles de familles différentes, qui choisit un
+programme en l'**exécutant** (et non par un vote sur le texte), rivalise-t-il avec des modèles bien plus gros ?
+Et l'accord fonctionnel (des programmes qui donnent les mêmes sorties sur des entrées générées) joue-t-il le
+rôle de la dispersion des réponses en mathématiques ?
+
+- **Données** : HumanEval+ (`evalplus/humanevalplus`, 164 problèmes, 82 dev et 82 test) et MBPP+
+  (`evalplus/mbppplus`, 378 problèmes, 189 et 189), Apache-2.0 (HumanEval : MIT, MBPP : CC-BY-4.0), commits
+  fixés, licence enregistrée dans l'identité des données, tirage fixe. Les **tests visibles** sont ceux du
+  prompt : les exemples de la docstring pour HumanEval (plusieurs formats lus ; 12 problèmes sur 164 n'en ont
+  aucun de lisible), les `assert` de MBPP. Les **tests cachés** (entrées de base + « plus » d'EvalPlus) ne
+  servent qu'à noter. LiveCodeBench est écarté : licence « cc » sans variante, problèmes copiés de LeetCode,
+  AtCoder et Codeforces, chargement par un script distant.
+- **Génération** (`run_code.py`, un modèle à la fois sur le GPU, llama-server comme E4) : une solution gloutonne
+  et 4 tirages à température 0,8 (graines fixes) par problème, 1024 jetons au plus, réflexion coupée. Le code
+  est extrait du bloc ```` ```python ```` qui définit la fonction, puis nettoyé (exemples d'usage, `print`,
+  `assert` et blocs `__main__` retirés).
+- **Exécution** (`exec_code.py`, `essaim/sandbox.py`) : chaque programme distinct tourne dans un processus
+  Python séparé, dans un répertoire temporaire neuf, trois fois : tests visibles, entrées supplémentaires
+  (signatures des sorties), tests cachés. Barrières : crochet d'audit (pas d'écriture hors du répertoire
+  temporaire, pas de processus, pas de socket), limites de temps ; sous Linux aussi les rlimits (mémoire,
+  CPU, taille de fichier), un délai par cas et `unshare --net` quand il marche ; sous Windows un objet job
+  (mémoire, arbre tué d'un coup) mais **pas** de délai par cas ni d'espace réseau : Windows ne sert qu'à l'essai
+  de fumée. La solution de référence passe par le même chemin : les tests visibles qu'elle échoue sont ignorés,
+  et un problème qu'elle échoue est exclu (HumanEval/32 : l'oracle exporté est cassé).
+- **Entrées supplémentaires** : les entrées visibles, puis 16 entrées tirées d'elles par une ou deux petites
+  mutations qui gardent le type et le domaine apparent (signe des nombres, alphabet des chaînes, jamais de
+  séquence vide), graine = identifiant du problème. Une entrée hors des préconditions sépare des programmes
+  justes ; le taux a (deux programmes justes d'accord sur tout) le mesure.
+- **Analyse** (`analyze_code.py`) : règles choisies sur dev, rapportées sur test : (a) meilleur modèle seul ;
+  (b) vote sur le texte normalisé ; (c) tests visibles puis poids de la famille ; (d) regroupement fonctionnel
+  (CodeT, AlphaCode) des candidats qui passent les tests visibles, plus gros groupe (nombre de programmes, de
+  familles, ou somme des poids des familles) ; (e) cascade vers la plus grosse référence quand aucun candidat
+  ne passe les tests visibles ou que le groupe gagnant a moins de m familles. pass@1 sur les tests cachés,
+  IC bootstrap appariés et TOST (±2 points) contre le meilleur modèle et chaque référence (seule, et avec la
+  même sélection sur ses propres solutions), passage à l'échelle k = 1..7 familles, programmes exécutés par
+  problème, et le **taux de collision fonctionnelle** c (deux programmes faux de familles différentes, qui
+  passent les tests visibles, d'accord sur toutes les entrées), l'analogue du c de la théorie du vote.
+
+```
+bash colab/colab_phase0.sh up code-1 A100     # étape 0 : 13 modèles écrivent le code ; étape 1 : exécution (CPU)
+bash colab/colab_phase0.sh pull
+uv run python analyze_code.py --suffix _colab
+uv run python -m unittest tests.test_code     # tests sans modèle (bac à sable compris)
+```
+
+Essai de fumée sur le PC (5 problèmes, deux modèles, poids choisis sur les mêmes problèmes, fichiers `*_smoke*`
+ignorés par git) : `run_code.py ... --suffix _smoke --benches humanevalplus --splits test --n 5`, puis
+`exec_code.py --suffix _smoke ...` et `analyze_code.py --suffix _smoke --swarm <les deux modèles> --refs
+--fit-split test`. `exec_code.py --reference-only` vérifie le banc seul (aucun modèle).
+
 ## Sur le Mac
 
 Avec llama.cpp de Homebrew : `LLAMA_SERVER=/opt/homebrew/bin/llama-server uv run python run_mc.py --model

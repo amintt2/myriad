@@ -253,7 +253,7 @@ async def test_gateway_uses_tracker_selection_not_directory(tmp_path):
             assert sel[0]["node_id"] not in {p["node_id"] for p in ex} and len(ex) == 3
             assert (await http.get("/v1/select", params={"exclude": "zz"})).status_code == 422
             h = (await http.get("/v1/health")).json()
-            assert h["protocol"] == "essaim/1" and h["protocol_version"] == "essaim/1.1" and "route" in h["features"]
+            assert h["protocol"] == "essaim/1" and h["protocol_version"] == "essaim/1.2" and "route" in h["features"]
         # An essaim/1-style gateway (directory) still works against the new tracker.
         legacy = Gateway(gw.node, routing="directory", peers_ttl_s=0.0)
         ans = await legacy.ask([MATH], k=4)

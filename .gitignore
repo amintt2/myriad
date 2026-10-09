@@ -14,3 +14,6 @@ paper/main.pdf
 phase0/results/sot_*_smoke_*
 app/dist/
 app/build/
+phase0/results/code_*_smoke_*
+phase0/results/codeexec_*_smoke*
+phase0/results/e11_*_smoke*

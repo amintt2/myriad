@@ -44,6 +44,7 @@ from .node import NodeClient, http_url
 from .priors import collision_prob, prior_accuracy
 from .protocol import (MAX_DEADLINE_MS, MAX_PROMPT_CHARS, MAX_TOKENS, Assigned, ChatMessage, Job, JobError, Receipt,
                        ResultFrame, Route)
+from .routing import PREFIXES, RouteError, RouteSpec, known_families, live_routes, parse_model
 
 log = logging.getLogger("myriad.gateway")
 MAX_K = 8
@@ -88,6 +89,7 @@ class PeerOutcome:
     replaces: str | None = None  # job id of the refused or failed job this one replaces
     replaced_by: str | None = None
     exclude: list = field(default_factory=list)  # routed replacement: nodes the tracker must not choose
+    tag_match: bool | None = None  # routed by tag: does the peer advertise it (False: fallback peer)
 
     def public(self, chosen: bool) -> dict:
         p = self.peer
@@ -95,7 +97,7 @@ class PeerOutcome:
                 "weight": round(self.weight or 0.0, 4), "status": self.status, "answer": self.answer,
                 "mean_logprob": self.mean_logprob, "completion_tokens": self.completion_tokens,
                 "compute_ms": self.compute_ms, "latency_ms": self.latency_ms, "error": self.error, "chosen": chosen,
-                "replaces": self.replaces}
+                "replaces": self.replaces, "tag_match": self.tag_match}
 
 
 @dataclass
@@ -110,6 +112,9 @@ class _Request:
     make_job: object
     peers: list | None = None  # directory (essaim/1 tracker only)
     rel: dict | None = None
+    tag: str | None = None  # essaim/1.2: a peer advertising this skill tag (any peer if none)
+    family: str | None = None  # essaim/1.2: only this model family
+    avoid: list = field(default_factory=list)  # node ids the caller asked not to use (replacements too)
 
 
 @dataclass
@@ -118,6 +123,9 @@ class SwarmAnswer:
     finish_reason: str | None
     completion_tokens: int
     meta: dict = field(default_factory=dict)
+    # Every answer received ({text, node_id, model, family, weight, completion_tokens, tag_match...}):
+    # the sub-agent runner verifies candidates one by one.
+    candidates: list = field(default_factory=list)
 
 
 def normalize_messages(raw) -> list[dict]:
@@ -167,10 +175,12 @@ def peer_reliability(p: dict, reliability: dict[str, dict]) -> float:
 
 def select_peers(peers: list[dict], reliability: dict[str, dict], k: int, model: str | None = None,
                  rng: random.Random | None = None, exclude=(), exclude_families=(),
-                 only_family: str | None = None) -> list[dict]:
+                 only_family: str | None = None, tag: str | None = None) -> list[dict]:
     """Best available node of each family, families ranked by model reliability; at most k (directory
     mode, for an essaim/1 tracker). `exclude`: node ids never chosen; `exclude_families`: families
-    already used; `only_family`: restrict to that family."""
+    already used; `only_family`: restrict to that family; `tag`: only nodes advertising that tag."""
+    if tag is not None:
+        peers = [p for p in peers if tag in (p.get("tags") or ())]
     rng = rng or random.Random()
     exclude, exclude_families = set(exclude), set(exclude_families)
 
@@ -212,6 +222,8 @@ class Gateway:
         self._bg: set[asyncio.Task] = set()
         self.rng = random.Random()
         self.history: list[dict] = []
+        # Sub-agents (agents.py): local verification commands allowed by the user, by name.
+        self.verify_commands: dict[str, list[str]] = {}
         self.app = self._make_app()
 
     async def close(self) -> None:
@@ -265,7 +277,12 @@ class Gateway:
     async def ask(self, messages: list[dict], max_tokens: int = 512, temperature: float = 0.0,
                   seed: int | None = None, k: int | None = None, task_hint: str | None = None,
                   model: str | None = None, format_instruction: bool = True,
-                  timeout_s: float | None = None, early_stop: bool | None = None) -> SwarmAnswer:
+                  timeout_s: float | None = None, early_stop: bool | None = None, tag: str | None = None,
+                  family: str | None = None, avoid=()) -> SwarmAnswer:
+        """`tag`: peers advertising this skill tag (any peer for the jobs no such peer can take: flagged
+        in meta["route"]); `family`: one peer of this model family; `avoid`: node ids not to choose
+        (at most 64, e.g. peers busy with the other sub-tasks of an agent run)."""
+        avoid = [a for a in avoid if isinstance(a, str)][:64]
         if not self.node.connected.is_set():
             raise GatewayError(503, "le nœud n'est pas connecté au traqueur", "not_connected")
         t0 = time.perf_counter()
@@ -274,13 +291,15 @@ class Gateway:
             raise GatewayError(400, "task_hint doit valoir math, mc ou free", "invalid_request_error")
         sent = with_instruction(messages, hint) if (format_instruction and hint in ("math", "mc")) else messages
         k = max(1, min(int(k or self.default_k), MAX_K))
-        if model:
+        if model or family:
             k = 1
         timeout = max(1.0, min(float(timeout_s or self.timeout_s), MAX_DEADLINE_MS / 1000))
         if sum(len(m["content"]) for m in sent) > MAX_PROMPT_CHARS:
             raise GatewayError(400, "requête trop longue", "invalid_request_error")
         collision = collision_prob(hint, count_options(messages) if hint == "mc" else None)
         routed = await self.routed()
+        if routed and (tag or family) and "tags" not in await self.features():
+            routed = False  # a tracker before essaim/1.2 cannot route by tag or family: the directory can
 
         def make_job(deadline_s: float) -> Job:
             try:
@@ -292,21 +311,29 @@ class Gateway:
                 raise GatewayError(400, f"requête invalide : {e.errors()[0]['msg']}", "invalid_request_error") from e
 
         req = _Request(routed=routed, group=uuid.uuid4().hex, model=model, collision=collision,
-                       deadline_at=time.monotonic() + timeout, timeout=timeout, make_job=make_job)
+                       deadline_at=time.monotonic() + timeout, timeout=timeout, make_job=make_job, tag=tag or None,
+                       family=family or None, avoid=avoid)
         outcomes: dict[str, PeerOutcome] = {}
         if routed:  # the tracker picks the k peers (no directory download)
             for _ in range(k):
                 job = make_job(timeout)
-                outcomes[job.job_id] = PeerOutcome(peer=None, job_id=job.job_id, weight=None, job=job)
+                outcomes[job.job_id] = PeerOutcome(peer=None, job_id=job.job_id, weight=None, job=job,
+                                                   exclude=list(avoid))
         else:  # essaim/1 tracker: pick from the directory
             req.peers, req.rel = await self.directory()
-            chosen = select_peers(req.peers, req.rel, k, model, self.rng)
+            chosen = select_peers(req.peers, req.rel, k, model, self.rng, only_family=req.family, tag=req.tag,
+                                  exclude=avoid)
+            if req.tag and len(chosen) < k:  # not enough peers with the tag: any peer for the rest
+                chosen += select_peers(req.peers, req.rel, k - len(chosen), model, self.rng, only_family=req.family,
+                                       exclude=[p["node_id"] for p in chosen] + avoid,
+                                       exclude_families=[p.get("family") or p["model"] for p in chosen])
             if not chosen:
                 raise GatewayError(503, "aucun pair disponible pour cette requête", "no_peers")
             for p in chosen:
                 job = make_job(timeout)
                 outcomes[job.job_id] = PeerOutcome(peer=p, job_id=job.job_id, job=job,
-                                                   weight=reliability_weight(peer_reliability(p, req.rel), collision))
+                                                   weight=reliability_weight(peer_reliability(p, req.rel), collision),
+                                                   tag_match=(req.tag in (p.get("tags") or ())) if req.tag else None)
         queue: asyncio.Queue = asyncio.Queue()
         self.node.register(outcomes, queue)
         pending = set(outcomes)
@@ -335,6 +362,7 @@ class Gateway:
                         continue
                     o.peer = ev.peer.model_dump(mode="json")
                     o.weight = reliability_weight(ev.peer.reliability, collision)
+                    o.tag_match = ev.tag_match if req.tag else None
                 else:
                     jid = self._absorb(ev, outcomes, hint, t0)
                     if jid is None or jid not in pending:
@@ -356,7 +384,15 @@ class Gateway:
                         break
             for jid in pending:
                 outcomes[jid].status = "annulé" if early else "sans réponse"
-            answer = self._decide(outcomes, hint, vote_mode, bool(model), pending, early, t0, routed)
+            answer = self._decide(outcomes, hint, vote_mode, bool(model or family), pending, early, t0, routed)
+            asked = [o for o in outcomes.values() if o.peer is not None]
+            answer.meta["route"] = {"tag": req.tag, "family": req.family,
+                                    "fallback": bool(req.tag) and any(o.tag_match is False for o in asked)}
+            answer.candidates = [
+                {"text": o.text or "", "job_id": o.job_id, "node_id": o.peer["node_id"], "model": o.peer["model"],
+                 "family": o.peer.get("family"), "weight": o.weight or 0.0, "completion_tokens": o.completion_tokens,
+                 "compute_ms": o.compute_ms, "latency_ms": o.latency_ms, "tag_match": o.tag_match}
+                for o in asked if o.status == "ok"]
         finally:
             # Always, even on error or cancellation: cancel what is still running, pay what was
             # received, and drop the job registrations.
@@ -376,7 +412,7 @@ class Gateway:
     async def _send(self, o: PeerOutcome, req: _Request) -> None:
         if req.routed:
             await self.node.route(o.job, Route(group=req.group, model=req.model, exclude=o.exclude,
-                                               replaces=o.replaces))
+                                               replaces=o.replaces, tag=req.tag, family=req.family))
         else:
             await self.node.submit(o.peer["node_id"], o.job)
 
@@ -391,20 +427,29 @@ class Gateway:
         left = req.deadline_at - time.monotonic()
         if left < max(1.0, REPLACE_MIN_LEFT * req.timeout):
             return None
-        used = [o.peer["node_id"] for o in outcomes.values() if o.peer is not None]
+        # never a node already asked, nor one the caller asked to avoid (the tracker also excludes the
+        # group's nodes itself, so the caller's list comes first within the 64 ids a Route carries)
+        used = list(dict.fromkeys(req.avoid + [o.peer["node_id"] for o in outcomes.values() if o.peer is not None]))
         if req.routed:
-            new = PeerOutcome(peer=None, job_id="", weight=None, replaces=failed.job_id, exclude=used[-64:])
+            new = PeerOutcome(peer=None, job_id="", weight=None, replaces=failed.job_id, exclude=used[:64])
         else:
-            fams = set() if req.model else {o.peer.get("family") or o.peer["model"]
-                                            for o in outcomes.values() if o.peer is not None}
-            cand = select_peers(req.peers, req.rel, 1, req.model, self.rng, exclude=used, exclude_families=fams)
-            if not cand and not req.model:
+            fams = set() if (req.model or req.family) else {o.peer.get("family") or o.peer["model"]
+                                                            for o in outcomes.values() if o.peer is not None}
+            cand = []
+            if req.tag:
+                cand = select_peers(req.peers, req.rel, 1, req.model, self.rng, exclude=used, exclude_families=fams,
+                                    only_family=req.family, tag=req.tag)
+            if not cand:
+                cand = select_peers(req.peers, req.rel, 1, req.model, self.rng, exclude=used, exclude_families=fams,
+                                    only_family=req.family)
+            if not cand and not req.model and not req.family:
                 cand = select_peers(req.peers, req.rel, 1, None, self.rng, exclude=used,
                                     only_family=failed.peer.get("family") or failed.peer["model"])
             if not cand:
                 return None
             new = PeerOutcome(peer=cand[0], job_id="", replaces=failed.job_id,
-                              weight=reliability_weight(peer_reliability(cand[0], req.rel), req.collision))
+                              weight=reliability_weight(peer_reliability(cand[0], req.rel), req.collision),
+                              tag_match=(req.tag in (cand[0].get("tags") or ())) if req.tag else None)
         new.job = req.make_job(left)
         new.job_id = new.job.job_id
         failed.replaced_by = new.job_id
@@ -544,13 +589,21 @@ class Gateway:
 
         @app.get("/v1/models")
         async def list_models():
+            """The swarm, then every routing name with live counts (`myriad`: peers, available), then
+            the network's models. Extra fields are ignored by OpenAI clients."""
             try:
-                names = await self.models()
+                peers, _ = await self.directory()
             except GatewayError:
-                names = []
-            data = [{"id": SWARM_MODEL, "object": "model", "created": 0, "owned_by": "myriad"},
-                    {"id": LEGACY_SWARM_MODEL, "object": "model", "created": 0, "owned_by": "myriad"}]  # deprecated
-            data += [{"id": m, "object": "model", "created": 0, "owned_by": "myriad-peer"} for m in names]
+                peers = []
+            routes = live_routes(peers)
+            sw = routes.pop("myriad")
+            data = [{"id": SWARM_MODEL, "object": "model", "created": 0, "owned_by": "myriad", "myriad": sw},
+                    {"id": LEGACY_SWARM_MODEL, "object": "model", "created": 0, "owned_by": "myriad",  # deprecated
+                     "myriad": sw}]
+            order = {"family": 0, "tag": 1, "model": 2}
+            for name, r in sorted(routes.items(), key=lambda kv: (order[kv[1]["kind"]], kv[0])):
+                data.append({"id": name, "object": "model", "created": 0,
+                             "owned_by": "myriad-peer" if r["kind"] == "model" else "myriad", "myriad": r})
             return {"object": "list", "data": data}
 
         @app.post("/v1/chat/completions")
@@ -558,7 +611,20 @@ class Gateway:
             try:
                 body = await read_json(request)
                 stream = bool(body.get("stream", False))
-                result = await self.ask(**chat_args(body))
+                args = chat_args(body)
+                spec = await self.resolve_route(body.get("model"))
+                if spec.kind != "model":
+                    args["model"] = None
+                if spec.kind == "family":
+                    args["family"] = spec.value
+                elif spec.kind == "tag":
+                    args["tag"] = spec.value
+                    opts = body.get(SWARM_MODEL) if body.get(SWARM_MODEL) is not None else body.get(LEGACY_SWARM_MODEL)
+                    if (opts or {}).get("k") is None:
+                        args["k"] = 1  # one specialist by default; myriad.k asks for more (fused)
+                result = await self.ask(**args)
+                result.meta["route"] = {**spec.public(), **result.meta.get("route", {}),
+                                        "fallback": bool(result.meta.get("route", {}).get("fallback"))}
             except GatewayError as e:
                 return JSONResponse({"error": {"message": e.message, "type": e.code}}, status_code=e.status)
             model = body.get("model") or SWARM_MODEL
@@ -572,7 +638,25 @@ class Gateway:
         async def status():
             return {"node": self.node.status(), "balance": await self.balance(), "history": self.history[:20]}
 
+        from .agents import install as install_agents
+        install_agents(app, self)  # POST /v1/agents/run (sub-agents), GET /v1/agents/schema
         return app
+
+    async def resolve_route(self, name) -> RouteSpec:
+        """`model` field -> RouteSpec: `myriad:<x>` is a family when x is a known family (priors or the
+        live directory), else a skill tag."""
+        if isinstance(name, str) and name.strip().lower().startswith(PREFIXES):
+            try:
+                peers = (await self.directory())[0]
+            except GatewayError:
+                peers = []
+            fams = known_families(peers)
+        else:
+            fams = None
+        try:
+            return parse_model(name, fams)
+        except RouteError as e:
+            raise GatewayError(400, str(e), "invalid_request_error") from e
 
 
 def check_local(request: Request) -> str | None:

@@ -195,6 +195,12 @@ class Config:
     ui_port: int = 8401
     default_k: int = 4
     request_timeout_s: float = 120.0
+    # Skill tags this node advertises (essaim/1.2), on top of its base model's capabilities: clients
+    # reach it with the model name "myriad:<tag>" (e.g. "python", "review"). See routing.py.
+    tags: list = field(default_factory=list)
+    # Sub-agents (POST /v1/agents/run): the ONLY local commands a verification step may run, by name,
+    # as argument lists (no shell), e.g. {"pytest": ["python", "-m", "pytest", "-q"]}. See agents.py.
+    verify_commands: dict = field(default_factory=dict)
     extra: dict = field(default_factory=dict)
 
     @property

@@ -18,6 +18,7 @@ from .engine import LlamaServerEngine
 from .gateway import Gateway
 from .node import NodeClient
 from .priors import family_of, params_of
+from .routing import node_tags
 from .runtime import NodeRuntime
 from .ui import make_ui_app
 
@@ -40,8 +41,10 @@ def build(cfg: Config, home: Path, serve: bool = True) -> tuple[NodeClient, Gate
                       gguf=Path(cfg.gguf_path).name if engine else None,
                       params_b=(cfg.params_b or params_of(repo)) if repo else None,
                       ctx=cfg.ctx if engine else 0, max_parallel=cfg.max_parallel, accepting=cfg.accepting,
-                      active_hours=cfg.active_hours, max_job_tokens=cfg.max_job_tokens)
+                      active_hours=cfg.active_hours, max_job_tokens=cfg.max_job_tokens,
+                      tags=node_tags(repo, cfg.tags))
     gateway = Gateway(node, default_k=cfg.default_k, timeout_s=cfg.request_timeout_s)
+    gateway.verify_commands = dict(cfg.verify_commands or {})  # sub-agent verification allow-list
     return node, gateway, engine
 
 

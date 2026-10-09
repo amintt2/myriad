@@ -378,6 +378,83 @@ tr.me td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .toast { position: fixed; bottom: 1.4rem; left: 50%; transform: translateX(-50%); z-index: 60; padding: .7rem 1.1rem; border-radius: 12px;
   background: var(--surface-3); border: 1px solid var(--line-2); box-shadow: 0 16px 40px -14px rgba(0,0,0,.6); animation: rise .3s var(--ease); }
 
+/* ---------- agents ---------- */
+.btn-ico { width: 13px; height: 13px; fill: currentColor; }
+.ag-plan-box { display: flex; flex-direction: column; gap: .4rem; }
+.ag-plan-box textarea { font-family: var(--mono); font-size: .8rem; min-height: 12rem; line-height: 1.45; }
+.ag-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 1.1rem; align-items: start; }
+.ag-grid[hidden] { display: none; }
+.ag-graph-card { grid-column: 1 / -1; }
+.ag-graph { position: relative; overflow-x: auto; padding: .3rem .1rem .8rem; }
+.ag-edges { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.ag-cols { position: relative; z-index: 1; display: flex; gap: 2.6rem; align-items: flex-start; min-width: max-content; }
+.ag-col { display: flex; flex-direction: column; gap: .9rem; width: 228px; }
+.ag-card { position: relative; padding: .75rem .85rem .7rem 1rem; border-radius: 14px; background: var(--surface-2);
+  border: 1px solid var(--line); overflow: hidden; transition: border-color .35s var(--ease), box-shadow .35s var(--ease), opacity .35s; }
+.ag-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--fam); transition: background .4s; }
+.ag-card.st-pending { border-style: dashed; opacity: .72; }
+.ag-card.st-skipped, .ag-card.st-cancelled { opacity: .5; }
+.ag-card.st-running, .ag-card.st-verifying, .ag-card.st-escalating {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 25%, transparent), 0 14px 34px -22px var(--accent-2); }
+.ag-card.st-escalating { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.ag-card.st-ok { border-color: color-mix(in srgb, var(--ok) 38%, transparent); }
+.ag-card.st-failed { border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+.ag-special { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 16%, var(--surface-2)), var(--surface-2)); }
+.ag-card-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.ag-id { font-family: var(--mono); font-weight: 700; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-role { color: var(--text-2); font-size: .8rem; margin-top: .1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: .45rem 0 .35rem; }
+.ag-chips .chip { font-size: .7rem; padding: .08rem .5rem; backdrop-filter: none; }
+.ag-peer { display: flex; align-items: center; gap: .4rem; font-size: .8rem; min-height: 1.5rem; white-space: nowrap; overflow: hidden; }
+.ag-peer i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.ag-peer b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; }
+.ag-peer .hint { font-size: .74rem; overflow: hidden; text-overflow: ellipsis; }
+.ag-peer .tag, .ag-peer .dots { margin-left: auto; flex: none; }
+.ag-peer .dots i { --fam: var(--accent-2); }
+.ag-flags { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin-top: .4rem; }
+.ag-meta { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--text-3); }
+.ag-prog { height: 3px; border-radius: 99px; background: var(--surface-3); overflow: hidden; margin-top: .55rem; position: relative; }
+.ag-prog span { position: absolute; top: 0; bottom: 0; width: 38%; border-radius: 99px;
+  background: linear-gradient(90deg, transparent, var(--accent-2), transparent); animation: agscan 1.3s ease-in-out infinite; }
+.ag-err { color: var(--bad); font-size: .75rem; margin-top: .35rem; overflow-wrap: anywhere; }
+.ag-det summary { cursor: pointer; color: var(--text-2); font-size: .76rem; margin-top: .45rem; }
+.ag-det pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 210px; overflow: auto; background: var(--surface);
+  border-radius: 8px; padding: .55rem; border: 1px solid var(--line); font-family: var(--mono); font-size: .72rem; margin: .4rem 0 0; }
+.ag-det .ag-vout { color: color-mix(in srgb, var(--bad) 75%, var(--text)); }
+.ag-cands { list-style: none; padding: 0; margin: .3rem 0 0; display: grid; gap: .25rem; font-size: .75rem; }
+.ag-cands li { display: flex; align-items: center; gap: .35rem; color: var(--text-2); }
+.ag-cands li.chosen { color: var(--text); font-weight: 650; }
+.ag-cands li .tag { margin-left: auto; }
+.ag-cands li .tag + .tag { margin-left: 0; }
+.ag-cands i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.ag-sub { font-size: .7rem; text-transform: uppercase; color: var(--text-3); letter-spacing: .06em; margin-top: .55rem; }
+h3.ag-sub { margin: 1.1rem 0 .2rem; font-size: .74rem; }
+.ag-edge { fill: none; stroke: var(--line-2); stroke-width: 1.6; transition: stroke .4s; }
+.ag-edge.e-running, .ag-edge.e-verifying, .ag-edge.e-escalating { stroke: var(--accent-2); stroke-dasharray: 6 6; animation: agflow .9s linear infinite; }
+.ag-edge.e-ok { stroke: color-mix(in srgb, var(--ok) 65%, transparent); }
+.ag-edge.e-failed { stroke: color-mix(in srgb, var(--bad) 65%, transparent); }
+.ag-edge.e-skipped, .ag-edge.e-cancelled { stroke-dasharray: 2 5; opacity: .5; }
+.ag-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; }
+.ag-stat { padding: .7rem .8rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.ag-stat.hl { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 22%, var(--surface-2)), var(--surface-2)); }
+.ag-v { font-size: 1.4rem; font-weight: 720; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: .15rem; }
+.ag-gantt { display: grid; gap: .38rem; margin-top: .5rem; }
+.ag-row { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); gap: .6rem; align-items: center; font-size: .76rem; }
+.ag-lbl { font-family: var(--mono); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-track { position: relative; height: 10px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.ag-bar { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--fam); opacity: .92; }
+.ag-bar.st-running, .ag-bar.st-verifying, .ag-bar.st-escalating {
+  background: repeating-linear-gradient(45deg, var(--fam) 0 6px, color-mix(in srgb, var(--fam) 60%, transparent) 6px 12px); }
+.ag-bar.st-failed { background: var(--bad); }
+.ag-bar.st-cancelled { background: var(--text-3); }
+.ag-result { max-height: 560px; overflow: auto; font-size: .9rem; line-height: 1.6; }
+@keyframes agflow { to { stroke-dashoffset: -12; } }
+@keyframes agscan { from { left: -40%; } to { left: 100%; } }
+@media (max-width: 1020px) {
+  .ag-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }

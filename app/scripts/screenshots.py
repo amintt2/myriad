@@ -70,6 +70,46 @@ class Page:
         print("wrote", path)
 
 
+MOBILE_UA = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) "
+             "Chrome/126.0.0.0 Mobile Safari/537.36")
+
+
+async def landing(p: Page, url: str) -> None:
+    """The public landing page served by a tracker (FR, dark): desktop hero, full page, phone."""
+    async def open_page(wait: float):
+        await p.goto(url, 0.6)
+        await p.js("localStorage.setItem('myriad.site.theme','dark'); localStorage.setItem('myriad.site.lang','fr'); true")
+        await p.goto(url, wait)  # the murmuration gathers into the disc ~4-8 s after the page opens
+
+    async def reveal_all():  # scroll down once so that every section has played its entrance
+        h = await p.js("document.documentElement.scrollHeight")
+        for y in range(0, int(h), 500):
+            await p.js(f"window.scrollTo(0, {y}); true")
+            await asyncio.sleep(0.12)
+        await asyncio.sleep(1.6)
+        await p.js("window.scrollTo(0, 0); true")
+        await asyncio.sleep(0.4)
+
+    await p.call("Emulation.setDeviceMetricsOverride", width=1440, height=900, deviceScaleFactor=1, mobile=False)
+    await open_page(5.6)
+    await p.shot(OUT / "landing-desktop.png")
+    await reveal_all()
+    h = await p.js("document.querySelector('.top').style.position = 'absolute'; "  # sticky header: once, on top
+                   "document.querySelector('.top').style.width = '100%'; document.documentElement.scrollHeight")
+    r = await p.call("Page.captureScreenshot", format="png", captureBeyondViewport=True,
+                     clip={"x": 0, "y": 0, "width": 1440, "height": h, "scale": 0.5})
+    (OUT / "landing-full.png").write_bytes(base64.b64decode(r["data"]))
+    print("wrote", OUT / "landing-full.png")
+
+    await p.call("Emulation.setUserAgentOverride", userAgent=MOBILE_UA)
+    await p.call("Emulation.setDeviceMetricsOverride", width=390, height=844, deviceScaleFactor=2, mobile=True)
+    await open_page(5.6)
+    await p.shot(OUT / "landing-mobile.png")
+    await p.js("window.scrollTo(0, document.getElementById('reseau').offsetTop - 70); true")
+    await asyncio.sleep(1.5)
+    await p.shot(OUT / "landing-mobile-network.png")
+
+
 async def run(args) -> None:
     OUT.mkdir(exist_ok=True)
     port = 9333
@@ -100,6 +140,34 @@ async def run(args) -> None:
                 await p.js(f"localStorage.setItem('myriad.theme','{theme}'); localStorage.setItem('myriad.lang','{lang}')")
 
             d = args.dashboard
+
+            async def agents(name: str, live: str | None):
+                """The Agents view running the demo plan: one shot while it runs, one when it is done."""
+                await p.goto(d + "#agents", 1.5)
+                await p.js("document.getElementById('ag-demo').click(); true")
+                await asyncio.sleep(2.2)
+                await p.js("window.scrollTo(0, document.getElementById('ag-out').offsetTop - 24); true")
+                if live:
+                    await asyncio.sleep(0.3)
+                    await p.shot(OUT / live)
+                for _ in range(60):  # until the run is over
+                    if await p.js("!!(window.MyriadAgents && window.MyriadAgents.state.result)"):
+                        break
+                    await asyncio.sleep(0.5)
+                await asyncio.sleep(0.8)
+                await p.js("window.scrollTo(0, document.getElementById('ag-out').offsetTop - 24); true")
+                await asyncio.sleep(0.3)
+                await p.shot(OUT / name)
+
+            if args.landing:
+                await landing(p, args.landing)
+                return
+            if args.only_agents:
+                await prefs(d, "dark", "fr")
+                await agents("screenshot-agents.png", "screenshot-agents-live.png")
+                await prefs(d, "light", "en")
+                await agents("screenshot-agents-light-en.png", None)
+                return
             await prefs(d, "dark", "fr")
             await p.goto(d + "#dashboard", args.settle)
             await p.shot(OUT / "screenshot-dashboard.png")
@@ -112,11 +180,13 @@ async def run(args) -> None:
             await p.shot(OUT / "screenshot-chat.png")
             await p.goto(d + "#peers", 2.5)
             await p.shot(OUT / "screenshot-peers.png")
+            await agents("screenshot-agents.png", "screenshot-agents-live.png")
             await prefs(d, "light", "en")
             await p.goto(d + "#dashboard", args.settle)
             await p.shot(OUT / "screenshot-dashboard-light-en.png")
             await p.goto(d + "#about", 1.5)
             await p.shot(OUT / "screenshot-about-light-en.png")
+            await agents("screenshot-agents-light-en.png", None)
             if args.wizard:
                 w = args.wizard
                 await prefs(w, "dark", "fr")
@@ -143,4 +213,6 @@ if __name__ == "__main__":
     ap.add_argument("--wizard", default="http://127.0.0.1:8472/")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--settle", type=float, default=7.0, help="seconds to let the live map fill")
+    ap.add_argument("--only-agents", action="store_true", help="only the Agents view (screenshot-agents*.png)")
+    ap.add_argument("--landing", metavar="URL", help="only the landing page served by this tracker (landing-*.png)")
     asyncio.run(run(ap.parse_args()))

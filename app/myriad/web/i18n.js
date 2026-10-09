@@ -220,5 +220,7 @@
     apply();
     document.dispatchEvent(new CustomEvent("langchange", { detail: l }));
   }
-  window.I18N = { t, apply, setLang, get lang() { return lang; }, locale: () => (lang === "fr" ? "fr-FR" : "en-GB") };
+  // Other scripts (agents.js) add their own keys before the first apply().
+  function extend(l, dict) { if (D[l]) Object.assign(D[l], dict); }
+  window.I18N = { t, apply, setLang, extend, get lang() { return lang; }, locale: () => (lang === "fr" ? "fr-FR" : "en-GB") };
 })();

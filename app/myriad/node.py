@@ -26,6 +26,10 @@ HEARTBEAT_S = 15.0
 PROBE_TIMEOUT_S = 2.0  # engine health probe before answering a ping (the tracker waits 5 s by default)
 
 
+class _TagsRefused(ValueError):
+    """An older tracker (before essaim/1.2) refused a Hello carrying skill tags."""
+
+
 def ws_url(tracker_url: str) -> str:
     """http://host:port -> ws://host:port/v1/ws (https -> wss)."""
     u = urlsplit(tracker_url.rstrip("/"))
@@ -47,8 +51,12 @@ class NodeClient:
     def __init__(self, identity: Identity, tracker_url: str, engine=None, model: str | None = None,
                  family: str | None = None, gguf: str | None = None, params_b: float | None = None, ctx: int = 0,
                  max_parallel: int = 1, accepting: bool = True, active_hours: str | None = None,
-                 max_job_tokens: int = 1024, reconnect: bool = True):
+                 max_job_tokens: int = 1024, reconnect: bool = True, tags: list[str] | None = None):
         self.identity = identity
+        # Skill tags (essaim/1.2), advertised in the Hello. An older tracker refuses a Hello carrying
+        # them: the node then reconnects without tags to that tracker (`_tags_refused`).
+        self.tags = list(tags) if tags else None
+        self._tags_refused = False
         self.node_id = identity.node_id
         self.tracker_url = tracker_url
         self.engine = engine
@@ -85,7 +93,8 @@ class NodeClient:
     def info(self) -> NodeInfo:
         return NodeInfo(node_id=self.node_id, pubkey=self.identity.pubkey, model=self.model, family=self.family,
                         gguf=self.gguf, params_b=self.params_b, ctx=self.ctx, max_parallel=self.max_parallel,
-                        version=PROTOCOL, accepting=self.accepting_now())
+                        version=PROTOCOL, accepting=self.accepting_now(),
+                        tags=self.tags if self.tags and self.model and not self._tags_refused else None)
 
     async def set_limits(self, max_parallel: int | None = None, accepting: bool | None = None,
                          active_hours: str | None | type(...) = ...) -> None:
@@ -117,7 +126,14 @@ class NodeClient:
             self.state = "connexion"
             started = time.monotonic()
             try:
-                await self._session()
+                try:
+                    await self._session()
+                except _TagsRefused:  # an older tracker: at once again, without the tags
+                    self._tags_refused = True
+                    log.info("tracker does not accept skill tags: connecting without them")
+                    self._on_disconnect()
+                    self.state = "connexion"
+                    await self._session()
             except (OSError, WebSocketException, asyncio.TimeoutError, ValueError, ValidationError) as e:
                 self.last_error = f"{type(e).__name__}: {e}"[:300]
                 log.warning("tracker connection: %s", self.last_error)
@@ -145,9 +161,12 @@ class NodeClient:
             ch = parse_frame(await asyncio.wait_for(ws.recv(), 10))
             if not isinstance(ch, Challenge) or not pubkey_matches(ch.tracker_id, ch.tracker_pubkey):
                 raise ValueError("défi du traqueur invalide")
-            await ws.send(dump_frame(Hello.make(self.identity, self.info(), ch.nonce)))
+            info = self.info()
+            await ws.send(dump_frame(Hello.make(self.identity, info, ch.nonce)))
             first = parse_frame(await asyncio.wait_for(ws.recv(), 10))
             if isinstance(first, ErrorFrame):
+                if info.tags is not None and first.error == "hello_expected":  # unknown field `tags`
+                    raise _TagsRefused(first.error)
                 raise ValueError(f"refusé par le traqueur : {first.error}")
             if not isinstance(first, Welcome) or first.node_id != self.node_id:
                 raise ValueError("réponse inattendue du traqueur")
@@ -327,7 +346,7 @@ class NodeClient:
 
     def status(self) -> dict:
         return {"node_id": self.node_id, "state": self.state, "tracker": self.tracker_url, "model": self.model,
-                "family": self.family, "gguf": self.gguf, "params_b": self.params_b, "serving": self.serving(),
+                "family": self.family, "tags": self.info().tags, "gguf": self.gguf, "params_b": self.params_b, "serving": self.serving(),
                 "accepting": self.accepting, "accepting_now": self.accepting_now(), "max_parallel": self.max_parallel,
                 "active_hours": self.active_hours, "running": len(self.running), "stats": dict(self.stats),
                 "recent": list(self.recent)[:20], "last_error": self.last_error,

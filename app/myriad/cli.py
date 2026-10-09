@@ -1,10 +1,11 @@
-"""Command line: myriad init | node | tracker | chat | status (`essaim` is a deprecated alias)."""
+"""Command line: myriad init | node | tracker | chat | agents run | status (`essaim` is a deprecated alias)."""
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -101,7 +102,8 @@ def cmd_tracker(args) -> int:
     from .netem import wan_from_rtt
 
     run(host=args.host, port=args.port, db=args.db, starter_credit=args.starter_credit, spot_rate=args.spot_rate,
-        receipt_grace_s=args.receipt_grace, wan=wan_from_rtt(args.wan_rtt_ms, args.wan_sigma))
+        receipt_grace_s=args.receipt_grace, wan=wan_from_rtt(args.wan_rtt_ms, args.wan_sigma),
+        landing=not args.no_landing)
     return 0
 
 
@@ -139,6 +141,80 @@ def cmd_chat(args) -> int:
             print(f" {mark} {p['model']:<45} {p['status']:<12} réponse={p.get('answer')!s:<8} poids={p['weight']:<7}"
                   f" {p.get('latency_ms') or '-'} ms" + (f"  ({p['error']})" if p.get("error") else ""))
     return 0
+
+
+def cmd_agents_run(args) -> int:
+    """`myriad agents run plan.json`: sub-tasks in parallel on the network, progress on stderr."""
+    import shlex
+    import time as _time
+
+    from .agents import AgentsError, run_remote
+
+    cfg = Config.load(_home(args))
+    base = args.gateway or f"http://127.0.0.1:{cfg.gateway_port}"
+    body: dict = {}
+    if args.plan:
+        try:
+            data = json.loads(Path(args.plan).read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError) as e:
+            print(f"Plan illisible ({args.plan}) : {e}", file=sys.stderr)
+            return 2
+        body = {"plan": data} if isinstance(data, list) else dict(data)
+    if args.task:
+        body["task"] = args.task
+    if args.auto or "plan" not in body:
+        body["plan"] = "auto"
+    allow = dict(body.get("allow_commands") or {})
+    for spec in args.allow:
+        name, sep, cmd = spec.partition("=")
+        if not sep or not name or not cmd.strip():
+            print(f"--allow attend NOM=COMMANDE, reçu : {spec!r}", file=sys.stderr)
+            return 2
+        if os.name == "nt":  # keep backslashes; "C:\Program Files\..." quoted, quotes removed
+            allow[name] = [a[1:-1] if len(a) >= 2 and a[0] == a[-1] and a[0] in "\"'" else a
+                           for a in shlex.split(cmd, posix=False)]
+        else:
+            allow[name] = shlex.split(cmd)
+    if allow:
+        body["allow_commands"] = allow
+    t0 = _time.monotonic()
+
+    def show(ev: dict) -> None:
+        if args.quiet:
+            return
+        k, sec = ev.get("type"), f"[{_time.monotonic() - t0:6.1f} s]"
+        st = ev.get("subtask") if isinstance(ev.get("subtask"), dict) else None
+        if k == "plan":
+            print(f"{sec} plan ({ev['source']}) : {len(ev['subtasks'])} sous-tâches", file=sys.stderr)
+        elif k == "job":
+            print(f"{sec} {ev['subtask']} -> {ev.get('family') or '?'} ({(ev.get('model') or '?').split('/')[-1]})",
+                  file=sys.stderr)
+        elif k == "verified":
+            print(f"{sec} {ev['subtask']} vérification {'OK' if ev['passed'] else 'ÉCHEC'} "
+                  f"({ev.get('model') or '?'})", file=sys.stderr)
+        elif k == "escalate":
+            print(f"{sec} {ev['subtask']} escalade : {ev.get('reason')}", file=sys.stderr)
+        elif k == "subtask" and st and st["status"] in ("ok", "failed", "skipped"):
+            print(f"{sec} {st['id']} {st['status']}" + (f" ({st['error']})" if st.get("error") else "")
+                  + (f", {st['tokens']} jetons" if st.get("tokens") else ""), file=sys.stderr)
+
+    try:
+        res = run_remote(body, base, show)
+    except AgentsError as e:
+        print(f"Erreur : {e.message}", file=sys.stderr)
+        return 1
+    except httpx.HTTPError as e:
+        print(f"Passerelle injoignable ({base}) : {e}. Le nœud tourne-t-il (myriad node) ?", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        print(res["result"])
+        tm = res["timing"]
+        print(f"\n[{res['status']} : {res['usage']['ok']}/{res['usage']['subtasks']} sous-tâches, "
+              f"{res['usage']['completion_tokens']} jetons, {tm['wall_ms'] / 1000:.1f} s "
+              f"(somme des sous-tâches {tm['subtasks_sum_ms'] / 1000:.1f} s)]", file=sys.stderr)
+    return 0 if res["status"] == "ok" else 1
 
 
 def cmd_status(args) -> int:
@@ -213,6 +289,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--wan-rtt-ms", type=float, default=0.0,
                    help="EXPÉRIENCES SEULEMENT : retard réseau simulé, aller-retour médian client-traqueur (ms) ; 0 = désactivé")
     p.add_argument("--wan-sigma", type=float, default=0.25, help="dispersion lognormale du retard simulé")
+    p.add_argument("--no-landing", action="store_true", help="ne pas servir la page d'accueil publique sur /")
     p.set_defaults(func=cmd_tracker)
 
     p = sub.add_parser("chat", help="poser une question à l'essaim par la passerelle locale")
@@ -226,6 +303,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--details", action="store_true", help="afficher la réponse de chaque pair")
     p.add_argument("--json", action="store_true", help="réponse brute (JSON)")
     p.set_defaults(func=cmd_chat)
+
+    p = sub.add_parser("agents", help="sous-agents : des sous-tâches en parallèle sur le réseau")
+    asub = p.add_subparsers(dest="agents_cmd", required=True)
+    r = asub.add_parser("run", help="exécuter un plan (fichier JSON) ou un plan automatique (--task)")
+    r.add_argument("plan", nargs="?", help="fichier JSON : requête complète, ou liste de sous-tâches")
+    r.add_argument("--task", help="la tâche (obligatoire pour un plan automatique)")
+    r.add_argument("--auto", action="store_true", help="plan écrit par un pair orchestrateur")
+    r.add_argument("--allow", action="append", default=[], metavar="NOM=COMMANDE",
+                   help="autoriser une commande de vérification locale pour cette requête (répétable)")
+    r.add_argument("--gateway", help="URL de la passerelle (défaut : http://127.0.0.1:8400)")
+    r.add_argument("--json", action="store_true", help="résultat complet (JSON)")
+    r.add_argument("--quiet", action="store_true", help="sans la progression")
+    r.set_defaults(func=cmd_agents_run)
 
     p = sub.add_parser("status", help="état du nœud")
     p.set_defaults(func=cmd_status)

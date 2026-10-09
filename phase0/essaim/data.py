@@ -25,14 +25,24 @@ SPLITS = ("dev", "test")
 
 
 REPOS = {"arc": "allenai/ai2_arc", "mmlupro": "TIGER-Lab/MMLU-Pro", "gsm8k": "openai/gsm8k",
-         "math500": "HuggingFaceH4/MATH-500", "mtbench": "HuggingFaceH4/mt_bench_prompts"}
+         "math500": "HuggingFaceH4/MATH-500", "mtbench": "HuggingFaceH4/mt_bench_prompts",
+         "humanevalplus": "evalplus/humanevalplus", "mbppplus": "evalplus/mbppplus"}
 # Dataset commits pinned for the whole phase 0, on every machine.
 REVISIONS = {"arc": "210d026faf9955653af8916fad021475a3f00453",
              "mmlupro": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
              "gsm8k": "740312add88f781978c0658806c59bc2815b9866",
              "math500": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
-             "mtbench": "e3a795c5e9a82ee40611c416b8a7786c73198991"}
-_PREFIX = {"arc": "ARC-Challenge/test", "mmlupro": "data/test", "gsm8k": "main/test"}
+             "mtbench": "e3a795c5e9a82ee40611c416b8a7786c73198991",
+             "humanevalplus": "d32357cf319e50e9c8d8dab5ea876c72b0fd321b",
+             "mbppplus": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077"}
+# Licences read from the dataset cards at the pinned commits (E11 records them in the data identity).
+# LiveCodeBench (livecodebench/code_generation_lite) is not used: its card says only "cc" (no variant), its
+# problems are copied from LeetCode, AtCoder and Codeforces, whose terms are not permissive, and it is loaded
+# through a dataset script (remote code).
+LICENSES = {"humanevalplus": "apache-2.0 (EvalPlus; HumanEval itself: MIT)",
+            "mbppplus": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)"}
+_PREFIX = {"arc": "ARC-Challenge/test", "mmlupro": "data/test", "gsm8k": "main/test",
+           "humanevalplus": "data/test", "mbppplus": "data/test"}
 
 
 def _parquets(bench: str) -> list[str]:
@@ -66,6 +76,8 @@ def _cached(name: str, build, bench: str) -> list[dict]:
         tmp.write_bytes(raw)
         os.replace(tmp, f)  # atomic: a reader never sees a half-written file
         m = {"dataset": REPOS[bench], "revision": REVISIONS[bench], "sha256": hashlib.sha256(raw).hexdigest()}
+        if bench in LICENSES:  # only the newer benchmarks: older caches and manifests stay byte-identical
+            m["license"] = LICENSES[bench]
         meta.write_bytes((json.dumps(m, indent=2) + "\n").encode("utf-8"))
     raw = f.read_bytes()
     m = json.loads(meta.read_text(encoding="utf-8"))
@@ -83,7 +95,8 @@ def dataset_identity(bench: str) -> dict | None:
     return _IDENTITY.get(bench)
 
 
-PART = {"arc": 300, "mmlupro": 300, "gsm8k": 300, "math500": 250}
+PART = {"arc": 300, "mmlupro": 300, "gsm8k": 300, "math500": 250,
+        "humanevalplus": 82, "mbppplus": 189}  # code (E11): each benchmark cut in two equal halves
 
 
 def _split(items: list[dict], n: int, split: str, bench: str) -> list[dict]:
@@ -137,6 +150,33 @@ def math500(n: int = 250, seed: int = 0, split: str = "dev") -> list[dict]:
         return [{"id": r["unique_id"], "question": r["problem"], "answer": r["answer"],
                  "subject": r["subject"], "level": r["level"]} for r in rows]
     return _split(_cached(f"math500_all_s{seed}", build, "math500"), n, split, "math500")
+
+
+def humanevalplus(n: int = 82, seed: int = 0, split: str = "dev") -> list[dict]:
+    """HumanEval+ (EvalPlus): 164 problems, 82 dev and 82 test. Raw fields only; the visible tests (docstring
+    examples) and the hidden plus tests are parsed at load time by essaim.code, so a parser fix never needs
+    a new cache. `test` holds the hidden tests (base + plus inputs) and is used for grading only."""
+    def build():
+        rows = sorted(_rows(_parquets("humanevalplus")), key=lambda r: int(r["task_id"].split("/")[1]))
+        random.Random(seed).shuffle(rows)
+        return [{"id": r["task_id"], "prompt": r["prompt"], "entry_point": r["entry_point"],
+                 "reference": r["prompt"] + r["canonical_solution"], "test": r["test"]} for r in rows]
+    return _split(_cached(f"humanevalplus_all_s{seed}", build, "humanevalplus"), n, split, "humanevalplus")
+
+
+def mbppplus(n: int = 189, seed: int = 0, split: str = "dev") -> list[dict]:
+    """MBPP+ (EvalPlus): 378 problems, 189 dev and 189 test. `test_list` holds the original MBPP asserts, shown
+    in the prompt (visible tests); `test` holds the hidden plus tests, used for grading only."""
+    def build():
+        rows = sorted(_rows(_parquets("mbppplus")), key=lambda r: int(r["task_id"]))
+        random.Random(seed).shuffle(rows)
+        return [{"id": f"Mbpp/{r['task_id']}", "prompt": r["prompt"], "reference": r["code"],
+                 "test_list": list(r["test_list"]), "test_imports": list(r["test_imports"]), "test": r["test"]}
+                for r in rows]
+    return _split(_cached(f"mbppplus_all_s{seed}", build, "mbppplus"), n, split, "mbppplus")
+
+
+CODE_LOADERS = {"humanevalplus": humanevalplus, "mbppplus": mbppplus}
 
 
 # E10 (Skeleton-of-Thought): MT-Bench first turns (80 prompts, 10 per category, Apache-2.0).

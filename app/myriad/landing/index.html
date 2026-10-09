@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Myriad · une myriade de petits modèles, une seule réponse</title>
+<meta name="description" content="Myriad est un LLM décentralisé et libre : chaque ordinateur prête un petit modèle ouvert au réseau, et chaque question est fusionnée par un vote pondéré entre plusieurs familles de modèles.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#07080d">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Myriad">
+<meta property="og:title" content="Myriad · une myriade de petits modèles, une seule réponse">
+<meta property="og:description" content="Un LLM décentralisé et libre : des petits modèles ouverts de familles différentes, sur les ordinateurs de chacun, fusionnés par un vote pondéré.">
+<meta property="og:url" content="https://myriad.french-web.com/">
+<meta property="og:image" content="https://myriad.french-web.com/static/landing/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/static/landing/icon.svg?v=__V__" type="image/svg+xml">
+<link rel="preload" href="/static/landing/fonts/inter-latin-wght-normal.woff2?v=__V__" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/landing/landing.css?v=__V__">
+<script src="/static/landing/boot.js?v=__V__"></script>
+<script src="/static/landing/i18n.js?v=__V__" defer></script>
+<script src="/static/landing/swarm.js?v=__V__" defer></script>
+<script src="/static/landing/landing.js?v=__V__" defer></script>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Aller au contenu</a>
+
+<header class="top" id="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#top" aria-label="Myriad, retour en haut" data-i18n-aria="brand.aria">
+      <img src="/static/landing/icon.svg?v=__V__" alt="" width="32" height="32">
+      <span>Myriad</span>
+    </a>
+    <nav class="nav" aria-label="Sections" data-i18n-aria="nav.aria">
+      <a href="#reseau" data-i18n="nav.network">Réseau</a>
+      <a href="#fonctionnement" data-i18n="nav.how">Fonctionnement</a>
+      <a href="#resultats" data-i18n="nav.results">Résultats</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+    </nav>
+    <div class="top-tools">
+      <a class="icon-btn gh" href="https://github.com/amintt2/myriad" rel="noopener" aria-label="Code source sur GitHub" data-i18n-aria="gh.aria">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .6 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+      </a>
+      <div class="seg" role="group" aria-label="Langue / Language">
+        <button type="button" data-lang="fr" aria-pressed="true" lang="fr">FR</button>
+        <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+      </div>
+      <button type="button" class="icon-btn" id="theme" aria-label="Passer au thème clair" data-i18n-aria="theme.toLight">
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+
+<section class="hero" aria-labelledby="hero-title">
+  <canvas id="swarm" class="swarm" aria-hidden="true"></canvas>
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <p class="eyebrow">
+        <a class="live-pill" href="#reseau" id="live-pill" hidden><i></i><span id="live-pill-text"></span></a>
+        <span data-i18n="hero.eyebrow">Logiciel libre · Apache-2.0 · bêta</span>
+      </p>
+      <h1 id="hero-title"><span class="sr-only">Myriad : </span><span class="grad" data-i18n="hero.tagline">Une myriade de petits modèles, une seule réponse</span></h1>
+      <p class="pitch" data-i18n="hero.pitch">Myriad est un LLM décentralisé. Chaque ordinateur fait tourner un petit modèle ouvert et le prête au réseau&nbsp;; en échange, il peut interroger tout le réseau. Votre question part en même temps vers plusieurs pairs de <em>familles de modèles différentes</em> (Qwen, Gemma, Granite, SmolLM, Ministral, Phi…), et leurs réponses sont fusionnées par un vote pondéré. Sur du matériel que chacun possède déjà.</p>
+      <div class="cta">
+        <a class="btn primary big" id="dl-main" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+          <span><span id="dl-main-label" data-i18n="dl.generic">Télécharger Myriad</span><small id="dl-main-sub" data-i18n="dl.genericSub">Windows · macOS · Linux</small></span>
+        </a>
+        <details class="platforms" id="platforms">
+          <summary data-i18n="dl.others">Autres plateformes</summary>
+          <ul class="plat-list" id="plat-list">
+            <li><span class="plat-os">Windows 10/11</span>
+              <a data-asset="win-exe" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener"><span data-i18n="dl.installer">Installeur</span> .exe</a>
+              <a data-asset="win-zip" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener"><span data-i18n="dl.portable">Portable</span> .zip</a></li>
+            <li><span class="plat-os">macOS · Apple Silicon</span>
+              <a data-asset="mac-arm" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">.dmg (arm64)</a></li>
+            <li><span class="plat-os">macOS · Intel</span>
+              <a data-asset="mac-x64" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">.dmg (x86_64)</a></li>
+            <li><span class="plat-os">Linux x86_64</span>
+              <a data-asset="linux-appimage" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">.AppImage</a>
+              <a data-asset="linux-deb" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">.deb</a>
+              <a data-asset="linux-tgz" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener">.tar.gz</a></li>
+            <li class="plat-more">
+              <a data-asset="sums" href="https://github.com/amintt2/myriad/releases/latest" rel="noopener" data-i18n="dl.sums">Empreintes SHA-256</a>
+              <a href="https://github.com/amintt2/myriad/releases" rel="noopener" data-i18n="dl.all">Toutes les versions</a>
+              <a href="https://github.com/amintt2/myriad" rel="noopener" data-i18n="dl.source">Code source</a></li>
+          </ul>
+        </details>
+      </div>
+      <p class="dl-meta" id="dl-meta" aria-live="polite"><span id="dl-release"></span><span data-i18n="dl.meta">Gratuit, sans compte. Versions pas encore signées&nbsp;: <a href="#faq-unsigned">comment les ouvrir</a>.</span></p>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#reseau" aria-label="Voir le réseau en direct" data-i18n-aria="hero.scroll"><span></span></a>
+</section>
+
+<section class="section" id="reseau" aria-labelledby="net-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-i18n="net.kicker">En direct</p>
+      <h2 id="net-title" data-i18n="net.title">Le réseau, en ce moment</h2>
+      <p class="lead" data-i18n="net.lead">Les chiffres publiés par le traqueur public, rafraîchis toutes les 10&nbsp;secondes. Rien n'est simulé&nbsp;: un réseau qui démarre compte peu de pairs.</p>
+    </div>
+    <div class="net card" id="net" data-state="loading">
+      <div class="stats">
+        <div class="stat"><div class="stat-k" data-i18n="net.peers">Pairs en ligne</div>
+          <div class="stat-v" id="s-peers">–</div><div class="stat-s" id="s-peers-sub">&nbsp;</div></div>
+        <div class="stat"><div class="stat-k" data-i18n="net.families">Familles de modèles</div>
+          <div class="stat-v" id="s-families">–</div><div class="stat-s" id="s-families-sub">&nbsp;</div></div>
+        <div class="stat"><div class="stat-k" data-i18n="net.tps">Débit du réseau</div>
+          <div class="stat-v"><span id="s-tps">–</span> <small>tok/s</small></div><div class="stat-s" data-i18n="net.lastMin">sur la dernière minute</div></div>
+        <div class="stat"><div class="stat-k" data-i18n="net.jobs">Jobs</div>
+          <div class="stat-v"><span id="s-jobs">–</span> <small data-i18n="net.perMin">/min</small></div><div class="stat-s" id="s-jobs-sub">&nbsp;</div></div>
+      </div>
+      <div class="chips" id="s-chips" aria-label="Familles en ligne" data-i18n-aria="net.chipsAria"></div>
+      <div class="net-empty" id="net-empty" hidden>
+        <div class="empty-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div>
+          <p class="empty-title" data-i18n="net.emptyTitle">Le réseau démarre&nbsp;: soyez parmi les premiers.</p>
+          <p class="hint" data-i18n="net.emptyText">Aucun pair ne sert de modèle pour l'instant. Installez Myriad, choisissez un modèle, et votre ordinateur apparaîtra ici.</p>
+        </div>
+        <a class="btn primary" href="#top" data-i18n="net.emptyCta">Télécharger</a>
+      </div>
+      <div class="net-error" id="net-error" hidden role="status">
+        <p><strong data-i18n="net.errTitle">Traqueur injoignable pour l'instant.</strong> <span data-i18n="net.errText">Nouvel essai automatique dans quelques secondes.</span></p>
+      </div>
+      <p class="net-status" id="net-status" aria-live="polite"><i class="dot"></i><span id="net-status-text" data-i18n="net.loading">Connexion au traqueur…</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="fonctionnement" aria-labelledby="how-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-i18n="how.kicker">Fonctionnement</p>
+      <h2 id="how-title" data-i18n="how.title">Trois étapes, un seul aller-retour</h2>
+    </div>
+    <ol class="steps">
+      <li class="step card">
+        <span class="step-n">1</span>
+        <svg class="step-ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="9" width="36" height="24" rx="4"/><path d="M18 39h12M24 33v6"/><path class="draw" d="M24 14v10m0 0-4-4m4 4 4-4"/></svg>
+        <h3 data-i18n="how.s1t">Installez, choisissez un modèle</h3>
+        <p data-i18n="how.s1">L'assistant détecte votre carte graphique et votre mémoire, recommande un modèle ouvert (Apache-2.0 ou MIT seulement) et télécharge llama.cpp et le modèle, vérifiés par SHA-256, avec reprise.</p>
+      </li>
+      <li class="step card">
+        <span class="step-n">2</span>
+        <svg class="step-ico" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="5"/><circle cx="8" cy="12" r="3"/><circle cx="40" cy="12" r="3"/><circle cx="8" cy="36" r="3"/><circle cx="40" cy="36" r="3"/><path class="draw" d="M11 13.5 19.5 21M37 13.5 28.5 21M11 34.5l8.5-7.5M37 34.5l-8.5-7.5"/></svg>
+        <h3 data-i18n="how.s2t">Votre PC rejoint l'essaim</h3>
+        <p data-i18n="how.s2">Une seule connexion sortante vers le traqueur&nbsp;: aucun port à ouvrir, même derrière une box. Vous décidez de ce que vous prêtez&nbsp;: pause, jobs simultanés, plages horaires.</p>
+      </li>
+      <li class="step card">
+        <span class="step-n">3</span>
+        <svg class="step-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 10h32v20H22l-9 8v-8H8z"/><path class="draw" d="M16 20h4m4 0h4m4 0h0"/></svg>
+        <h3 data-i18n="how.s3t">Posez votre question</h3>
+        <p data-i18n="how.s3">Elle part d'un coup vers plusieurs pairs de familles différentes. Les réponses sont fusionnées par un vote pondéré par la fiabilité mesurée de chaque modèle, et un <strong>certificat d'arrêt exact</strong> rend la décision dès que les pairs manquants ne peuvent plus la changer.</p>
+      </li>
+    </ol>
+
+    <div class="flow card" aria-hidden="true">
+      <svg class="flow-svg" viewBox="0 0 760 190" role="presentation">
+        <defs>
+          <linearGradient id="fg" x1="0" x2="1"><stop offset="0" stop-color="#ffd36e"/><stop offset=".5" stop-color="#ff6aa0"/><stop offset="1" stop-color="#7c6cff"/></linearGradient>
+        </defs>
+        <g class="flow-links">
+          <path id="l1" d="M110 95 C 250 95, 260 30, 380 30"/><path id="l2" d="M110 95 C 250 95, 260 75, 380 75"/>
+          <path id="l3" d="M110 95 C 250 95, 260 120, 380 120"/><path id="l4" d="M110 95 C 250 95, 260 165, 380 165"/>
+          <path d="M440 30 C 560 30, 540 95, 650 95"/><path d="M440 75 C 560 75, 540 95, 650 95"/>
+          <path d="M440 120 C 560 120, 540 95, 650 95"/><path d="M440 165 C 560 165, 540 95, 650 95"/>
+        </g>
+        <g class="flow-pulses">
+          <path class="p p1" d="M110 95 C 250 95, 260 30, 380 30"/><path class="p p2" d="M110 95 C 250 95, 260 75, 380 75"/>
+          <path class="p p3" d="M110 95 C 250 95, 260 120, 380 120"/><path class="p p4" d="M110 95 C 250 95, 260 165, 380 165"/>
+          <path class="q q1" d="M440 30 C 560 30, 540 95, 650 95"/><path class="q q2" d="M440 75 C 560 75, 540 95, 650 95"/>
+          <path class="q q3" d="M440 120 C 560 120, 540 95, 650 95"/><path class="q q4 late" d="M440 165 C 560 165, 540 95, 650 95"/>
+        </g>
+        <circle cx="90" cy="95" r="20" fill="url(#fg)"/>
+        <g class="peer"><circle cx="410" cy="30" r="13" fill="#8b7bff"/><text x="410" y="9">qwen</text></g>
+        <g class="peer"><circle cx="410" cy="75" r="13" fill="#38c8ff"/><text x="458" y="64">gemma</text></g>
+        <g class="peer"><circle cx="410" cy="120" r="13" fill="#35d49a"/><text x="458" y="134">granite</text></g>
+        <g class="peer"><circle cx="410" cy="165" r="13" fill="#ffb547"/><text x="410" y="189">smollm</text></g>
+        <circle class="answer" cx="670" cy="95" r="20" fill="url(#fg)"/>
+      </svg>
+      <div class="flow-labels"><span data-i18n="flow.you">Votre question</span><span data-i18n="flow.peers">4 familles, en parallèle</span><span data-i18n="flow.vote">Vote pondéré + certificat</span></div>
+    </div>
+
+    <div class="duo">
+      <div class="api card">
+        <h3 data-i18n="api.title">Une API compatible OpenAI, en local</h3>
+        <p class="hint" data-i18n="api.text">L'application expose le réseau sur votre machine&nbsp;: n'importe quel client OpenAI peut l'utiliser. <code>myriad</code> interroge l'essaim fusionné, <code>myriad:qwen</code> une famille, <code>myriad:python</code> un pair qui annonce cette compétence.</p>
+        <pre class="code" tabindex="0" aria-label="Exemple de requête" data-i18n-aria="api.aria"><code>curl http://127.0.0.1:8400/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "myriad", "messages": [{"role": "user", "content": "…"}]}'</code></pre>
+      </div>
+      <div class="agents card">
+        <span class="tag new" data-i18n="ag.new">nouveau</span>
+        <h3 data-i18n="ag.title">Des sous-agents, en parallèle</h3>
+        <p class="hint" data-i18n="ag.text">Comme un agent de programmation qui délègue&nbsp;: une tâche est découpée en sous-tâches, chacune confiée à un pair différent, en même temps, avec son propre petit contexte. Les candidats sont vérifiés <strong>sur votre machine</strong> par des commandes que vous seul autorisez (liste blanche, jamais une commande proposée par un pair), escaladés en cas d'échec, puis assemblés.</p>
+        <ul class="ag-tree" aria-hidden="true">
+          <li><i class="c1"></i>plan</li>
+          <li class="sub"><i class="c2"></i>qwen<b></b></li><li class="sub"><i class="c3"></i>gemma<b></b></li>
+          <li class="sub"><i class="c4"></i>granite<b></b></li><li class="sub"><i class="c5"></i>smollm<b></b></li>
+          <li><i class="c6"></i>pytest&nbsp;✓</li>
+        </ul>
+        <p class="hint small" data-i18n="ag.bench">Sur l'essaim de démonstration (pairs simulés, 3&nbsp;s par réponse), six sous-tâches indépendantes prennent 3,15&nbsp;s au lieu de 18,9&nbsp;s.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="resultats" aria-labelledby="res-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-i18n="res.kicker">Recherche</p>
+      <h2 id="res-title" data-i18n="res.title">Des résultats mesurés, pas promis</h2>
+      <p class="lead" data-i18n="res.lead">Moitiés de test, intervalles de confiance à 95&nbsp;% par bootstrap apparié. Chaque chiffre est recalculé depuis les réponses brutes publiées dans le dépôt.</p>
+    </div>
+    <div class="results">
+      <article class="res card wide">
+        <header><h3 data-i18n="res.gsmT">Calcul (GSM8K, 200 questions)</h3><span class="tag" data-i18n="res.oneTrip">1 aller-retour</span></header>
+        <div class="bars" role="list">
+          <div class="bar me" role="listitem"><span class="bar-l" data-i18n="res.gsmVote">Vote de 4 modèles de 1,7 à 3&nbsp;Md</span><span class="bar-t"><span class="bar-f" data-w="89.0"></span></span><span class="bar-v" data-n="89.0" data-unit="%">89,0&nbsp;%</span></div>
+          <div class="bar" role="listitem"><span class="bar-l" data-i18n="res.gsmBest">Meilleur membre seul (SmolLM3-3B)</span><span class="bar-t"><span class="bar-f" data-w="86.5"></span></span><span class="bar-v" data-n="86.5" data-unit="%">86,5&nbsp;%</span></div>
+          <div class="bar ref" role="listitem"><span class="bar-l" data-i18n="res.gsmRef">Qwen3-4B seul (référence)</span><span class="bar-t"><span class="bar-f" data-w="91.0"></span></span><span class="bar-v" data-n="91.0" data-unit="%">91,0&nbsp;%</span></div>
+        </div>
+        <p class="hint" data-i18n="res.gsmNote">Écart avec Qwen3-4B&nbsp;: −2,0 points [−6,0&nbsp;; +2,0], non significatif. Rédiger la réponse ensemble, bloc par bloc, coûte 20 à 33 allers-retours sans gain mesurable&nbsp;: voter suffit.</p>
+      </article>
+      <article class="res card">
+        <header><h3 data-i18n="res.arcT">QCM (ARC-Challenge)</h3><span class="tag ok" data-i18n="res.sig">significatif</span></header>
+        <p class="big"><span class="num" data-n="3.7" data-sign>+3,7</span> <span class="unit" data-i18n="res.points">points</span></p>
+        <p data-i18n="res.arc">Fusion calibrée de 4 familles&nbsp;: 84,7&nbsp;% contre 80,9&nbsp;% pour le meilleur membre (IC 95&nbsp;% [+1,2&nbsp;; +6,2]). Qwen3-4B seul&nbsp;: 87,9&nbsp;%.</p>
+      </article>
+      <article class="res card">
+        <header><h3 data-i18n="res.certT">Certificat d'arrêt</h3><span class="tag" data-i18n="res.exact">exact</span></header>
+        <p class="big"><span class="num" data-n="2.54">2,54</span> <span class="unit" data-i18n="res.ofFour">pairs sur 4</span></p>
+        <p data-i18n="res.cert">attendus en moyenne avant de répondre sur GSM8K, avec des décisions identiques au vote complet (200/200)&nbsp;: les retardataires sont annulés.</p>
+      </article>
+      <article class="res card">
+        <header><h3 data-i18n="res.scaleT">Un traqueur, un seul processus</h3><span class="tag" data-i18n="res.sim">simulé</span></header>
+        <p class="big"><span class="num">74–96</span> <span class="unit" data-i18n="res.rps">requêtes/s</span></p>
+        <div class="mini" role="list">
+          <div role="listitem"><span class="mini-f" data-h="73.7"></span><b data-n="73.7">73,7</b><small>64</small></div>
+          <div role="listitem"><span class="mini-f" data-h="95.5"></span><b data-n="95.5">95,5</b><small>256</small></div>
+          <div role="listitem"><span class="mini-f" data-h="92.3"></span><b data-n="92.3">92,3</b><small data-n="1024">1&nbsp;024</small></div>
+          <div role="listitem"><span class="mini-f" data-h="75.2"></span><b data-n="75.2">75,2</b><small data-n="4096">4&nbsp;096</small></div>
+        </div>
+        <p class="hint" data-i18n="res.scale">Requêtes de 4 pairs servies par seconde selon le nombre de nœuds simulés (RTT 100&nbsp;ms, un PC sans GPU).</p>
+      </article>
+    </div>
+    <p class="sources" data-i18n="res.sources">Sources&nbsp;: <a href="https://github.com/amintt2/myriad/blob/main/paper/numbers.tex" rel="noopener">paper/numbers.tex</a> (généré par <code>make_numbers.py</code>), <a href="https://github.com/amintt2/myriad/tree/main/phase0/results" rel="noopener">phase0/results</a>, <a href="https://github.com/amintt2/myriad/blob/main/app/bench/results/e7_report.md" rel="noopener">app/bench/results/e7_report.md</a>. Ce qui n'a pas marché est publié aussi, par exemple l'appel du minoritaire (E5).</p>
+  </div>
+</section>
+
+<section class="section" id="captures" aria-labelledby="shots-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-i18n="shots.kicker">L'application</p>
+      <h2 id="shots-title" data-i18n="shots.title">Une vraie application de bureau</h2>
+      <p class="lead" data-i18n="shots.lead">Fenêtre native, icône dans la barre des tâches, thèmes sombre et clair, français et anglais. L'interface ne charge rien depuis Internet.</p>
+    </div>
+    <div class="gallery" id="gallery">
+      <figure class="shot feature"><button type="button" class="shot-btn" data-full="/static/landing/img/dashboard.webp?v=__V__"><img src="/static/landing/img/dashboard.webp?v=__V__" width="1200" height="750" alt="Tableau de bord : votre nœud au centre du réseau, les pairs colorés par famille" data-i18n-alt="shots.a1" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c1">Le tableau de bord&nbsp;: votre nœud au centre du réseau en direct.</figcaption></figure>
+      <figure class="shot"><button type="button" class="shot-btn" data-full="/static/landing/img/chat.webp?v=__V__"><img src="/static/landing/img/chat.webp?v=__V__" width="1200" height="750" alt="Discussion : les réponses des pairs, leurs poids, le vote et le certificat d'arrêt" data-i18n-alt="shots.a2" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c2">La discussion&nbsp;: pairs, poids, vote et certificat.</figcaption></figure>
+      <figure class="shot"><button type="button" class="shot-btn" data-full="/static/landing/img/agents.webp?v=__V__"><img src="/static/landing/img/agents.webp?v=__V__" width="1200" height="750" alt="Vue Agents : l'arbre des sous-agents, chacun sur un pair d'une famille différente" data-i18n-alt="shots.a7" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c7">Les sous-agents&nbsp;: l'arbre des tâches, en direct.</figcaption></figure>
+      <figure class="shot"><button type="button" class="shot-btn" data-full="/static/landing/img/wizard-models.webp?v=__V__"><img src="/static/landing/img/wizard-models.webp?v=__V__" width="1200" height="750" alt="Assistant d'installation : le catalogue de modèles ouverts" data-i18n-alt="shots.a3" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c3">L'assistant&nbsp;: des modèles ouverts, adaptés à votre matériel.</figcaption></figure>
+      <figure class="shot"><button type="button" class="shot-btn" data-full="/static/landing/img/peers.webp?v=__V__"><img src="/static/landing/img/peers.webp?v=__V__" width="1200" height="750" alt="Liste des pairs du réseau avec leur modèle et leur fiabilité" data-i18n-alt="shots.a4" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c4">Les pairs du réseau.</figcaption></figure>
+      <figure class="shot"><button type="button" class="shot-btn" data-full="/static/landing/img/dashboard-light-en.webp?v=__V__"><img src="/static/landing/img/dashboard-light-en.webp?v=__V__" width="1200" height="750" alt="Tableau de bord en thème clair et en anglais" data-i18n-alt="shots.a6" loading="lazy" decoding="async"></button>
+        <figcaption data-i18n="shots.c6">Thème clair, en anglais.</figcaption></figure>
+    </div>
+  </div>
+  <dialog class="lightbox" id="lightbox" aria-label="Capture d'écran agrandie" data-i18n-aria="shots.zoom">
+    <button type="button" class="icon-btn lb-close" id="lightbox-close" aria-label="Fermer" data-i18n-aria="close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <img id="lightbox-img" src="data:," alt="">
+  </dialog>
+</section>
+
+<section class="section" id="confidentialite" aria-labelledby="priv-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker" data-i18n="priv.kicker">Confidentialité et sécurité</p>
+      <h2 id="priv-title" data-i18n="priv.title">Ce que vous partagez, sans détour</h2>
+    </div>
+    <div class="grid3">
+      <div class="feat card"><h3 data-i18n="priv.seeT">Ce que voient les pairs</h3>
+        <p data-i18n="priv.see">Les pairs interrogés et le traqueur lisent votre question en clair&nbsp;: elle n'est pas chiffrée de bout en bout, n'envoyez rien de confidentiel. Les pairs ne vous connaissent que par une clé publique et ne se connectent jamais à vous&nbsp;: tout passe par le relais.</p></div>
+      <div class="feat card"><h3 data-i18n="priv.signT">Tout est signé</h3>
+        <p data-i18n="priv.sign">Chaque nœud a sa clé ed25519. Jobs, résultats et reçus sont signés&nbsp;: le traqueur relaie, mais ne peut forger ni une réponse ni un reçu.</p></div>
+      <div class="feat card"><h3 data-i18n="priv.privT">Essaims privés</h3>
+        <p data-i18n="priv.priv">Lancez votre propre traqueur (<code>myriad tracker</code> ou l'image Docker) et pointez-y vos machines&nbsp;: une équipe, un labo ou une maison peuvent avoir leur réseau à eux.</p></div>
+      <div class="feat card"><h3 data-i18n="priv.credT">Des crédits, pas d'argent</h3>
+        <p data-i18n="priv.cred">Servir rapporte des crédits (jetons générés × taille du modèle), interroger en dépense. Chaque règlement s'appuie sur un reçu signé. Un nouveau nœud reçoit un crédit de départ&nbsp;; rien n'est à vendre.</p></div>
+      <div class="feat card"><h3 data-i18n="priv.ctrlT">Vous gardez la main</h3>
+        <p data-i18n="priv.ctrl">Pause et reprise, jobs simultanés, plages horaires, ou mode «&nbsp;client seulement&nbsp;». L'interface et l'API locale n'écoutent que sur 127.0.0.1.</p></div>
+      <div class="feat card"><h3 data-i18n="priv.limT">Les limites, dites franchement</h3>
+        <p data-i18n="priv.lim">Aujourd'hui le traqueur est un point central (rendez-vous, relais, registre des crédits). La résistance aux attaques Sybil et la vérification du calcul sont des travaux en cours.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="code" aria-labelledby="oss-title">
+  <div class="wrap">
+    <div class="oss card">
+      <div class="oss-copy">
+        <p class="kicker" data-i18n="oss.kicker">Open source</p>
+        <h2 id="oss-title" data-i18n="oss.title">Libre, de l'app à l'article</h2>
+        <p data-i18n="oss.text">Le code de l'application, du traqueur et des expériences est publié sous licence Apache-2.0, avec les réponses brutes de chaque modèle&nbsp;: tous les chiffres de l'article se recalculent sans relancer un seul modèle.</p>
+      </div>
+      <div class="oss-links">
+        <a class="btn primary" href="https://github.com/amintt2/myriad" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5"/></svg><span data-i18n="oss.code">Le code sur GitHub</span></a>
+        <a class="btn" href="https://github.com/amintt2/myriad/tree/main/paper" rel="noopener"><span data-i18n="oss.paper">L'article (paper/)</span></a>
+        <a class="btn" href="https://github.com/amintt2/myriad/blob/main/RESEARCH.md" rel="noopener"><span data-i18n="oss.research">La recherche</span></a>
+        <a class="btn ghost" href="https://github.com/amintt2/myriad/blob/main/CONTRIBUTING.md" rel="noopener"><span data-i18n="oss.contrib">Contribuer</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq" aria-labelledby="faq-title">
+  <div class="wrap narrow">
+    <div class="sec-head">
+      <p class="kicker">FAQ</p>
+      <h2 id="faq-title" data-i18n="faq.title">Questions fréquentes</h2>
+    </div>
+    <div class="faq">
+      <details><summary data-i18n="faq.q1">Est-ce gratuit&nbsp;?</summary>
+        <div data-i18n="faq.a1"><p>Oui. Myriad est un logiciel libre (Apache-2.0), sans compte ni abonnement. Vous «&nbsp;payez&nbsp;» le réseau en lui prêtant votre ordinateur, en crédits&nbsp;; les crédits ne s'achètent pas.</p></div></details>
+      <details id="faq-unsigned"><summary data-i18n="faq.q2">Windows ou macOS refusent d'ouvrir l'application</summary>
+        <div data-i18n="faq.a2"><p>Les versions ne sont pas encore signées. <strong>Windows (SmartScreen)</strong>&nbsp;: «&nbsp;Windows a protégé votre ordinateur&nbsp;» → <em>Informations complémentaires</em> → <em>Exécuter quand même</em>. <strong>macOS (Gatekeeper)</strong>&nbsp;: clic droit sur l'app → <em>Ouvrir</em> → <em>Ouvrir</em>, ou <em>Réglages Système</em> → <em>Confidentialité et sécurité</em> → <em>Ouvrir quand même</em>. Les empreintes SHA-256 de chaque fichier sont dans <code>SHA256SUMS.txt</code>, avec la version.</p></div></details>
+      <details><summary data-i18n="faq.q3">De quel matériel ai-je besoin&nbsp;?</summary>
+        <div data-i18n="faq.a3"><p>Windows 10/11 x64, macOS 11+ (Apple Silicon ou Intel) ou Linux x86_64. Une carte graphique (NVIDIA, AMD, Intel ou puce Apple) accélère beaucoup, mais le processeur seul fonctionne. Le plus petit modèle du catalogue pèse environ 1,3&nbsp;Go. Le mode «&nbsp;client seulement&nbsp;» permet d'interroger le réseau sans servir de modèle.</p></div></details>
+      <details><summary data-i18n="faq.q4">Quels modèles&nbsp;?</summary>
+        <div data-i18n="faq.a4"><p>Un catalogue de modèles ouverts sous licence <strong>Apache-2.0 ou MIT seulement</strong>, aux révisions et empreintes épinglées&nbsp;: Qwen3.5 2B et 4B, Gemma 4 E2B et E4B, Granite 4.2 3B, SmolLM3 3B, Ministral 3 3B, Phi-4 mini. Ils tournent avec llama.cpp (Metal, Vulkan, CUDA en option, ou CPU). L'assistant favorise une famille encore absente du réseau&nbsp;: le vote gagne à la diversité.</p></div></details>
+      <details><summary data-i18n="faq.q5">Mes questions sont-elles privées&nbsp;?</summary>
+        <div data-i18n="faq.a5"><p>Pas encore de bout en bout&nbsp;: le traqueur et les pairs interrogés lisent la question. Pour des données sensibles, lancez un essaim privé avec votre propre traqueur, entre machines de confiance.</p></div></details>
+      <details><summary data-i18n="faq.q6">Linux&nbsp;: comment lancer l'AppImage&nbsp;?</summary>
+        <div data-i18n="faq.a6"><p><code>chmod +x Myriad-*.AppImage</code> puis lancez-la (il faut <code>libfuse2</code>). Ou bien <code>sudo apt install ./myriad_*.deb</code>, puis <code>myriad</code>.</p></div></details>
+      <details><summary data-i18n="faq.q7">Que fait cette page de mes données&nbsp;?</summary>
+        <div data-i18n="faq.a7"><p>Rien&nbsp;: pas de cookie, pas de mesure d'audience. La langue et le thème choisis restent dans votre navigateur. Pour trouver les fichiers de la dernière version, la page interroge l'API publique de GitHub depuis votre navigateur.</p></div></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <img src="/static/landing/icon.svg?v=__V__" alt="" width="28" height="28">
+      <div><strong>Myriad</strong><br><span class="hint" data-i18n="foot.tag">Une myriade de petits modèles, une seule réponse.</span></div>
+    </div>
+    <nav class="foot-links" aria-label="Liens" data-i18n-aria="foot.aria">
+      <a href="https://github.com/amintt2/myriad" rel="noopener">GitHub</a>
+      <a href="https://github.com/amintt2/myriad/releases" rel="noopener" data-i18n="foot.releases">Versions</a>
+      <a href="https://github.com/amintt2/myriad/tree/main/paper" rel="noopener" data-i18n="foot.paper">Article</a>
+      <a href="https://github.com/amintt2/myriad/blob/main/LICENSE" rel="noopener">Apache-2.0</a>
+    </nav>
+    <p class="hint foot-note" data-i18n="foot.note">Polices Inter et JetBrains Mono (SIL OFL). Les modèles sont téléchargés depuis Hugging Face, sous leur propre licence.</p>
+  </div>
+</footer>
+</body>
+</html>

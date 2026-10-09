@@ -12,7 +12,7 @@ APP = HERE.parent
 VERSION = re.search(r'__version__ = "([^"]+)"', (APP / "myriad" / "__init__.py").read_text()).group(1)
 ICONS = HERE / "icons"
 
-datas = collect_data_files("myriad", includes=["web/**/*", "priors.json"])
+datas = collect_data_files("myriad", includes=["web/**/*", "landing/**/*", "priors.json"])
 datas += [(str(APP.parent / name), ".") for name in ("LICENSE", "NOTICE") if (APP.parent / name).exists()]
 hiddenimports = collect_submodules("myriad") + [
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.loops.asyncio", "uvicorn.protocols.http.auto",
