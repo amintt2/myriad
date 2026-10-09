@@ -41,6 +41,34 @@
   enregistrés. Limites de taille sur tous les champs, et délais sur tous les jobs.
 - Aucun secret dans le dépôt. Les clés restent dans le dossier utilisateur.
 
+### Chiffrement de bout en bout et protections (essaim/1.3, `e2e.py`, `privacy.py`, `security.py`)
+
+Modèle de menace, garanties et arguments : `docs/08_securite.md`. En résumé :
+
+- Chaque nœud qui sert publie une clé **X25519** signée par son identité ed25519 (`KxCert`, renouvelée
+  chaque jour, l'ancienne gardée jusqu'à son expiration). Le demandeur vérifie la signature et que
+  l'identifiant est le hash de la clé publique : le traqueur ne peut pas substituer sa clé.
+- Par job : clé éphémère X25519, HKDF-SHA256 (contexte : protocole, job, pseudonyme, pair, les deux clés
+  publiques), ChaCha20-Poly1305, une clé par sens ; données associées = l'en-tête en clair dont le
+  traqueur a besoin (job, cible, limite de jetons, échéance, expiration) ; réponse en morceaux à nonce
+  compteur avec marqueur final authentifié ; rejeu refusé (identifiant + expiration) ; tailles
+  arrondies à une puissance de deux. Le job est signé par un **pseudonyme jetable** : le pair ne sait
+  pas qui demande, le traqueur facture la connexion authentifiée qui l'a envoyé.
+- Sélection par le traqueur : `Reserve` → `Assigned` (avec la clé du pair) → le demandeur vérifie le
+  pair (liste de blocage, nœuds de confiance, essaim privé, fiabilité minimale, quarantaine, clé) et
+  n'envoie qu'ensuite le job chiffré.
+- Réglage « Exiger le chiffrement de bout en bout » activé par défaut : un pair sans clé n'est jamais
+  choisi, et un traqueur sans la fonction `e2e` ne reçoit rien.
+- Contrôles : les jobs chiffrés sont audités par des **canaris** du traqueur, indiscernables au niveau
+  des trames (même forme, même taille arrondie, pseudonyme neuf, délai aléatoire), qui peuvent porter des
+  jetons-pièges ; les jobs en clair (anciens pairs) gardent les contrôles par duplication.
+- Garde de confidentialité locale : secrets et données personnelles remplacés par des marqueurs
+  (`CLE_1`, `EMAIL_1`…) rétablis localement dans la réponse ; confirmation la première fois qu'un type
+  sensible partirait non masqué ; règles « toujours local » ; mode local ; historique plafonné.
+- Côté serveur : nœuds bloqués refusés, limites par demandeur (débit, simultanéité) appliquées par le
+  traqueur (le pair ne voit que des pseudonymes), taille maximale des questions et des réponses ; aucun
+  texte de job dans les journaux, cache du moteur effacé après chaque job.
+
 ## Protocole (`myriad/protocol.py`, modèles pydantic, version `essaim/1`)
 
 L'identifiant du protocole garde l'ancien nom du paquet : `essaim/1` préfixe chaque message signé et
@@ -117,8 +145,11 @@ Fonction **`update`** (mises à jour de l'app, ajout compatible, même `protocol
 - Servir un job rapporte completion_tokens × facteur(params_b).
 - Consommer coûte la somme sur les pairs interrogés.
 - Un solde négatif empêche de lancer de nouvelles requêtes.
-- Contrôles aléatoires : une petite fraction des jobs est dupliquée sur un autre nœud du même modèle. Un
-  désaccord répété (hors échantillonnage) fait baisser la réputation.
+- Contrôles aléatoires : une petite fraction des jobs en clair est dupliquée sur un autre nœud du même
+  modèle ; pour les jobs chiffrés, le traqueur envoie ses propres jobs canaris (voir plus haut). Un
+  désaccord répété (hors échantillonnage, hors réponses tronquées) fait baisser la réputation.
+- Les résultats livrés mais pas encore réglés engagent leur coût exact sur le compte du demandeur
+  jusqu'au règlement : un demandeur ne peut plus recycler son quota de jobs en vol sans payer.
 - Tout est journalisé avec des reçus signés, pour qu'une v2 puisse remplacer le registre central par une
   vérification entre pairs.
 

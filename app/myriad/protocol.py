@@ -26,6 +26,20 @@ App updates (feature "update", additive): a node asks for it in the query string
 (`/v1/ws?features=update`), which an older tracker simply ignores. Only for such a node, the tracker
 sets Welcome.latest_version and sends an UpdateAvailable frame when a newer release is published. Both
 are hints: the node validates the version strictly and builds every download URL itself (updater.py).
+
+essaim/1.3 (features "e2e", "policy", "report"; every new field optional and left out of the JSON when
+unset, every new frame sent only to a peer known to support it):
+- NodeInfo.kx: the node's X25519 key, certified by its ed25519 identity (KxCert, rotated every day);
+  KxFrame announces a rotated key. NodeInfo.swarms: private-swarm membership proofs (SwarmProof).
+- SealedJob / SealedResult: a job and its result encrypted end to end between the requester and the
+  computing peer (e2e.py). The tracker only sees the cleartext header it needs to relay and settle.
+  The requester signs a SealedJob with a one-job pseudonym key, so the peer does not learn who asks.
+- Reserve (requester -> tracker): pick a peer for a routed job and hold its slot; the Assigned frame
+  then carries the peer's KxCert, and the requester sends the SealedJob only after checking the peer.
+- Route.deny / deny_families / only / swarm / e2e / min_rel / soft_avoid: the requester's peer policy
+  (blocklist, trusted nodes, private swarm, encryption required, minimum reliability, rotation).
+- ServePolicy (node -> tracker): requesters this node refuses and its per-requester limits, enforced by
+  the tracker (the node itself only sees pseudonyms).
 """
 from __future__ import annotations
 
@@ -55,6 +69,15 @@ TAG_PATTERN = r"^[a-z0-9][a-z0-9_.+-]{0,31}$"
 MAX_TAGS = 16
 Tag = Annotated[str, Field(pattern=TAG_PATTERN)]
 Tags = Annotated[list[Tag], Field(max_length=MAX_TAGS)]
+# essaim/1.3: end-to-end encryption (e2e.py). Sizes: a job's padded plaintext is at most 512 KiB, an
+# answer is sealed in chunks of at most 64 KiB (base64 on the wire, inside the 1 MiB frame limit).
+MAX_SEALED_JOB_B64 = 700_000
+MAX_CHUNK_B64 = 87_500
+MAX_CHUNKS = 8
+MAX_POLICY_IDS = 1024
+B64Job = Annotated[str, Field(pattern=r"^[A-Za-z0-9+/]*={0,2}$", min_length=4, max_length=MAX_SEALED_JOB_B64)]
+B64Chunk = Annotated[str, Field(pattern=r"^[A-Za-z0-9+/]*={0,2}$", min_length=4, max_length=MAX_CHUNK_B64)]
+UnixTime = Annotated[int, Field(ge=0, le=2**40)]
 
 
 class _Model(BaseModel):
@@ -64,6 +87,35 @@ class _Model(BaseModel):
 class ChatMessage(_Model):
     role: Literal["system", "user", "assistant"]
     content: Annotated[str, Field(max_length=MAX_CONTENT_CHARS)]
+
+
+class KxCert(_Model):
+    """essaim/1.3: a node's X25519 key-agreement key, signed by its ed25519 identity (kind "kx"). A
+    requester checks the signature with the node's pubkey and that node_id is the hash of that pubkey,
+    so a tracker cannot substitute its own key for a node."""
+    node_id: Hex32
+    kx: PubKey
+    created: UnixTime
+    expires: UnixTime
+    model: ShortStr | None = None  # the model this key serves: the tracker cannot relabel the peer's model
+    signature: Sig = ""
+
+    def payload(self) -> dict:
+        d = {"node_id": self.node_id, "kx": self.kx, "created": self.created, "expires": self.expires}
+        if self.model is not None:
+            d["model"] = self.model
+        return d
+
+    def verify(self, pubkey_hex: str) -> bool:
+        return bool(self.signature) and verify(pubkey_hex, "kx", self.payload(), self.signature)
+
+
+class SwarmProof(_Model):
+    """essaim/1.3: membership of a private swarm. g = HMAC(K, "group") identifies the swarm (the tracker
+    filters on it); p = HMAC(K, "member" + node_id) proves that this node knows the swarm key K. Only
+    members can check p, and it cannot be copied to another node id. K never leaves the members' machines."""
+    g: Hex32
+    p: Hex32
 
 
 class NodeInfo(_Model):
@@ -78,13 +130,21 @@ class NodeInfo(_Model):
     version: Literal["essaim/1"] = PROTOCOL
     accepting: bool = False
     tags: Tags | None = None  # skill tags (feature "tags"); None: left out of the wire format
+    kx: KxCert | None = None  # essaim/1.3 (feature "e2e")
+    swarms: Annotated[list[SwarmProof], Field(max_length=8)] | None = None  # essaim/1.3 private swarms
+
+    OPTIONAL: ClassVar[tuple] = ("tags", "kx", "swarms")
 
     def wire(self) -> dict:
-        """The signed form: without `tags` when unset, exactly as a node without tags signs it."""
+        """The signed form: optional fields left out when unset, exactly as an older node signs it."""
         d = self.model_dump(mode="json")
-        if self.tags is None:
-            d.pop("tags", None)
+        for f in self.OPTIONAL:
+            if getattr(self, f) is None:
+                d.pop(f, None)
         return d
+
+    def unset(self) -> set:
+        return {f for f in self.OPTIONAL if getattr(self, f) is None}
 
 
 class _Signed(_Model):
@@ -139,6 +199,52 @@ class Receipt(_Signed):
     completion_tokens: Annotated[int, Field(ge=0, le=MAX_TOKENS)]
     model: ShortStr
     agreed: bool | None = None
+
+
+class SealedJob(_Signed):
+    """essaim/1.3: a job encrypted for one peer (e2e.py). Cleartext header: what the tracker needs to
+    relay and settle (job id, target, token limit, deadline) and what the peer needs to decrypt (its
+    key `kx`, the requester's ephemeral key `eph`); `ct` holds the padded, encrypted job. Signed by the
+    requester's one-job pseudonym key (requester_id is that key's hash, not the requester's node id);
+    the header is also the AEAD's associated data."""
+    KIND: ClassVar[str] = "sjob"
+    job_id: JobId
+    requester_id: Hex32
+    target: Hex32
+    max_tokens: Annotated[int, Field(ge=1, le=MAX_TOKENS)] = 512
+    deadline_ms: Annotated[int, Field(ge=100, le=MAX_DEADLINE_MS)] = 120_000
+    expires_at: UnixTime
+    kx: PubKey
+    eph: PubKey
+    ct: B64Job
+
+    def header(self) -> dict:
+        return self.model_dump(mode="json", exclude={"signature", "ct"})
+
+
+class SealedResult(_Signed):
+    """essaim/1.3: a result encrypted for the requester. Cleartext: what the tracker settles on (model,
+    completion tokens); `chunks`: the padded answer, one AEAD message per chunk (counter nonces, the
+    last chunk authenticated as final). Signed by the peer's identity for the tracker's accounting;
+    inside the encryption the peer also signs a digest of the plaintext answer (kind "rdigest")."""
+    KIND: ClassVar[str] = "sresult"
+    job_id: JobId
+    node_id: Hex32
+    model: ShortStr
+    completion_tokens: Annotated[int, Field(ge=0, le=MAX_TOKENS)] = 0
+    chunks: Annotated[list[B64Chunk], Field(min_length=1, max_length=MAX_CHUNKS)]
+
+
+class NodeReport(_Signed):
+    """essaim/1.3: a signed report about a node, sent to the tracker (POST /v1/report). `job_id`: a job
+    the reporter paid that node for (required for "disagreement")."""
+    KIND: ClassVar[str] = "report"
+    reporter_id: Hex32
+    node_id: Hex32
+    reason: Literal["disagreement", "bad_output", "abuse", "spam", "other"]
+    job_id: JobId | None = None
+    ts: UnixTime
+    note: Annotated[str, Field(max_length=200)] = ""
 
 
 # ---------- frames ----------
@@ -201,6 +307,21 @@ class Route(_Model):
     replaces: JobId | None = None
     tag: Tag | None = None  # feature "tags": a node advertising this tag, else any node (tag_match false)
     family: ShortStr | None = None  # feature "tags": only nodes of this model family
+    # essaim/1.3 (feature "policy"): the requester's peer policy, applied by the tracker's selection
+    # (the requester checks the assigned peer again before sending anything).
+    deny: Annotated[list[Hex32], Field(max_length=MAX_POLICY_IDS)] = []  # never these nodes (blocklist)
+    deny_families: Annotated[list[ShortStr], Field(max_length=32)] = []  # never these model families
+    only: Annotated[list[Hex32], Field(max_length=MAX_POLICY_IDS)] | None = None  # only these (trusted)
+    swarm: Hex32 | None = None  # only members of this private swarm (SwarmProof.g)
+    e2e: bool | None = None  # only nodes with a valid KxCert
+    min_rel: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)] | None = None  # minimum model reliability
+    soft_avoid: Annotated[list[Hex32], Field(max_length=64)] = []  # avoided when possible (peer rotation)
+
+    NEW: ClassVar[tuple] = ("tag", "family", "deny", "deny_families", "only", "swarm", "e2e", "min_rel",
+                            "soft_avoid")
+
+    def unset(self) -> set:
+        return {f for f in self.NEW if getattr(self, f) is None or getattr(self, f) == []}
 
 
 class JobFrame(_Model):
@@ -224,6 +345,15 @@ class PeerCard(_Model):
     params_b: Annotated[float, Field(ge=0, le=2000, allow_inf_nan=False)] | None = None
     reliability: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
     tags: Tags | None = None  # set only for a job routed by tag
+    # essaim/1.3, set only for a requester that reserved the job (feature "e2e"):
+    kx: KxCert | None = None
+    swarms: Annotated[list[SwarmProof], Field(max_length=8)] | None = None
+    reputation: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)] | None = None
+
+    OPTIONAL: ClassVar[tuple] = ("tags", "kx", "swarms", "reputation")
+
+    def unset(self) -> set:
+        return {f for f in self.OPTIONAL if getattr(self, f) is None}
 
 
 class Assigned(_Model):
@@ -279,8 +409,58 @@ class ErrorFrame(_Model):
     error: Annotated[str, Field(max_length=500)]
 
 
+class Reserve(_Model):
+    """essaim/1.3, requester -> tracker: choose a peer for this routed job and hold its slot. The tracker
+    answers with an Assigned frame (carrying the peer's KxCert), then waits RESERVE_TTL_S for the
+    SealedJob (or, for a peer without encryption, a JobFrame naming it)."""
+    t: Literal["reserve"] = "reserve"
+    job_id: JobId
+    route: Route
+    max_tokens: Annotated[int, Field(ge=1, le=MAX_TOKENS)] = 512
+    deadline_ms: Annotated[int, Field(ge=100, le=MAX_DEADLINE_MS)] = 120_000
+
+
+class SealedJobFrame(_Model):
+    """essaim/1.3: requester -> tracker -> job.target. `requester_pubkey`: the pseudonym key that signed
+    the SealedJob (the tracker charges the authenticated connection that sent it)."""
+    t: Literal["sjob"] = "sjob"
+    job: SealedJob
+    requester_pubkey: PubKey
+
+
+class SealedResultFrame(_Model):
+    t: Literal["sresult"] = "sresult"
+    result: SealedResult
+
+
+class KxFrame(_Model):
+    """essaim/1.3, node -> tracker: the node's new key-agreement key (daily rotation)."""
+    t: Literal["kx"] = "kx"
+    kx: KxCert
+
+
+class Dispute(_Model):
+    """essaim/1.3, requester -> tracker: this encrypted answer does not open. The requester reveals the
+    job's ephemeral secret (so the tracker can read THIS job) for the tracker to check it: an answer that
+    really does not open is not paid and counts against the peer; a false dispute is paid as usual."""
+    t: Literal["dispute"] = "dispute"
+    job_id: JobId
+    eph_secret: PubKey  # 32 bytes, hex
+
+
+class ServePolicy(_Model):
+    """essaim/1.3, node -> tracker: requesters this node refuses (blocklist) and its limits per
+    requester. A peer only sees one-job pseudonyms, so the tracker, which knows the paying account,
+    enforces them."""
+    t: Literal["spolicy"] = "spolicy"
+    deny: Annotated[list[Hex32], Field(max_length=MAX_POLICY_IDS)] = []
+    rate_per_min: Annotated[int, Field(ge=0, le=10_000)] = 0  # 0: no limit
+    max_concurrent: Annotated[int, Field(ge=0, le=64)] = 0  # 0: no limit
+
+
 Frame = Annotated[Union[Challenge, Hello, Welcome, Status, JobFrame, ResultFrame, JobError, Cancel, ReceiptFrame,
-                        ErrorFrame, Assigned, Ping, Pong, UpdateAvailable], Field(discriminator="t")]
+                        ErrorFrame, Assigned, Ping, Pong, UpdateAvailable, Reserve, SealedJobFrame,
+                        SealedResultFrame, KxFrame, ServePolicy, Dispute], Field(discriminator="t")]
 FRAME = TypeAdapter(Frame)
 
 
@@ -295,20 +475,23 @@ def dump_frame(frame: _Model) -> str:
     """JSON text of a frame. Optional fields added after essaim/1 are left out when unset: an older
     peer forbids unknown fields."""
     exclude: dict = {}
-    if isinstance(frame, JobFrame):
+    if isinstance(frame, (JobFrame, Reserve)):
         if frame.route is None:
             exclude["route"] = True
         else:
-            sub = {f for f in ("tag", "family") if getattr(frame.route, f) is None}
+            sub = frame.route.unset()
             if sub:
                 exclude["route"] = sub
-    elif isinstance(frame, Hello) and frame.info.tags is None:
-        exclude["info"] = {"tags"}
+    elif isinstance(frame, Hello):
+        sub = frame.info.unset()
+        if sub:
+            exclude["info"] = sub
     elif isinstance(frame, Welcome) and frame.latest_version is None:
         exclude["latest_version"] = True
     elif isinstance(frame, Assigned):
-        if frame.peer.tags is None:
-            exclude["peer"] = {"tags"}
+        sub = frame.peer.unset()
+        if sub:
+            exclude["peer"] = sub
         if frame.tag_match is None:
             exclude["tag_match"] = True
     return frame.model_dump_json(exclude=exclude) if exclude else frame.model_dump_json()

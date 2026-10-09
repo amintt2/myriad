@@ -39,10 +39,13 @@ class WanDelay:
 
     def sample(self) -> float:
         """One one-way delay, in seconds."""
-        if self.median_ms <= 0:
+        if self.median_ms <= 0 or self.max_ms <= 0:
             return 0.0
-        ms = self.median_ms * (math.exp(self.sigma * self._rng.gauss(0.0, 1.0)) if self.sigma > 0 else 1.0)
-        return min(ms, self.max_ms) / 1000.0
+        z = self.sigma * self._rng.gauss(0.0, 1.0) if self.sigma > 0 else 0.0
+        # the cap is applied in the log domain: exp() of a huge z would overflow (audit net #10)
+        if z >= math.log(self.max_ms / self.median_ms):
+            return self.max_ms / 1000.0
+        return self.median_ms * math.exp(z) / 1000.0
 
     def describe(self) -> dict:
         return {"median_ms": self.median_ms, "sigma": self.sigma, "max_ms": self.max_ms,

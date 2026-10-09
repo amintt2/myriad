@@ -75,9 +75,12 @@ async def _ask_raw(gw, n: int, target: str) -> list[str]:
 async def test_wan_delay_preserves_order_both_ways(tmp_path):
     """A large jitter (sigma 1.5) would reorder frames sampled independently: order must survive the
     requester -> tracker hop (inbound delay) and the tracker -> node hop (outbound delay)."""
-    s = await start_swarm(tmp_path, wan=WanDelay(median_ms=5, sigma=1.5, seed=3))
+    s = await start_swarm(tmp_path, wan=WanDelay(median_ms=5, sigma=1.5, seed=3), new_account_inflight=64)
     try:
+        from myriad.security import Security
+        unlimited = Security({"rate_per_min": 0, "max_concurrent": 0})  # 40 jobs of one requester at once
         node = await s.add_node("qwen", FakeEngine(MODELS["qwen"], "ok"), MODELS["qwen"], max_parallel=64,
+                                security=unlimited,
                                 cls=OrderNode)
         gw, client = await s.add_gateway()
         sent = await _ask_raw(gw, 40, node.node_id)
@@ -113,8 +116,8 @@ async def test_wan_delay_adds_four_hops_to_a_request(tmp_path):
 class CloseAfterResult(NodeClient):
     """Sends its result, then disconnects at once."""
 
-    async def _execute(self, job):
-        await super()._execute(job)
+    async def _execute(self, job, session=None):
+        await super()._execute(job, session)
         await self._ws.close()
 
 
@@ -140,7 +143,9 @@ async def test_frame_counters(tmp_path):
         await gw.ask([MATH], k=1)
         f = s.tracker.frames
         await wait_until(lambda: f["in:receipt"] == 1, 5)
-        assert f["in:job"] == 1 and f["in:result"] == 1 and f["out"] >= 4  # 2 welcomes, job, result
+        # essaim/1.3: reservation, then the encrypted job and its encrypted result
+        assert f["in:reserve"] == 1 and f["in:sjob"] == 1 and f["in:sresult"] == 1 and f["in:job"] == 0
+        assert f["out"] >= 5  # 2 welcomes, assigned, job, result
     finally:
         await s.close()
 

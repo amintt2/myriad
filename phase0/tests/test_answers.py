@@ -51,11 +51,35 @@ class TestFinalMath(unittest.TestCase):
 
 class TestNormMath(unittest.TestCase):
     def test_units_and_numbers(self):
-        self.assertEqual(norm_math(r"5.4 \text{ cents}"), "5.4")
+        self.assertEqual(norm_math(r"5.4 \text{ cents}"), norm_math("5.4"))
         self.assertEqual(norm_math(r"\frac{1}{2}\text{ meters}"), r"\frac{1}{2}")
         self.assertEqual(norm_math(r"\text{ Evelyn}"), "Evelyn")
         self.assertEqual(norm_math("0.50"), r"\frac{1}{2}")
         self.assertEqual(norm_math("1,000"), "1000")
+
+    def test_exact_numeric_equivalence(self):
+        # Audit 2026-10-09 (phase0, 9): \boxed{0.25} against the gold \frac{1}{4} was graded wrong.
+        quarter = norm_math(r"\frac{1}{4}")
+        for s in ("0.25", ".25", "1/4", r"\frac{2}{8}", r"\dfrac14", "2.5e-1", "0.250"):
+            with self.subTest(s=s):
+                self.assertEqual(norm_math(s), quarter)
+        self.assertEqual(norm_math(r"-\frac{3}{6}"), norm_math(r"\frac{-1}{2}"))
+        self.assertEqual(norm_math("-0.5"), r"-\frac{1}{2}")
+        self.assertEqual(norm_math("5.00"), "5")
+        self.assertEqual(norm_math("1e3"), "1000")
+        self.assertEqual(norm_math("12345678901234567"), "12345678901234567")  # exact: no float rounding
+        self.assertNotEqual(norm_math("0.333"), norm_math(r"\frac{1}{3}"))
+        # the same canonical value is what votes compare
+        self.assertEqual(extract("math500", r"so \boxed{0.25}", {}), extract("math500", r"\boxed{\frac{1}{4}}", {}))
+
+    def test_out_of_range_never_raises(self):
+        # Audit 2026-10-09 (phase0, 10): int(float("inf")) raised OverflowError and stopped a whole analysis.
+        for s in ("inf", "-inf", "Infinity", "nan", "1e309", "1e99999999", "9" * 400, "9" * 5000, r"\frac{1}{0}"):
+            with self.subTest(s=s[:20]):
+                out = norm_math(s)
+                self.assertIsInstance(out, str)
+        self.assertEqual(norm_math("1e309"), "1" + "0" * 309)  # finite, hence exact
+        self.assertEqual(norm_math("9" * 5000), "9" * 5000)  # too long: kept as text
 
 
 class TestOtherBenches(unittest.TestCase):

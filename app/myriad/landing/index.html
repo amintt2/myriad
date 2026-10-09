@@ -221,11 +221,12 @@
       <article class="res card wide">
         <header><h3 data-i18n="res.gsmT">Calcul (GSM8K, 200 questions)</h3><span class="tag" data-i18n="res.oneTrip">1 aller-retour</span></header>
         <div class="bars" role="list">
-          <div class="bar me" role="listitem"><span class="bar-l" data-i18n="res.gsmVote">Vote de 4 modèles de 1,7 à 3&nbsp;Md</span><span class="bar-t"><span class="bar-f" data-w="89.0"></span></span><span class="bar-v" data-n="89.0" data-unit="%">89,0&nbsp;%</span></div>
+          <div class="bar me" role="listitem"><span class="bar-l" data-i18n="res.gsmW">Vote pondéré de 4 modèles de 1,7 à 5&nbsp;Md</span><span class="bar-t"><span class="bar-f" data-w="92.0"></span></span><span class="bar-v" data-n="92.0" data-unit="%">92,0&nbsp;%</span></div>
+          <div class="bar" role="listitem"><span class="bar-l" data-i18n="res.gsmVote">Vote simple des mêmes modèles</span><span class="bar-t"><span class="bar-f" data-w="89.0"></span></span><span class="bar-v" data-n="89.0" data-unit="%">89,0&nbsp;%</span></div>
           <div class="bar" role="listitem"><span class="bar-l" data-i18n="res.gsmBest">Meilleur membre seul (SmolLM3-3B)</span><span class="bar-t"><span class="bar-f" data-w="86.5"></span></span><span class="bar-v" data-n="86.5" data-unit="%">86,5&nbsp;%</span></div>
           <div class="bar ref" role="listitem"><span class="bar-l" data-i18n="res.gsmRef">Qwen3-4B seul (référence)</span><span class="bar-t"><span class="bar-f" data-w="91.0"></span></span><span class="bar-v" data-n="91.0" data-unit="%">91,0&nbsp;%</span></div>
         </div>
-        <p class="hint" data-i18n="res.gsmNote">Écart avec Qwen3-4B&nbsp;: −2,0 points [−6,0&nbsp;; +2,0], non significatif. Rédiger la réponse ensemble, bloc par bloc, coûte 20 à 33 allers-retours sans gain mesurable&nbsp;: voter suffit.</p>
+        <p class="hint" data-i18n="res.gsmNote">Poids appris sur la moitié dev, figés sur le test&nbsp;: +5,5 points sur le meilleur membre [+2,0&nbsp;; +9,0], +1,0 sur Qwen3-4B [−3,5&nbsp;; +5,5], non significatif. Rédiger la réponse ensemble, bloc par bloc, coûte 20 à 33 allers-retours sans gain mesurable&nbsp;: voter suffit.</p>
       </article>
       <article class="res card">
         <header><h3 data-i18n="res.arcT">QCM (ARC-Challenge)</h3><span class="tag ok" data-i18n="res.sig">significatif</span></header>
@@ -234,7 +235,7 @@
       </article>
       <article class="res card">
         <header><h3 data-i18n="res.certT">Certificat d'arrêt</h3><span class="tag" data-i18n="res.exact">exact</span></header>
-        <p class="big"><span class="num" data-n="2.54">2,54</span> <span class="unit" data-i18n="res.ofFour">pairs sur 4</span></p>
+        <p class="big"><span class="num" data-n="3.26">3,26</span> <span class="unit" data-i18n="res.ofFour">pairs sur 4</span></p>
         <p data-i18n="res.cert">attendus en moyenne avant de répondre sur GSM8K, avec des décisions identiques au vote complet (200/200)&nbsp;: les retardataires sont annulés.</p>
       </article>
       <article class="res card">
@@ -290,17 +291,17 @@
     </div>
     <div class="grid3">
       <div class="feat card"><h3 data-i18n="priv.seeT">Ce que voient les pairs</h3>
-        <p data-i18n="priv.see">Les pairs interrogés et le traqueur lisent votre question en clair&nbsp;: elle n'est pas chiffrée de bout en bout, n'envoyez rien de confidentiel. Les pairs ne vous connaissent que par une clé publique et ne se connectent jamais à vous&nbsp;: tout passe par le relais.</p></div>
+        <p data-i18n="priv.see">Votre question est chiffrée de bout en bout jusqu'au pair qui la calcule&nbsp;: le traqueur ne voit que des métadonnées (qui paie, quand, quelles tailles). Mais ce pair, lui, la lit forcément en clair, et rien ne l'empêche de la copier&nbsp;: l'application masque les secrets détectés avant l'envoi et peut garder une question en local. Le pair ne voit qu'un pseudonyme jetable, jamais votre identité.</p></div>
       <div class="feat card"><h3 data-i18n="priv.signT">Tout est signé</h3>
         <p data-i18n="priv.sign">Chaque nœud a sa clé ed25519. Jobs, résultats et reçus sont signés&nbsp;: le traqueur relaie, mais ne peut forger ni une réponse ni un reçu.</p></div>
       <div class="feat card"><h3 data-i18n="priv.privT">Essaims privés</h3>
-        <p data-i18n="priv.priv">Lancez votre propre traqueur (<code>myriad tracker</code> ou l'image Docker) et pointez-y vos machines&nbsp;: une équipe, un labo ou une maison peuvent avoir leur réseau à eux.</p></div>
+        <p data-i18n="priv.priv">Partagez un secret entre vos machines&nbsp;: vos questions n'iront qu'aux nœuds qui le connaissent. Ou limitez-vous à vos nœuds de confiance, bloquez des nœuds, ou lancez votre propre traqueur (<code>myriad tracker</code>).</p></div>
       <div class="feat card"><h3 data-i18n="priv.credT">Des crédits, pas d'argent</h3>
         <p data-i18n="priv.cred">Servir rapporte des crédits (jetons générés × taille du modèle), interroger en dépense. Chaque règlement s'appuie sur un reçu signé. Un nouveau nœud reçoit un crédit de départ&nbsp;; rien n'est à vendre.</p></div>
       <div class="feat card"><h3 data-i18n="priv.ctrlT">Vous gardez la main</h3>
         <p data-i18n="priv.ctrl">Pause et reprise, jobs simultanés, plages horaires, ou mode «&nbsp;client seulement&nbsp;». L'interface et l'API locale n'écoutent que sur 127.0.0.1.</p></div>
       <div class="feat card"><h3 data-i18n="priv.limT">Les limites, dites franchement</h3>
-        <p data-i18n="priv.lim">Aujourd'hui le traqueur est un point central (rendez-vous, relais, registre des crédits). La résistance aux attaques Sybil et la vérification du calcul sont des travaux en cours.</p></div>
+        <p data-i18n="priv.lim">Le traqueur reste un point central (rendez-vous, relais, crédits)&nbsp;: allié à un pair, il saurait qui demande quoi. Le chiffrement homomorphe est bien trop lent pour un LLM et les GPU grand public n'offrent pas de calcul confidentiel. Des jobs canaris indiscernables vérifient les pairs&nbsp;; la résistance aux attaques Sybil reste un travail en cours.</p></div>
     </div>
   </div>
 </section>

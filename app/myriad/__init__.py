@@ -3,7 +3,7 @@
 The package was called `essaim` before; the console scripts `essaim` and `essaim-desktop` remain as
 aliases, and an existing `essaim` data directory is copied to `myriad` on first start (config.py)."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 # Wire protocol identifiers. They keep the former name `essaim` ON PURPOSE and must not be renamed:
 # PROTOCOL prefixes every signed message (job, result, receipt, challenge answer: crypto.py) and is
 # the `version` literal that every node announces (protocol.py), so renaming it would make the nodes,
@@ -19,5 +19,8 @@ PROTOCOL = "essaim/1"
 # "update" (additive, same protocol version): a node that asks for it when it connects (WebSocket query
 # `?features=update`) gets the latest app version in its Welcome frame and an UpdateAvailable frame when
 # a new release appears. Nodes that do not ask never receive either (their parser forbids both).
-PROTOCOL_VERSION = "essaim/1.2"
-FEATURES = ("route", "ping", "select", "tags", "update")
+# essaim/1.3 adds end-to-end encryption between the requester and the computing peer, with pseudonymous
+# requesters and tracker-originated canary jobs (e2e), the requester's peer policy in the selection
+# (policy) and signed reports about nodes (report). See protocol.py and docs/08_securite.md.
+PROTOCOL_VERSION = "essaim/1.3"
+FEATURES = ("route", "ping", "select", "tags", "update", "e2e", "policy", "report")

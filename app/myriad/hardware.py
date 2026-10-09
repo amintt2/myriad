@@ -310,6 +310,19 @@ def merge_gpus(primary: list[Gpu], extra: list[Gpu]) -> list[Gpu]:
     return out
 
 
+def total_ram_gb() -> float | None:
+    """Physical memory only (cheap, no GPU probing)."""
+    try:
+        if os.name == "nt":
+            return _ram_windows()
+        if sys.platform == "darwin":
+            mem = (_run(["sysctl", "-n", "hw.memsize"]) or "").strip()
+            return round(int(mem) / 1024**3, 2) if mem.isdigit() else None
+        return parse_meminfo(Path("/proc/meminfo").read_text())
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def detect() -> Hardware:
     machine = platform.machine().lower()
     arch = "arm64" if machine in ("arm64", "aarch64") else "x64"

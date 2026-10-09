@@ -45,17 +45,19 @@ class Swarm:
     gateways: list = field(default_factory=list)
 
     async def add_node(self, name: str, engine=None, model: str | None = None, max_parallel: int = 2,
-                       gguf: str = "model.gguf", identity: Identity | None = None, cls=NodeClient) -> NodeClient:
+                       gguf: str = "model.gguf", identity: Identity | None = None, cls=NodeClient,
+                       **node_kw) -> NodeClient:
         n = cls(identity or Identity.generate(), self.url, engine=engine, model=model,
                 family=family_of(model) if model else None, gguf=gguf if model else None,
-                params_b=params_of(model) if model else None, ctx=4096, max_parallel=max_parallel, reconnect=False)
+                params_b=params_of(model) if model else None, ctx=4096, max_parallel=max_parallel, reconnect=False,
+                **node_kw)
         self.tasks.append(asyncio.create_task(n.run()))
         await asyncio.wait_for(n.connected.wait(), 5)
         self.nodes[name] = n
         return n
 
-    async def add_gateway(self, name: str = "client", **kw) -> tuple[Gateway, httpx.AsyncClient]:
-        node = await self.add_node(name)
+    async def add_gateway(self, name: str = "client", security=None, **kw) -> tuple[Gateway, httpx.AsyncClient]:
+        node = await self.add_node(name, security=security)
         gw = Gateway(node, peers_ttl_s=0.0, **kw)
         client = httpx.AsyncClient(transport=httpx.ASGITransport(app=gw.app), base_url="http://127.0.0.1:8400",
                                    timeout=30)

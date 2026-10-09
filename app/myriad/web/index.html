@@ -344,7 +344,7 @@
         </div>
         <p class="note">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 7.8v.4"/></svg>
-          <span data-i18n="about.privacy">Les questions ne sont pas chiffrées de bout en bout : n'envoyez rien de confidentiel.</span>
+          <span data-i18n="about.privacy">Les questions sont chiffrées de bout en bout jusqu'au pair qui les calcule : le traqueur ne voit que des métadonnées. Ce pair, lui, les lit forcément en clair et pourrait les copier : les secrets détectés sont masqués avant l'envoi, et vous pouvez garder une question en local.</span>
         </p>
         <p class="about-links">
           <a id="research-link" href="#" target="_blank" rel="noopener"><span data-i18n="about.research">Lire la recherche</span> <span aria-hidden="true">↗</span></a>
@@ -371,6 +371,7 @@
         </div>
         <p class="hint upd-how" data-i18n="upd.how">Le traqueur annonce les nouvelles versions ; chaque fichier est téléchargé depuis GitHub et vérifié par son empreinte SHA-256 avant d'être installé.</p>
       </section>
+      <section class="about upd-card" id="sec-card" aria-labelledby="sec-heading"></section>
     </section>
   </main>
 </div>
@@ -472,6 +473,7 @@
 <script src="/static/i18n.js"></script>
 <script src="/static/netviz.js"></script>
 <script src="/static/agents.js"></script>
+<script src="/static/security.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,179 @@
+{
+  "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "python": "3.12.13"
+  },
+  "primitives": [
+    {
+      "prompt_chars": 300,
+      "answer_chars": 600,
+      "ciphertext_b64_chars": 1388,
+      "seal_job": {
+        "cpu_ms": 0.625,
+        "wall_ms": 0.688,
+        "wall_p90_ms": 2.455
+      },
+      "open_job": {
+        "cpu_ms": 0.573,
+        "wall_ms": 0.6,
+        "wall_p90_ms": 1.961
+      },
+      "seal_result": {
+        "cpu_ms": 0.312,
+        "wall_ms": 0.333,
+        "wall_p90_ms": 1.198
+      },
+      "open_result": {
+        "cpu_ms": 0.625,
+        "wall_ms": 0.543,
+        "wall_p90_ms": 1.143
+      },
+      "total_cpu_ms": 2.135
+    },
+    {
+      "prompt_chars": 4000,
+      "answer_chars": 2000,
+      "ciphertext_b64_chars": 10944,
+      "seal_job": {
+        "cpu_ms": 0.833,
+        "wall_ms": 0.968,
+        "wall_p90_ms": 2.636
+      },
+      "open_job": {
+        "cpu_ms": 0.781,
+        "wall_ms": 0.751,
+        "wall_p90_ms": 1.687
+      },
+      "seal_result": {
+        "cpu_ms": 0.365,
+        "wall_ms": 0.448,
+        "wall_p90_ms": 1.266
+      },
+      "open_result": {
+        "cpu_ms": 0.573,
+        "wall_ms": 0.714,
+        "wall_p90_ms": 1.859
+      },
+      "total_cpu_ms": 2.552
+    },
+    {
+      "prompt_chars": 30000,
+      "answer_chars": 8000,
+      "ciphertext_b64_chars": 43712,
+      "seal_job": {
+        "cpu_ms": 1.406,
+        "wall_ms": 1.879,
+        "wall_p90_ms": 4.649
+      },
+      "open_job": {
+        "cpu_ms": 1.25,
+        "wall_ms": 1.236,
+        "wall_p90_ms": 2.458
+      },
+      "seal_result": {
+        "cpu_ms": 0.833,
+        "wall_ms": 0.872,
+        "wall_p90_ms": 1.721
+      },
+      "open_result": {
+        "cpu_ms": 0.938,
+        "wall_ms": 1.065,
+        "wall_p90_ms": 1.904
+      },
+      "total_cpu_ms": 4.427
+    },
+    {
+      "prompt_chars": 120000,
+      "answer_chars": 60000,
+      "ciphertext_b64_chars": 174784,
+      "seal_job": {
+        "cpu_ms": 4.375,
+        "wall_ms": 5.421,
+        "wall_p90_ms": 8.704
+      },
+      "open_job": {
+        "cpu_ms": 3.594,
+        "wall_ms": 3.739,
+        "wall_p90_ms": 5.847
+      },
+      "seal_result": {
+        "cpu_ms": 2.5,
+        "wall_ms": 2.947,
+        "wall_p90_ms": 5.307
+      },
+      "open_result": {
+        "cpu_ms": 2.188,
+        "wall_ms": 2.425,
+        "wall_p90_ms": 4.459
+      },
+      "total_cpu_ms": 12.657
+    }
+  ],
+  "swarm_latency": [
+    {
+      "e2e": true,
+      "k": 1,
+      "wan_one_way_ms": 0.0,
+      "asks": 60,
+      "median_ms": 10.53,
+      "p90_ms": 12.67
+    },
+    {
+      "e2e": true,
+      "k": 4,
+      "wan_one_way_ms": 0.0,
+      "asks": 60,
+      "median_ms": 41.67,
+      "p90_ms": 49.43
+    },
+    {
+      "e2e": false,
+      "k": 1,
+      "wan_one_way_ms": 0.0,
+      "asks": 60,
+      "median_ms": 6.87,
+      "p90_ms": 7.83
+    },
+    {
+      "e2e": false,
+      "k": 4,
+      "wan_one_way_ms": 0.0,
+      "asks": 60,
+      "median_ms": 25.72,
+      "p90_ms": 30.39
+    },
+    {
+      "e2e": true,
+      "k": 1,
+      "wan_one_way_ms": 25.0,
+      "asks": 15,
+      "median_ms": 189.58,
+      "p90_ms": 206.4
+    },
+    {
+      "e2e": true,
+      "k": 4,
+      "wan_one_way_ms": 25.0,
+      "asks": 15,
+      "median_ms": 218.33,
+      "p90_ms": 245.69
+    },
+    {
+      "e2e": false,
+      "k": 1,
+      "wan_one_way_ms": 25.0,
+      "asks": 15,
+      "median_ms": 125.92,
+      "p90_ms": 137.9
+    },
+    {
+      "e2e": false,
+      "k": 4,
+      "wan_one_way_ms": 25.0,
+      "asks": 15,
+      "median_ms": 153.76,
+      "p90_ms": 156.01
+    }
+  ]
+}

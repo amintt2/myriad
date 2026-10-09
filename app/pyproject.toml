@@ -1,6 +1,6 @@
 [project]
 name = "myriad"
-version = "0.1.0"
+version = "0.2.0"
 description = "Myriad : un LLM décentralisé, un nœud par PC, fusion des réponses de modèles de familles différentes"
 readme = "README.md"
 requires-python = ">=3.11"

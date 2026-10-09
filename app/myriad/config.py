@@ -201,6 +201,9 @@ class Config:
     # Sub-agents (POST /v1/agents/run): the ONLY local commands a verification step may run, by name,
     # as argument lists (no shell), e.g. {"pytest": ["python", "-m", "pytest", "-q"]}. See agents.py.
     verify_commands: dict = field(default_factory=dict)
+    # Protection settings (security.SecuritySettings): end-to-end encryption required, blocklist,
+    # trusted nodes, private swarm, privacy guard, serving limits... Missing keys take their defaults.
+    security: dict = field(default_factory=dict)
     # App updates (updater.py): download a new version in the background as soon as it is known (else
     # only tell), and install a downloaded update when the app quits (else only on « Mettre à jour et
     # redémarrer »). Checking costs nothing: the tracker announces new versions to every node.

@@ -23,8 +23,11 @@ functional collision rate on DEV (below), as for answers in E4 (docs/03_idees_co
 Functional collision rate c: probability that two WRONG programs of different families, both passing the
 visible tests, give the same outputs on every extra input; the analogue of the answer collision c of the
 math vote theory. Its counterpart a: probability that two CORRECT programs agree on every extra input.
-Reported on TEST, per benchmark and pooled: accuracy (pass@1 of the selected program), paired bootstrap 95 %
-intervals and TOST verdicts (margin DELTA points, analyze_e4) against the best single model and each reference
+Agreement needs common VALID observations: a program's signature is "!" on an input where it raised, timed out
+or returned nothing; a program with no valid output at all is never grouped with another (no functional
+evidence, so a cascade calls the reference), and such programs are left out of the rates c and a.
+Reported on TEST, per benchmark and pooled: accuracy (pass@1 of the selected program), Tango's score 95 %
+intervals and exact TOST verdicts (margin DELTA points, essaim/stats.py) against the best single model and each reference
 (greedy, and with the same selection over its own samples), scaling over all subsets of k families, and the
 number of programs executed per problem.
 Writes results/e11_report<suffix>.md and results/e11_summary<suffix>.json.
@@ -35,14 +38,14 @@ import argparse
 import itertools
 import json
 import math
-import random
 import statistics as st
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from analyze_e4 import DELTA, EXTRA, FAMILIES, PARAMS_B, REFS, boot, verdict
+from analyze_e4 import DELTA, EXTRA, FAMILIES, PARAMS_B, REFS
 from essaim import code, data
+from essaim.stats import compare
 from essaim.results import read_manifest, read_rows
 
 RESULTS = Path(__file__).resolve().parent / "results"
@@ -59,6 +62,12 @@ class Cand:
     sample: int
     prog: str
     text: str  # normalised text, for the text vote
+    qid: str   # the problem: features are keyed by Cand, and one program can answer two problems
+
+
+def has_obs(sig: tuple) -> bool:
+    """At least one valid output on the extra inputs ("!" = exception, timeout or no output)."""
+    return any(s != "!" for s in sig)
 
 
 @dataclass(frozen=True)
@@ -109,25 +118,27 @@ def cluster_score(g: list[Cand], score: str, w) -> float:
     return sum(w.get(f, 0.0) for f in fams)
 
 
-def clusters(cs: list[Cand], F: dict[Cand, Feat]) -> tuple[list[list[Cand]], bool]:
+def clusters(cs: list[Cand], F: dict[Cand, Feat]) -> tuple[list[list[Cand]], bool, list[Cand]]:
     """Groups of candidates with identical output signatures, among those passing the visible tests (or, if
-    none does, among the loadable ones); and whether some candidate passed the visible tests."""
+    none does, among the loadable ones) that have at least one valid output; whether some candidate passed
+    the visible tests; and that pool (programs run on the extra inputs)."""
     passing = [c for c in cs if F[c].vis]
     pool = passing or [c for c in cs if F[c].load]
     groups: dict[tuple, list[Cand]] = defaultdict(list)
     for c in pool:
-        groups[F[c].sig].append(c)
-    return list(groups.values()), bool(passing)
+        if has_obs(F[c].sig):  # failing everywhere is not an output two programs can agree on
+            groups[F[c].sig].append(c)
+    return list(groups.values()), bool(passing), pool
 
 
 def functional(cs: list[Cand], F: dict[Cand, Feat], w, order, score: str = "wfamilies") -> tuple[Cand | None, dict]:
-    groups, any_pass = clusters(cs, F)
-    if not groups:
+    groups, any_pass, pool = clusters(cs, F)
+    if not pool:
         return pick(cs, w, order), {"any_pass": False, "top_fams": 0, "n_clusters": 0}
-    if all(not F[g[0]].sig for g in groups):
-        # No input to run (no readable example, no usable annotation): no functional evidence at all. The heaviest
-        # candidate (as rule c), and no agreement to report, so a cascade calls the reference.
-        pool = [c for g in groups for c in g]
+    if not groups:
+        # No valid output on any input (no readable example and no usable annotation, or every program fails
+        # on every input): no functional evidence at all. The heaviest candidate (as rule c), and no agreement
+        # to report, so a cascade calls the reference.
         return pick(pool, w, order), {"any_pass": any_pass, "top_fams": 0, "n_clusters": 0}
     key = lambda g: (cluster_score(g, score, w), len({c.fam for c in g}), len(g), rank(pick(g, w, order), w, order))
     best = max(groups, key=key)
@@ -156,10 +167,11 @@ def pair_rates(groups_by_q: list[list[tuple[Cand, Feat]]]) -> dict:
                 n["wrong"] += 1
                 n["text_same"] += bool(x.text) and x.text == y.text
                 n["wrong_both_vis"] += fx.vis and fy.vis
-                if fx.vis and fy.vis and fx.sig:  # a problem without extra inputs gives no evidence: left out
+                # no valid output (no extra input, or failures everywhere): no evidence, left out
+                if fx.vis and fy.vis and has_obs(fx.sig) and has_obs(fy.sig):
                     n["wrong_vis"] += 1
                     n["wrong_vis_same"] += fx.sig == fy.sig
-            if fx.correct and fy.correct and fx.sig:
+            if fx.correct and fy.correct and has_obs(fx.sig) and has_obs(fy.sig):
                 n["right"] += 1
                 n["right_same"] += fx.sig == fy.sig
     rate = lambda a, b: (n[a] / n[b]) if n[b] else None
@@ -224,7 +236,7 @@ def load(bench: str, split: str, suffix: str, tag: str, models: dict[str, str]):
                 if r is None:
                     missing += 1
                     continue
-                c = Cand(m, fam, g["sample"], prog, code.normalized_text(src) if src.strip() else "")
+                c = Cand(m, fam, g["sample"], prog, code.normalized_text(src) if src.strip() else "", qid)
                 load_ok = r["load"] is None
                 vis_n = sum(1 for i in valid if r["visible"][i])
                 feats[c] = Feat(load_ok, load_ok and vis_n == len(valid), vis_n, tuple(r["extra"]),
@@ -266,14 +278,12 @@ def main():
     ap.add_argument("--refs", nargs="*", default=None, help="reference models (default: those of E4)")
     ap.add_argument("--fit-split", default="dev", choices=list(data.SPLITS),
                     help="split used to fit weights and choose rules (test only for a smoke run)")
-    ap.add_argument("--boot", type=int, default=2000)
     a = ap.parse_args()
     swarm = dict(FAMILIES) if a.swarm is None else {m: m for m in a.swarm}  # label -> model
     refs = REFS if a.refs is None else a.refs
     extra = EXTRA if a.swarm is None else []
     fams = list(swarm)
     order = {f: -i for i, f in enumerate(fams)}  # earlier families win the last ties
-    rng = random.Random(0)
     smoke = a.fit_split == "test"
     out_suffix = a.suffix + ("_fittest" if smoke else "")
     L = ["# E11 : un essaim de petits modèles qui choisit un programme en l'EXÉCUTANT, contre des modèles plus gros",
@@ -283,8 +293,9 @@ def main():
               "Aucune conclusion à en tirer.**", ""]
     L += [f"Candidats : la solution gloutonne de chaque modèle et ses solutions tirées (température "
           f"{code.SAMPLING['temperature']}). Règles et poids choisis sur **{a.fit_split}**, rapportés sur **test**. "
-          f"Exactitude = pass@1 du programme choisi sur les tests cachés EvalPlus. IC : bootstrap apparié par "
-          f"problème ; équivalence (TOST) : marge ±{DELTA} points.", ""]
+          f"Exactitude = pass@1 du programme choisi sur les tests cachés EvalPlus. IC 95 % : score de Tango pour la "
+          f"différence appariée ; verdicts : tests exacts non conditionnels (essaim/stats.py), équivalence (TOST) "
+          f"avec une marge de ±{DELTA} points, deux tests unilatéraux à 5 %.", ""]
     summary = {"benches": {}, "families": swarm, "refs": refs, "delta": DELTA, "fit_split": a.fit_split}
     pooled: dict[str, list[float]] = defaultdict(list)
     for bench in a.benches:
@@ -406,18 +417,19 @@ def main():
         L += [f"| {lab} | {acc:.1f} | {'' if calls is None else calls} |" for lab, acc, calls, _ in rows]
 
         comps = {}
-        L += ["", f"Comparaisons appariées (test) : différence en points [IC 95 %], IC 90 %, verdict.", "",
-              "| système | contre | différence [IC 95 %] | IC 90 % | verdict |", "| --- | --- | --- | --- | --- |"]
+        L += ["", f"Comparaisons appariées (test) : différence en points [IC 95 %], p exacts des deux tests de marge, "
+              "verdict.", "",
+              "| système | contre | différence [IC 95 %] | p exact (marge basse ; haute) | verdict |",
+              "| --- | --- | --- | --- | --- |"]
         others = [("meilleur pair (a)", "best")] + [(m, f"alone|{m}") for m in R] + [(f"{m} + sélection", f"refself|{m}") for m in R]
         mains = [("règle principale", primary_key)] + ([("cascade (m choisi)", f"cascade|{m_best}")] if casc_ref else [])
         for mname, mk in mains:
             for oname, ok in others:
-                g = boot([x - y for x, y in zip(systems[mk], systems[ok])], a.boot, rng)
-                g["verdict"] = verdict(g)
+                g = compare(systems[mk], systems[ok], DELTA)
                 comps[f"{mk}|{ok}"] = g
                 L.append(f"| {mname} | {oname} | {g['mean']:+.1f} [{g['lo95']:+.1f} ; {g['hi95']:+.1f}] | "
-                         f"[{g['lo90']:+.1f} ; {g['hi90']:+.1f}] | {g['verdict']} |")
-                pooled[f"{mname} moins {oname}"].append([x - y for x, y in zip(systems[mk], systems[ok])])
+                         f"{g['p_low_margin']:.3f} ; {g['p_high_margin']:.3f} | {g['verdict']} |")
+                pooled[f"{mname} moins {oname}"].append((systems[mk], systems[ok]))
 
         scale = {}
         for k in range(1, len(fams) + 1):
@@ -433,7 +445,7 @@ def main():
         L += [f"| {k} | {v['text']:.1f} | {v['visible']:.1f} | {v['cluster']:.1f} | {v['oracle']:.1f} |" for k, v in scale.items()]
 
         n_vis = st.mean(len({c.prog for c in pool("test", q, fams, False)}) for q in ids)
-        n_ext = st.mean(len({c.prog for g in clusters(pool("test", q, fams, False), F)[0] for c in g}) for q in ids)
+        n_ext = st.mean(len({c.prog for c in clusters(pool("test", q, fams, False), F)[2]}) for q in ids)
         per_model = {}
         for m in present:
             mine = [c for q in ids for c in cands[q] if c.model == m]
@@ -468,16 +480,15 @@ def main():
             "isolation": info["exec"]["isolation"], "extra_n": info["exec"]["extra_n"]}
     if len(summary["benches"]) > 1:
         L += ["## Les deux benchmarks réunis (problèmes test mis bout à bout)", "",
-              "| comparaison | différence [IC 95 %] | IC 90 % | verdict |", "| --- | --- | --- | --- |"]
+              "| comparaison | différence [IC 95 %] | p exact (marge basse ; haute) | verdict |", "| --- | --- | --- | --- |"]
         summary["pooled"] = {}
         for k, parts in pooled.items():
             if len(parts) != len(summary["benches"]):  # only comparisons available on every benchmark
                 continue
-            g = boot([x for p in parts for x in p], a.boot, rng)
-            g["verdict"] = verdict(g)
+            g = compare([x for p in parts for x in p[0]], [y for p in parts for y in p[1]], DELTA)
             summary["pooled"][k] = g
-            L.append(f"| {k} | {g['mean']:+.1f} [{g['lo95']:+.1f} ; {g['hi95']:+.1f}] | [{g['lo90']:+.1f} ; "
-                     f"{g['hi90']:+.1f}] | {g['verdict']} |")
+            L.append(f"| {k} | {g['mean']:+.1f} [{g['lo95']:+.1f} ; {g['hi95']:+.1f}] | {g['p_low_margin']:.3f} ; "
+                     f"{g['p_high_margin']:.3f} | {g['verdict']} |")
     e4 = RESULTS / f"e4_summary{a.suffix}.json"
     if e4.exists():
         cs = {b: v.get("collision") for b, v in json.loads(e4.read_text(encoding="utf-8"))["benches"].items()}

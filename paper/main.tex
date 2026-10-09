@@ -34,8 +34,8 @@ guarantees for this protocol: a stop certificate that returns the fused decision
 peers can no longer change it, which we prove exact and optimal; the Bayes-optimal $K$-class vote weights;
 an identity for the gain of a minority appeal; and incentive conditions for a credit system, including an
 impossibility result for naive duplicate-and-compare audits. Empirically, on GSM8K a swarm of four
-1.7--3B models from four families reaches \eTwoVote\% with one round trip, against \eTwoBest\% for its
-best member and \eTwoRef\% for a 4B model, while collaborative token-level writing costs
+\eTwoSwarmSize{}B models from four families reaches \eTwoVote\% with one round trip, against \eTwoBest\% for its
+best member and \eTwoRef\% for a \eTwoRefSize{}B model, while collaborative token-level writing costs
 \eTwoCroiseTrips{} round trips for no gain. We show why voting works where moment-based theory predicts it
 should not: wrong answers of different families \emph{disperse}, so two agreeing peers almost always beat
 two disagreeing ones. We
@@ -49,8 +49,8 @@ dominant decentralised approach, pipeline-parallel serving of one large model ov
 \cite{borzunov2023petals,ryabinin2023swarm}, is bounded by latency: every generated token crosses the
 network, so wide-area round-trip times of 50--150\,ms limit decoding to a few tokens per second.
 
-We take the opposite stance. Each participant runs a complete small model ($\le$4B parameters) that fits
-on a consumer GPU, and participants deliberately run \emph{different} model families (Qwen, Gemma,
+We take the opposite stance. Each participant runs a complete small model (a few billion parameters;
+\eSmallSizes{}B in our experiments, total counts) that fits on a consumer GPU, and participants deliberately run \emph{different} model families (Qwen, Gemma,
 Granite, SmolLM, Mistral, Phi, OLMo). A request is broadcast once; peers answer independently; the
 requester fuses the answers. The network appears once per request, not once per token.
 
@@ -114,9 +114,11 @@ Conversely, if the condition fails for some $b$, the completion in which every m
 makes $b$ win, while the completion in which they all answer $a$ makes $a$ win; two consistent completions
 disagree, so no exact rule can decide.
 \end{proof}
-With latencies $T_i$ independent of the answers, the expected decision time is
+With latencies $T_i$ independent of the answers and \emph{mutually} independent, with distribution
+functions $F_i$, the expected decision time is
 $\mathbb E[\tau]=\int_0^\infty\sum_{S}h(S)\prod_{i\in S}F_i(t)\prod_{i\notin S}(1-F_i(t))\,dt\le\mathbb
-E[\max_iT_i]$, where $h(S)$ is the probability that $S$ does not yet certify; for i.i.d.\ exponential
+E[\max_iT_i]$, where $h(S)$ is the probability that $S$ does not yet certify (for dependent latencies the
+product is replaced by the joint probability that exactly the peers of $S$ have arrived by $t$); for i.i.d.\ exponential
 latencies $\mathbb E[\tau]=\lambda^{-1}\sum_{k<n}\Pr(J>k)/(n-k)$ against $H_n/\lambda$ for waiting for all,
 $J$ being the arrival rank at which the certificate holds. These formulas were checked by simulation
 (appendix).
@@ -172,20 +174,27 @@ serving is a best response iff $q(\beta_d-\alpha)(P+R)\ge g_H-g_d$ for every dev
 the cost saved by deviating.
 \end{theorem}
 \begin{theorem}[Duplicate-and-compare fails]\label{thm:audit}
-If an audit compares an honest sampled answer with an independent honest sample and sanctions on
-disagreement, a peer that always returns the modal answer is sanctioned with probability
-$\beta=1-\max_yr(y)\le\alpha=1-\sum_yr(y)^2$, so no audit rate or penalty makes honesty preferable.
+Let honest answers be samples of a distribution $r$, and let an audit compare a served answer with an
+independent honest sample and sanction on disagreement. A peer that always returns a modal answer is
+sanctioned with probability $\beta=1-\max_yr(y)\le\alpha=1-\sum_yr(y)^2$, with equality iff $r$ is uniform on
+its support. If this deviation is paid like honest serving and costs no more ($g_d\le g_H$), no audit rate
+or penalty makes honesty strictly preferable: the deviation is at least as good, and strictly better as soon
+as $g_d<g_H$, or $q(P+R)>0$ and $r$ is not uniform on its support.
 \end{theorem}
-Audits must therefore use reproducible greedy decoding and verifiable answers, with a measured baseline
-$\alpha$; this is what our application does.
+If finding the modal answer costs more than one sample, Theorem~\ref{thm:incentive} can still favour
+honesty (appendix). Audits must therefore use reproducible greedy decoding and verifiable answers, with a
+measured baseline $\alpha$; this is what our application does.
 
 \section{Experiments}
 All models are open-weight with permissive licences (Apache-2.0 or MIT), served in 8-bit GGUF by
 llama.cpp, fully offloaded to the GPU. Questions are split once into a development half (choices,
 weights) and a test half (reported numbers). Intervals are paired bootstrap 95\% intervals over questions.
+Model sizes are total parameter counts, embeddings included; Gemma~4 E2B and E4B are named after their
+effective sizes (\eGemmaTwoEffective{}B and \eGemmaFourEffective{}B) but hold \eGemmaTwoTotal{}B and
+\eGemmaFourTotal{}B parameters in total.
 
 \subsection{E1: fusing four families on multiple choice}
-Four 1.7--3B models (Qwen3, Granite~3.3, SmolLM3, Gemma~4~E2B) answer ARC-Challenge and MMLU-Pro with
+Four \eOneSwarmSize{}B models (Qwen3, Granite~3.3, SmolLM3, Gemma~4~E2B) answer ARC-Challenge and MMLU-Pro with
 exact letter probabilities over five balanced option orders; a calibrated linear pool (one temperature per
 model, fitted on dev) gives \eOneArcFusion\% on ARC against \eOneArcBest\% for the best member
 (\eOneArcGain{} points, \eOneArcGainCI) and \eOneArcRef\% for Qwen3-4B; on MMLU-Pro \eOneMmluFusion\% vs
@@ -228,12 +237,14 @@ All answers are graded from the stored texts with the final grader (Appendix~\re
 
 \subsection{E3: weights and early stopping}\label{sec:e3}
 Replaying E2 with weights fitted on dev, $K$-class weights reach \eThreeKclassAcc\% (\eThreeKclassGain{}
-points over the best peer, \eThreeKclassGainCI). On this data, binary weights happen to give the same
-accuracy (\eThreeBinaryAcc\%); this is an empirical observation, not a general equivalence. The weights
-also matter for latency: with the stop
-certificate, the requester waits for \eThreeKclassWaited{} of 4 peers on average with weights, against
-\eThreeVoteWaited{} with an unweighted vote, and the decisions are identical to waiting for all in
-\eThreeKclassSame{} questions.
+points over the best peer, \eThreeKclassGainCI), against \eThreeVoteAcc\% for an unweighted vote. Each
+peer's $p_i$ is its accuracy among the questions it answered, and $c$ is measured on pairs of wrong answers
+actually given: a peer without an extractable answer casts no vote, which under the model of
+Theorem~\ref{thm:np} (abstention independent of the true answer) carries no evidence. On this data, binary
+weights happen to give the same accuracy (\eThreeBinaryAcc\%); this is an empirical observation, not a
+general equivalence. With the stop certificate, the requester waits for \eThreeKclassWaited{} of 4 peers on
+average with these weights and \eThreeVoteWaited{} with an unweighted vote, and the decisions are identical
+to waiting for all in \eThreeKclassSame{} questions.
 
 \subsection{E5: the minority appeal does not pay with peer-sized judges}\label{sec:e5}
 We tested the appeal of Theorem~\ref{thm:appeal} on the E1 multiple-choice data: when the runner-up of
@@ -247,11 +258,11 @@ conservative that only \eFiveArcFlips{} answer changes on test (\eFiveArcGain{} 
 Theorem~\ref{thm:appeal}, an appeal pays only if $r>(C/B)\,h$; judges of the same size as the experts do
 not separate the two cases well enough. A stronger judge, or a verifiable check, would be needed.
 
-\subsection{E4: seven families against models 2--7$\times$ larger}\label{sec:e4}
-\textit{[In progress: seven $\le$4B models of seven families (Qwen3.5-4B, Gemma-4-E4B, Granite-4.2-3B,
-SmolLM3-3B, Ministral-3-3B, Phi-4-mini, OLMo-2-1B) against Qwen3.5-9B, Gemma-4-12B, Ministral-3-14B and
-Qwen3.8-27B on GSM8K, MATH-500, ARC and MMLU-Pro, with equivalence tests and scaling curves over all
-subsets.]}
+\subsection{E4: seven families against larger models}\label{sec:e4}
+\textit{[In progress: seven \eFourSwarmSize{}B models of seven families (Qwen3.5-4B, Gemma-4-E4B,
+Granite-4.2-3B, SmolLM3-3B, Ministral-3-3B, Phi-4-mini, OLMo-2-1B) against \eFourRefSizes{}B models
+(Qwen3.5-9B, Gemma-4-12B, Ministral-3-14B and Qwen3.8-27B) on GSM8K, MATH-500, ARC and MMLU-Pro, with exact
+equivalence tests and scaling curves over all subsets.]}
 
 \section{System}\label{sec:system}
 We release an implementation of the protocol as a desktop application (Python, llama.cpp).
@@ -282,7 +293,8 @@ the central ledger by peer-verified receipts and the tracker by a federation, th
 NAT traversal.
 \paragraph{Scalability (E7).} We ran the real tracker in its own process with up to 4{,}096 simulated nodes
 (real WebSocket clients, signatures and gateways; answers drawn from the measured per-family accuracies
-with collision rate $c=0.09$; compute times drawn from the measured GSM8K timings) and a lognormal
+with collision rate $c=0.09$, our first estimate of the GSM8K value, which counted abstentions as wrong
+answers (\S\ref{sec:e3} gives the corrected \eThreeCollision); compute times drawn from the measured GSM8K timings) and a lognormal
 wide-area delay injected on every relayed message. With the measured compute times, 256 nodes and a
 100\,ms RTT, the stop certificate lowers the median decision latency from \eSevenCertWaitAll{}\,s to
 \eSevenCertCert{}\,s (\eSevenCertGain\%; \eSevenCertGainHetero\% with heterogeneous node speeds). With
@@ -317,11 +329,15 @@ in the repository.
 
 \paragraph{Latency of the certificate.}
 The certificate is persistent: once the received answers certify $a$, any further answer keeps $a$
-certified. Hence $\{\tau>t\}$ is the event that the set $S_t$ of peers arrived before $t$ does not
-certify, and with latencies independent of the answers,
-$\Pr(\tau>t)=\sum_S h(S)\prod_{i\in S}F_i(t)\prod_{i\notin S}(1-F_i(t))$; integrating gives
-$\mathbb E[\tau]$. Since $\tau\le\max_iT_i$ almost surely, $\mathbb E[\tau]\le\mathbb E[\max_i T_i]$,
-strictly iff $\Pr(\tau<\max_iT_i)>0$. For i.i.d.\ continuous latencies the arrival order is a uniform
+certified. Hence $\{\tau>t\}$ is the event that the set $S_t$ of peers arrived by $t$ does not
+certify. If the latencies are independent of the answers, conditioning on $S_t=S$ leaves the law of the
+answers unchanged, so $\Pr(\tau>t)=\sum_S h(S)\Pr(S_t=S)$; if moreover the latencies are mutually
+independent, $\Pr(S_t=S)=\prod_{i\in S}F_i(t)\prod_{i\notin S}(1-F_i(t))$, which gives the formula of the
+main text after integration. Mutual independence is needed for the product: with five unanimous
+equal-weight peers and $T_1=\dots=T_5=Z$, $\Pr(Z=1)=1/4$, $\Pr(Z=3)=3/4$, all latencies are independent of
+the answers but $\mathbb E[\tau]=2.5$, while the product formula gives $2.79296875$. Since
+$\tau\le\max_iT_i$ almost surely, $\mathbb E[\tau]\le\mathbb E[\max_i T_i]$; when $\mathbb E[\max_iT_i]<\infty$,
+the inequality is strict iff $\Pr(\tau<\max_iT_i)>0$. For i.i.d.\ continuous latencies the arrival order is a uniform
 permutation independent of the order statistics, so $\mathbb E[\tau]=\sum_j\Pr(J=j)\,\mathbb E[T_{(j)}]$,
 and exponential spacings have means $1/(\lambda(n-k))$. Check: five unanimous equal-weight peers certify at
 $J=3$; theory gives $0.7833$ vs simulated $0.7835$ for $\mathrm{Exp}(1)$ (waiting for all: $2.2833$ vs
@@ -357,15 +373,23 @@ $B=0.1$, $C=0.3$ gives the predicted optimum $t^*=\tfrac12\log3$ and gain $0.049
 Generated answers are graded from the stored texts. For GSM8K the last answer statement wins, whatever
 its form (including ``\textbf{The answer is 16.}'' and ``The answer is $N=195$''); MATH-500 answers are the
 last \texttt{\textbackslash boxed\{\}}, normalised with Hendrycks' \texttt{strip\_string} (units after a
-number removed, canonical numbers); option letters come from an explicit answer statement or a line
+number removed) and one exact canonical spelling per rational number, so that $0.25$, $1/4$ and
+$\frac{2}{8}$ agree, for grading and votes alike; option letters come from an explicit answer statement or a line
 holding only the letter. An earlier, stricter GSM8K grader missed the first two forms; all GSM8K numbers
 in this paper use the final grader, re-applied to the stored texts without new inference.
 
 \paragraph{Theorems~\ref{thm:incentive} and~\ref{thm:audit}.}
-The expected utilities are $U_H=cL-g_H-q\alpha(P+R)$ and $U_d=cL-g_d-q\beta_d(P+R)$, whose difference
-gives the condition; participation additionally needs $U_H\ge0$. For the audit, two honest samples agree
-with probability $\sum_yr(y)^2$ while the modal answer matches the reference with probability $\max_yr(y)
-\ge\sum_yr(y)^2$, so $\beta\le\alpha$ and the left-hand side of the incentive condition is non-positive.
+The expected utilities are $U_H=cL-g_H-q\alpha(P+R)$ and $U_d=cL-g_d-q\beta_d(P+R)$ (same payment $cL$),
+so $U_H-U_d=q(\beta_d-\alpha)(P+R)-(g_H-g_d)$, which gives the condition; participation additionally
+needs $U_H\ge0$. For the audit, two honest samples agree with probability $\sum_yr(y)^2$ while a modal
+answer matches the reference with probability $\max_yr(y)$, and
+$\sum_yr(y)^2\le\max_yr(y)\sum_yr(y)=\max_yr(y)$, with equality iff $r(y)=\max_yr$ wherever $r(y)>0$, i.e.\
+$r$ is uniform on its support. Hence $\beta\le\alpha$, and
+$U_d-U_H=(g_H-g_d)+q(\alpha-\beta)(P+R)$ is a sum of two non-negative terms when $g_d\le g_H$: whatever
+$q$, $P$ and $R$, honesty is never strictly preferred. The deviation is strictly preferred when one term is
+positive ($g_d<g_H$, or $q(P+R)>0$ and $r$ not uniform on its support); otherwise the peer is indifferent.
+Without the cost condition the conclusion can fail: with $r=(0.6,0.4)$ ($\alpha=0.48$, $\beta=0.4$), $q=1$,
+$P+R=10$, $g_H=1$ and $g_d=3$ (finding the mode costs more than one sample), $U_H-U_d=1.2>0$.
 Example: with $q=5\%$, $\alpha=1\%$, $\beta=95\%$, $P=12{,}000$ credits and a 1{,}000-token job paying one
 credit per token, honest serving earns 394 credits against 330 for cheating (simulated: 393.6 and 333.4).
 

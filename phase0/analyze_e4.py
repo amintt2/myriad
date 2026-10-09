@@ -6,13 +6,15 @@ Every model answered every question alone, once (greedy). A swarm decision is a 
 normalised answers, computed here for any set of peers:
   vote      plurality, ties broken by the higher mean log-probability
   wvote     K-class Nitzan-Paroush weights w_i = log(p_i / (1 - p_i)) - log(c), where p_i is the peer's
-            DEV accuracy and c the DEV probability that two wrong peers give the same wrong answer
-            (docs/03_idees_codex.md, analyze_e3.py); weights are fitted on dev, applied to test
+            DEV accuracy among the questions it answered (an abstention, no extractable answer, casts no vote
+            and is uninformative under the model) and c the DEV probability that two wrong ANSWERS (both
+            given) are the same (docs/03_idees_codex.md, analyze_e3.py); fitted on dev, applied to test
 Reported on TEST, per benchmark and macro-averaged:
   * accuracy of each model alone, of the swarm of the 7 families (one small model per family), of the
     best dev peer alone, and the oracle (some peer is right);
-  * swarm minus each reference: paired bootstrap 95 % interval, and a TOST equivalence decision with
-    margin DELTA points (equivalent if the 90 % interval lies inside [-DELTA, +DELTA]);
+  * swarm minus each reference: Tango's score 95 % interval for the paired difference, and verdicts from
+    exact unconditional tests (essaim/stats.py): equivalence = two one-sided tests at 5 % with margin
+    DELTA points (TOST), superiority/inferiority = one-sided tests at 2.5 %;
   * scaling: mean accuracy over ALL subsets of k families, k = 1..7, and the best-k-by-dev subset;
   * the exact stop certificate: peers waited for (arrival order = the peers' measured times).
 Writes results/e4_report<suffix>.md and results/e4_summary<suffix>.json (used by the paper figures).
@@ -23,12 +25,12 @@ import argparse
 import itertools
 import json
 import math
-import random
 import statistics as st
 from collections import defaultdict
 from pathlib import Path
 
-from essaim import answers, data
+from essaim import answers, data, models
+from essaim.stats import compare
 from essaim.results import read_manifest, read_rows
 
 RESULTS = Path(__file__).resolve().parent / "results"
@@ -40,11 +42,7 @@ FAMILIES = {  # one small model (<= 4B) per family: the swarm
     "Microsoft": "microsoft/Phi-4-mini-instruct", "AllenAI": "allenai/OLMo-2-0425-1B-Instruct"}
 EXTRA = ["Qwen/Qwen3.5-2B", "google/gemma-4-E2B-it"]  # smaller siblings (not in the 7-family swarm)
 REFS = ["Qwen/Qwen3.5-9B", "google/gemma-4-12B-it", "mistralai/Ministral-3-14B-Instruct-2512", "Qwen/Qwen3.8-27B"]
-PARAMS_B = {"Qwen/Qwen3.5-4B": 4, "google/gemma-4-E4B-it": 8, "ibm-granite/granite-4.2-3b": 3,
-            "HuggingFaceTB/SmolLM3-3B": 3, "mistralai/Ministral-3-3B-Instruct-2512": 3.4,
-            "microsoft/Phi-4-mini-instruct": 3.8, "allenai/OLMo-2-0425-1B-Instruct": 1.5,
-            "Qwen/Qwen3.5-2B": 2, "google/gemma-4-E2B-it": 5, "Qwen/Qwen3.5-9B": 9, "google/gemma-4-12B-it": 12,
-            "mistralai/Ministral-3-14B-Instruct-2512": 14, "Qwen/Qwen3.8-27B": 27}  # total, incl. embeddings
+PARAMS_B = {m: models.total_b(m) for m in list(FAMILIES.values()) + EXTRA + REFS}  # essaim/models.py: total
 DELTA = 2.0  # equivalence margin, points
 PARTIAL = False  # --partial: incomplete reference runs are skipped (preview only, never for the paper)
 
@@ -97,14 +95,24 @@ def check_manifests(bench: str, models: list[str]):
 
 
 def collision(rows_by_model: dict[str, dict], ids: list[str]) -> float:
-    """P(two peers that are both wrong give the same wrong answer), on the given questions."""
+    """P(two peers that both GIVE a wrong answer give the same one), on the given questions. Abstentions
+    (no extractable answer) cast no vote, so they are not wrong answers here (see valid_accuracy)."""
     both = same = 0
     for i in ids:
-        wrong = [r[i]["answer"] for r in rows_by_model.values() if r[i]["answer"] != r[i]["gold"]]
+        wrong = [r[i]["answer"] for r in rows_by_model.values()
+                 if r[i]["answer"] is not None and r[i]["answer"] != r[i]["gold"]]
         for x, y in itertools.combinations(wrong, 2):
             both += 1
-            same += x is not None and x == y
+            same += x == y
     return max(same, 0.5) / max(both, 1)
+
+
+def valid_accuracy(rows: dict, ids: list[str]) -> float:
+    """P(right | the peer gave an answer): the p_i of the K-class weights. Under the model (abstention
+    independent of the true answer), an abstention multiplies the likelihood of every candidate answer by
+    the same factor, so the weight of a cast vote is log(P(right | answered) / P(wrong | answered)) - log c."""
+    given = [i for i in ids if rows[i]["answer"] is not None]
+    return sum(rows[i]["answer"] == rows[i]["gold"] for i in given) / len(given) if given else 0.0
 
 
 def decide(answers: list[tuple[str | None, float, float | None]]) -> str | None:
@@ -139,31 +147,9 @@ def certificate_waits(answers: list[tuple[str | None, float, float | None]], tim
     return len(answers)
 
 
-def boot(diff: list[float], b: int, rng: random.Random) -> dict:
-    n = len(diff)
-    means = sorted(sum(diff[rng.randrange(n)] for _ in range(n)) / n for _ in range(b))
-    q = lambda p: 100 * means[min(b - 1, int(p * b))]
-    return {"mean": 100 * sum(diff) / n, "lo95": q(0.025), "hi95": q(0.975), "lo90": q(0.05), "hi90": q(0.95)}
-
-
-def verdict(g: dict) -> str:
-    """Superior if the 95 % interval is above 0; equivalent (TOST) if the 90 % interval lies within
-    +-DELTA; non-inferior if the 90 % lower bound is above -DELTA; inferior if the 95 % interval is below 0."""
-    if g["lo95"] > 0:
-        return "supérieur"
-    if -DELTA < g["lo90"] and g["hi90"] < DELTA:
-        return f"équivalent (±{DELTA:g})"
-    if g["hi95"] < 0:
-        return "inférieur"
-    if g["lo90"] > -DELTA:
-        return f"non inférieur (-{DELTA:g})"
-    return "indéterminé"
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suffix", default="_colab")
-    ap.add_argument("--boot", type=int, default=2000)
     ap.add_argument("--partial", action="store_true", help="preview: skip incomplete reference runs")
     ap.add_argument("--strict-math", action="store_true",
                     help="MATH-500: \boxed{} only (no fallback to the final expression); writes *_strictmath files")
@@ -177,7 +163,6 @@ def main():
         a.suffix_out += "_preview"
     global PARTIAL
     PARTIAL = a.partial
-    rng = random.Random(0)
     fams = list(FAMILIES)
     summary: dict = {"benches": {}, "families": FAMILIES, "refs": REFS, "delta": DELTA,
                      "math_grader": "boxed only" if a.strict_math else "boxed, else final expression (complete answers)",
@@ -185,8 +170,10 @@ def main():
     L = ["# E4 : un essaim de petits modèles de familles différentes contre des modèles bien plus gros", "",
          "Chaque modèle répond seul, une fois (glouton), via llama-server comme dans l'app. Les décisions de "
          "l'essaim sont calculées hors ligne (un aller-retour par requête). Poids appris sur **dev**, résultats "
-         f"sur **test**. IC : bootstrap apparié par question. Équivalence (TOST) : marge ±{DELTA} points, "
-         "IC à 90 % entièrement dans la marge.", ""]
+         "sur **test**. IC 95 % : intervalle du score de Tango pour la différence appariée. Verdicts : tests exacts "
+         f"non conditionnels (essaim/stats.py) ; équivalence (TOST) : marge ±{DELTA} points, deux tests "
+         "unilatéraux à 5 % ; supériorité ou infériorité : test unilatéral à 2,5 %. Poids : exactitude parmi "
+         "les réponses données (une abstention ne vote pas), collision entre réponses fausses données.", ""]
     for bench in BENCHES:
         models = list(FAMILIES.values()) + EXTRA + REFS
         dev = {m: load(m, a.suffix, bench, "dev") for m in models}
@@ -203,9 +190,10 @@ def main():
             if sorted(dev[m]) != ids_dev or sorted(test[m]) != ids:
                 raise SystemExit(f"{m} {bench} : pas les mêmes questions")
         acc = lambda rows, qs: sum(rows[i]["answer"] == rows[i]["gold"] for i in qs) / len(qs)
-        p_dev = {f: acc(dev[FAMILIES[f]], ids_dev) for f in fams}
+        p_dev = {f: acc(dev[FAMILIES[f]], ids_dev) for f in fams}  # accuracy (abstentions count as wrong)
+        p_vote = {f: valid_accuracy(dev[FAMILIES[f]], ids_dev) for f in fams}  # among the answers given
         c = collision({f: dev[FAMILIES[f]] for f in fams}, ids_dev)
-        w = {f: max(0.0, math.log(min(max(p_dev[f], .02), .98) / (1 - min(max(p_dev[f], .02), .98))) - math.log(c))
+        w = {f: max(0.0, math.log(min(max(p_vote[f], .02), .98) / (1 - min(max(p_vote[f], .02), .98))) - math.log(c))
              for f in fams}
 
         def swarm(subset: list[str], rule: str, i: str) -> str | None:
@@ -235,16 +223,16 @@ def main():
         L += [f"| oracle (au moins un pair juste) | {100 * oracle:.1f} | |", ""]
 
         comps = {}
-        L += ["| essaim (wvote) moins | différence [IC 95 %] | IC 90 % | verdict |", "| --- | --- | --- | --- |"]
+        L += ["| essaim (wvote) moins | différence [IC 95 %] | p exact (marge basse ; haute) | verdict |",
+              "| --- | --- | --- | --- |"]
         for name, other in [(f"meilleur pair de dev ({FAMILIES[best_f]})", correct["best"])] + \
                 [(m, [float(test[m][i]["answer"] == test[m][i]["gold"]) for i in ids]) for m in REFS if m in alone]:
             for rule in ("wvote", "vote"):
-                g = boot([x - y for x, y in zip(correct[rule], other)], a.boot, rng)
+                g = compare(correct[rule], other, DELTA)
                 comps[f"{rule}|{name}"] = g
-                g["verdict"] = verdict(g)
                 if rule == "wvote":
                     L.append(f"| {name} | {g['mean']:+.1f} [{g['lo95']:+.1f} ; {g['hi95']:+.1f}] | "
-                             f"[{g['lo90']:+.1f} ; {g['hi90']:+.1f}] | {g['verdict']} |")
+                             f"{g['p_low_margin']:.3f} ; {g['p_high_margin']:.3f} | {g['verdict']} |")
 
         scale = {}
         for k in range(1, len(fams) + 1):
@@ -264,7 +252,8 @@ def main():
         toks = {m: st.mean((test[m][i]["n_tokens"] or 0) for i in ids) for m in models if m not in missing}
         L += ["", f"Certificat d'arrêt (ordre d'arrivée = temps mesurés) : {st.mean(waits):.2f} pairs attendus sur "
               f"{len(fams)} en moyenne.", ""]
-        summary["benches"][bench] = {"n": len(ids), "collision": c, "weights": w, "p_dev": p_dev, "alone": alone,
+        summary["benches"][bench] = {"n": len(ids), "collision": c, "weights": w, "p_dev": p_dev, "p_vote": p_vote,
+                                     "alone": alone,
                                      "swarm": {r: 100 * st.mean(correct[r]) for r in ("vote", "wvote")},
                                      "best_dev": FAMILIES[best_f], "oracle": 100 * oracle, "comparisons": comps,
                                      "scaling": scale, "certificate_waits": st.mean(waits), "mean_tokens": toks}

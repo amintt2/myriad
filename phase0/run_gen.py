@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import os
 import re
 import time
@@ -30,13 +31,49 @@ from pathlib import Path
 import httpx
 
 from essaim import data
-from essaim.common import FIXED_DATE, GEN_PROTOCOL_VERSION, PROMPT_VERSION, final_answer_end
+from essaim.common import FIXED_DATE, GEN_PROTOCOL_VERSION, PROMPT_VERSION, final_answer_end, word_spans
 from essaim.results import ResultsFile, read_rows
 
 RESULTS = Path(__file__).resolve().parent / "results"
 USER_TMPL = ("{q}\n\nSolve it step by step, briefly. Finish with the sentence: "
              "\"The answer is N.\" where N is a number.")
 MODES = ("solo", "vote", "accord", "croise")
+
+
+def _finite(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
+def check_response(path: str, body: dict, j) -> None:
+    """ValueError unless `j` is a complete, well-typed answer of a peer to `body` on `path`: only such answers
+    enter a quorum (a malformed one, e.g. {"compute_ms": 0, "result": {}}, counts as a failed peer instead of
+    crashing the coordinator later). Times are finite and non-negative; /propose gives a text, an end flag and a
+    finite mean log-probability; /score gives, for every candidate, one finite log-probability per word."""
+    if not isinstance(j, dict):
+        raise ValueError("réponse qui n'est pas un objet")
+    if not _finite(j.get("compute_ms")) or j["compute_ms"] < 0:
+        raise ValueError("compute_ms absent ou invalide")
+    if "queue_ms" in j and (not _finite(j["queue_ms"]) or j["queue_ms"] < 0):
+        raise ValueError("queue_ms invalide")
+    r = j.get("result")
+    if path == "/propose":
+        if not (isinstance(r, dict) and isinstance(r.get("text"), str) and isinstance(r.get("eos"), bool)
+                and _finite(r.get("mean_logp"))):
+            raise ValueError("résultat de /propose incomplet")
+        if r.get("stop") is not None and not isinstance(r["stop"], str):
+            raise ValueError("stop invalide")
+    elif path == "/score":
+        cands = body["candidates"]
+        if not isinstance(r, list) or len(r) != len(cands):
+            raise ValueError("résultat de /score : pas une note par candidat")
+        for cand, s in zip(cands, r):
+            wl = s.get("word_logp") if isinstance(s, dict) else None
+            if not isinstance(wl, list) or len(wl) != len(word_spans(cand)) or not all(_finite(x) for x in wl):
+                raise ValueError("résultat de /score : notes par mot invalides")
+            if any(k in s and not isinstance(s[k], bool) for k in ("boundary_merged", "special_token")):
+                raise ValueError("résultat de /score : indicateur invalide")
+    else:
+        raise ValueError(f"chemin inconnu {path}")
 
 
 class Peers:
@@ -66,9 +103,8 @@ class Peers:
             r = await self.client.post(self.urls[i] + path, json=body)
             r.raise_for_status()
             j = r.json()
+            check_response(path, body, j)  # a malformed answer is a failure, never part of the quorum
             compute, queue = float(j["compute_ms"]), float(j.get("queue_ms", 0.0))
-            if "result" not in j:
-                raise ValueError("réponse sans champ result")
         except Exception as e:  # HTTP, network or malformed answer: recorded, then raised
             self.calls.append({"tag": tag, "peer": i, "path": path, "status": f"{type(e).__name__}: {e}"[:200],
                                "total_ms": round((time.perf_counter() - t0) * 1000, 1)})

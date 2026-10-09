@@ -409,12 +409,17 @@ async def test_chat_stream_and_network_stats(swarm, tmp_path):
         assert st["tokens_per_s"] > 0 and st["jobs_per_min"] > 0
         await wait_until(lambda: True)
         # Stats straight from the tracker: the requester spent what the servers earned.
+        from myriad.crypto import account_params
         async with httpx.AsyncClient(base_url=swarm.url) as t:
-            s = (await t.get("/v1/stats", params={"node_id": node.node_id})).json()
+            s = (await t.get("/v1/stats", params={"node_id": node.node_id, **account_params(node.identity)})).json()
             assert s["account"]["spent"] > 0 and s["account"]["earned"] == 0
-            q = swarm.nodes["qwen"].node_id
-            s2 = (await t.get("/v1/stats", params={"node_id": q})).json()
+            qn = swarm.nodes["qwen"]
+            s2 = (await t.get("/v1/stats", params={"node_id": qn.node_id, **account_params(qn.identity)})).json()
             assert s2["account"]["earned"] > 0 and s2["account"]["jobs_served"] >= 1
+            # essaim/1.3: an account's figures are not public (they would link a debit to a served job)
+            assert "account" not in (await t.get("/v1/stats", params={"node_id": qn.node_id})).json()
+            assert (await t.get(f"/v1/balance/{qn.node_id}")).status_code == 403
+            assert "balances" not in (await t.get("/v1/balances")).json()
         r = await c.post("/api/prefs", json={"lang": "en"}, headers=hdr)
         assert r.status_code == 200
         assert (await c.post("/api/prefs", json={"lang": "xx"}, headers=hdr)).status_code == 400

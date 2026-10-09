@@ -1,11 +1,14 @@
 """E11 execution: run every distinct program of the generation files in the sandbox (essaim/sandbox.py).
 
-For each problem, the code of every answer (all models, greedy and samples) is re-extracted from the raw text
-with the current extractor, and each distinct program is run three times, each in its own child process:
-  visible  the tests shown in the prompt (pass/fail per test)
+For each problem, the trusted grader (essaim/sandbox.py) first prepares the inputs: the arguments of the
+visible tests and the inputs of the hidden EvalPlus tests. Then the code of every answer (all models, greedy and
+samples) is re-extracted from the raw text with the current extractor, and each distinct program is run three
+times, each in its own child process that only receives inputs and returns outputs:
+  visible  the arguments of the tests shown in the prompt (the grader replays each test: pass/fail per test)
   extra    the visible inputs, then --extra inputs derived from them (essaim/code.extra_inputs): one output
            signature per input, for functional clustering
-  hidden   the EvalPlus tests (grading only; stops at the first failure)
+  hidden   the inputs of the EvalPlus tests (the grader compares: grading only; stops at the first failure)
+Expected values and the grading code stay in the grader. On SIGTERM or Ctrl-C every running child is killed.
 The dataset's reference solution goes through the same three runs (prog "reference"): visible tests that it
 fails are not used by the analysis, and a hidden failure of the reference flags a harness problem.
 
@@ -18,6 +21,8 @@ import argparse
 import os
 import platform
 import re
+import signal
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -51,12 +56,18 @@ def generations(bench: str, split: str, suffix: str, models: list[str] | None) -
     return rows, mans, next(iter(mans.values()))["data"]
 
 
+def prepared(tests: dict) -> dict:
+    """The inputs of one problem, prepared once by the trusted grader (shared by all its programs)."""
+    with tests["lock"]:
+        if "prepared" not in tests:
+            tests["prepared"] = sandbox.prepare(tests["entry"], tests["header"], tests["visible"], tests["hidden"])
+        return tests["prepared"]
+
+
 def run_program(bench: str, item: dict, prog: str, src: str, tests: dict) -> dict:
     entry, head = tests["entry"], tests["header"]
     t0 = time.perf_counter()
-    v = sandbox.run_visible(src, entry, head, tests["visible"])
-    x = sandbox.run_extra(src, entry, head, tests["extra"])
-    h = sandbox.run_hidden(src, entry, head, tests["hidden"])
+    v, x, h = sandbox.evaluate(src, entry, head, tests["visible"], tests["extra"], tests["hidden"], prepared(tests))
     return {"id": item["id"], "prog": prog, "bench": bench, "load": v["load"],
             "visible": [c["ok"] for c in v["cases"]], "visible_err": [c["err"] for c in v["cases"]],
             "extra": x["sigs"], "hidden": {k: h[k] for k in ("pass", "n_pass", "n", "err")},
@@ -79,6 +90,11 @@ def main():
     a = ap.parse_args()
     if "_" in a.tag:
         ap.error("--tag sans « _ » (il fait partie du nom des fichiers)")
+    def on_term(signum, frame):  # colab_jobs.py stops a job with SIGTERM: same path as Ctrl-C
+        raise KeyboardInterrupt(f"signal {signum}")
+
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGTERM, on_term)
     iso = sandbox.isolation()
     print("isolation :", {k: v for k, v in iso.items() if k != "limits_s"}, flush=True)
     import numpy
@@ -102,7 +118,8 @@ def main():
             for it in items:
                 entry = code.entry_point(bench, it)
                 tests = {"entry": entry, "header": code.header(bench, it), "visible": code.visible_tests(bench, it),
-                         "extra": code.extra_inputs(bench, it, a.extra), "hidden": code.hidden_spec(bench, it)}
+                         "extra": code.extra_inputs(bench, it, a.extra), "hidden": code.hidden_spec(bench, it),
+                         "lock": threading.Lock()}
                 progs = {"reference": it["reference"]}
                 for r in rows.values():
                     for g in r:
@@ -127,6 +144,7 @@ def main():
                     if k % 200 == 0:
                         print(f"{bench} {split} : {k}/{len(jobs)} programmes en {time.perf_counter() - t0:.0f} s", flush=True)
             except BaseException:
+                sandbox.shutdown()  # no new child, every running one killed (and reaped by its thread)
                 ex.shutdown(wait=False, cancel_futures=True)
                 out.release()
                 raise

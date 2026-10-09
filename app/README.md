@@ -740,10 +740,15 @@ petits modèles, dix questions), pas un résultat.
 ## Limites de la v1
 
 - **Le traqueur est central.** Il sert de rendez-vous, de relais et de registre des crédits. Il ne
-  peut pas forger de résultat ni de reçu, mais il peut refuser de relayer, voir les questions en clair,
-  et c'est lui qui tient les soldes. Un traqueur en panne arrête le réseau.
-- **Les questions ne sont pas chiffrées de bout en bout.** Le traqueur et les pairs interrogés les
-  lisent. Ne rien envoyer de confidentiel.
+  peut pas forger de résultat ni de reçu, ni lire les questions chiffrées (essaim/1.3), mais il peut
+  refuser de relayer, voit les métadonnées (qui paie, quand, quel pair, tailles arrondies) et c'est lui
+  qui tient les soldes. Un traqueur en panne arrête le réseau. Allié à un pair, il saurait qui a demandé
+  quoi ; il choisit aussi les pairs (le mode « nœuds de confiance » ou un essaim privé y répond).
+- **Le pair qui calcule lit la question en clair.** Le chiffrement de bout en bout s'arrête à lui : le
+  calcul homomorphe est bien trop lent pour un LLM et les GPU grand public n'offrent pas de calcul
+  confidentiel. Rien n'empêche techniquement un pair malveillant de copier ce qu'il déchiffre : les
+  secrets détectés sont masqués avant l'envoi, une question peut rester en local, les jetons-pièges
+  des canaris détectent une fuite après coup. Détails : `docs/08_securite.md`.
 - **Attaques Sybil** : chaque nouvelle clé reçoit le crédit de départ. Il faudra une preuve de travail
   ou une invitation.
 - **Vérification du calcul** : un pair peut renvoyer une réponse bâclée. La fusion et les contrôles
@@ -782,6 +787,6 @@ répliqué, ou contrats de crédit bilatéraux), sans traqueur de confiance. Les
 
 1. plusieurs traqueurs fédérés, puis une découverte des pairs par DHT, avec traversée de NAT directe
    (hole punching) et relais seulement en repli ;
-2. chiffrement des questions jusqu'aux pairs choisis ;
+2. chiffrement des questions jusqu'aux pairs choisis (fait en essaim/1.3, voir `docs/08_securite.md`) ;
 3. réputation calculée par chaque nœud à partir des reçus et des contrôles qu'il a vus ;
 4. appel du minoritaire et certificat statistique.

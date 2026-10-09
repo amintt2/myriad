@@ -20,6 +20,7 @@ from .node import NodeClient
 from .priors import family_of, params_of
 from .routing import node_tags
 from .runtime import NodeRuntime
+from .security import Security
 from .ui import make_ui_app
 from .updater import Updater
 
@@ -31,11 +32,18 @@ def build(cfg: Config, home: Path, serve: bool = True) -> tuple[NodeClient, Gate
     if not kp.exists():
         raise SystemExit(f"Aucune clé dans {home}. Lancez d'abord : myriad init")
     ident = Identity.load(kp)
+
+    def save_security(d: dict) -> None:
+        saved = Config.load(home)
+        saved.security = d
+        saved.save(home)
+
+    security = Security(cfg.security, save=save_security)
     engine = None
     if serve and cfg.gguf_path:
         engine = LlamaServerEngine(cfg.gguf_path, cfg.repo_id, binary=cfg.llama_server, ctx=cfg.ctx,
                                    parallel=max(1, cfg.max_parallel), n_gpu_layers=cfg.n_gpu_layers,
-                                   log_dir=home / "logs")
+                                   log_dir=home / "logs", mlock=want_mlock(security.settings.mlock, cfg.gguf_path))
     repo = cfg.repo_id if engine else None
     node = NodeClient(ident, cfg.tracker_url, engine=engine, model=repo,
                       family=(cfg.family or family_of(repo)) if repo else None,
@@ -43,10 +51,24 @@ def build(cfg: Config, home: Path, serve: bool = True) -> tuple[NodeClient, Gate
                       params_b=(cfg.params_b or params_of(repo)) if repo else None,
                       ctx=cfg.ctx if engine else 0, max_parallel=cfg.max_parallel, accepting=cfg.accepting,
                       active_hours=cfg.active_hours, max_job_tokens=cfg.max_job_tokens,
-                      tags=node_tags(repo, cfg.tags))
-    gateway = Gateway(node, default_k=cfg.default_k, timeout_s=cfg.request_timeout_s)
+                      tags=node_tags(repo, cfg.tags), security=security)
+    gateway = Gateway(node, default_k=cfg.default_k, timeout_s=cfg.request_timeout_s, security=security)
     gateway.verify_commands = dict(cfg.verify_commands or {})  # sub-agent verification allow-list
     return node, gateway, engine
+
+
+def want_mlock(mode: str, gguf_path: str) -> bool:
+    """Keep the model (and what it computes) out of swap: on, off, or auto (when the RAM comfortably
+    holds it: twice the model file plus 6 GB for the system)."""
+    if mode in ("on", "off"):
+        return mode == "on"
+    from .hardware import total_ram_gb
+    ram = total_ram_gb()
+    try:
+        size = Path(gguf_path).stat().st_size
+    except OSError:
+        return False
+    return ram is not None and ram * 1024**3 >= 2 * size + 6 * 1024**3
 
 
 def port_free(port: int) -> bool:

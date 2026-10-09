@@ -1075,8 +1075,12 @@ class AgentRun:
             peers = []
         skills = sorted({t for p in peers for t in (p.get("tags") or [])}) or ["(none)"]
         system = PLANNER_SYSTEM.replace("{max}", str(r.budget.max_subtasks)).replace("{skills}", ", ".join(skills))
-        ctx = "".join(f"\n\n## Context item {i}: {c.label or c.file or 'text'}\n{self.contexts[i][:3000]}"
-                      for i, c in enumerate(r.context))
+        # Context minimisation: the planner peer gets each item's label and only a short excerpt (setting
+        # planner_context_chars, 0: labels only); each sub-task's peer gets only the items it uses.
+        sec = getattr(self.gw, "security", None)
+        cut = sec.settings.planner_context_chars if sec is not None else 600
+        ctx = "".join(f"\n\n## Context item {i}: {c.label or c.file or 'text'} ({len(self.contexts[i])} characters)"
+                      + (f"\n{self.contexts[i][:cut]}" if cut else "") for i, c in enumerate(r.context))
         user = f"Task:\n{r.task}{ctx}"[:MAX_CONTENT_CHARS]
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         state = SubState(spec=SubTask(id="plan", prompt="plan", role="orchestrator", skill=r.planner.skill,

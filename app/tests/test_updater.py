@@ -460,7 +460,7 @@ async def test_handshake_push_and_old_nodes(tmp_path):
             s.nodes[n.node_id] = n
         await wait_until(lambda: hints)
         assert hints == [("0.2.0", "welcome")]
-        assert s.tracker.conns[new.node_id].features == frozenset({"update"})
+        assert s.tracker.conns[new.node_id].features == frozenset({"update", "e2e"})  # e2e: essaim/1.3
         assert s.tracker.conns[old.node_id].features == frozenset()
         versions.append("0.3.0")
         await s.tracker.releases.poll_once()  # a new release appears: pushed to the nodes that asked

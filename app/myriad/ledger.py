@@ -31,7 +31,18 @@ CREATE TABLE IF NOT EXISTS model_spot (model TEXT PRIMARY KEY, agree INTEGER NOT
 CREATE TABLE IF NOT EXISTS node_spot (node_id TEXT NOT NULL, model TEXT NOT NULL,
   agree INTEGER NOT NULL DEFAULT 0, disagree INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (node_id, model));
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS bans (node_id TEXT PRIMARY KEY, reason TEXT NOT NULL, source TEXT NOT NULL,
+  ts REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS reports (reporter_id TEXT NOT NULL, node_id TEXT NOT NULL, reason TEXT NOT NULL,
+  job_id TEXT NOT NULL DEFAULT '', ts REAL NOT NULL, weight REAL NOT NULL,
+  PRIMARY KEY (reporter_id, node_id, reason, job_id));
+CREATE INDEX IF NOT EXISTS reports_node_idx ON reports(node_id, ts);
+CREATE TABLE IF NOT EXISTS honeytokens (token TEXT PRIMARY KEY, node_id TEXT NOT NULL, job_id TEXT NOT NULL,
+  kind TEXT NOT NULL, ts REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS sightings (token TEXT NOT NULL, node_id TEXT NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL);
 """
+REPORT_AGE_FULL_S = 7 * 86400  # a reporter's account weighs fully after a week...
+REPORT_SPENT_FULL = 50.0  # ...and once it has spent this many credits on other nodes' work
 
 
 class Ledger:
@@ -174,6 +185,74 @@ class Ledger:
     def record_failure(self, node_id: str) -> None:
         self.db.execute("INSERT OR IGNORE INTO node_stats(node_id) VALUES (?)", (node_id,))
         self.db.execute("UPDATE node_stats SET jobs_failed = jobs_failed + 1 WHERE node_id=?", (node_id,))
+
+    # ---------- essaim/1.3: bans, reports, honeytokens ----------
+    def pubkey(self, node_id: str) -> str | None:
+        r = self.db.execute("SELECT pubkey FROM accounts WHERE node_id=?", (node_id,)).fetchone()
+        return r["pubkey"] if r else None
+
+    def bans(self) -> dict[str, str]:
+        return {r["node_id"]: r["reason"] for r in self.db.execute("SELECT node_id, reason FROM bans")}
+
+    def add_ban(self, node_id: str, reason: str, source: str) -> None:
+        self.db.execute("INSERT OR REPLACE INTO bans(node_id, reason, source, ts) VALUES (?,?,?,?)",
+                        (node_id, reason[:200], source, time.time()))
+
+    def remove_ban(self, node_id: str) -> bool:
+        return self.db.execute("DELETE FROM bans WHERE node_id=?", (node_id,)).rowcount == 1
+
+    def record_honeytokens(self, node_id: str, job_id: str, tokens: dict) -> None:
+        """Remember which peer received which honeytoken (URL: its /h/<token> path)."""
+        now = time.time()
+        for kind, value in tokens.items():
+            key = "/h/" + value.rsplit("/h/", 1)[1] if kind == "url" else value
+            self.db.execute("INSERT OR IGNORE INTO honeytokens(token, node_id, job_id, kind, ts) VALUES (?,?,?,?,?)",
+                            (key, node_id, job_id, kind, now))
+
+    def honeytoken(self, token: str) -> tuple[str, str] | None:
+        r = self.db.execute("SELECT node_id, job_id FROM honeytokens WHERE token=?", (token,)).fetchone()
+        return (r["node_id"], r["job_id"]) if r else None
+
+    def record_sighting(self, token: str, node_id: str, source: str) -> None:
+        self.db.execute("INSERT INTO sightings(token, node_id, source, ts) VALUES (?,?,?,?)",
+                        (token, node_id, source, time.time()))
+
+    def job_between(self, job_id: str, requester_id: str, node_id: str) -> bool:
+        """A settled job that `requester_id` paid `node_id` for."""
+        return self.db.execute("SELECT 1 FROM ledger WHERE job_id=? AND requester_id=? AND node_id=?",
+                               (job_id, requester_id, node_id)).fetchone() is not None
+
+    def reports_since(self, reporter_id: str, since: float) -> int:
+        return self.db.execute("SELECT COUNT(*) AS n FROM reports WHERE reporter_id=? AND ts>=?",
+                               (reporter_id, since)).fetchone()["n"]
+
+    def reporter_weight(self, reporter_id: str, now: float) -> float:
+        """min(1, account age / a week) * min(1, credits spent on others / 50): fresh sybil accounts
+        weigh nothing, and earning credits to spend takes real serving work."""
+        r = self.db.execute("SELECT created_at FROM accounts WHERE node_id=?", (reporter_id,)).fetchone()
+        if r is None:
+            return 0.0
+        spent = self.db.execute("SELECT COALESCE(SUM(amount), 0) AS s FROM ledger WHERE requester_id=? "
+                                "AND node_id != requester_id", (reporter_id,)).fetchone()["s"] / MILLI
+        return max(0.0, min(1.0, (now - r["created_at"]) / REPORT_AGE_FULL_S)) * min(1.0, spent / REPORT_SPENT_FULL)
+
+    def add_report(self, reporter_id: str, node_id: str, reason: str, job_id: str | None, ts: float,
+                   weight: float) -> bool:
+        cur = self.db.execute("INSERT OR IGNORE INTO reports(reporter_id, node_id, reason, job_id, ts, weight) "
+                              "VALUES (?,?,?,?,?,?)", (reporter_id, node_id, reason, job_id or "", ts, weight))
+        return cur.rowcount == 1
+
+    def report_scores(self, since: float, min_reporters: int) -> dict[str, float]:
+        """Per node: the sum over distinct reporters of their largest weight, counted only when at
+        least `min_reporters` reporters with a non-zero weight agree."""
+        out: dict[str, float] = {}
+        rows = self.db.execute("SELECT node_id, reporter_id, MAX(weight) AS w FROM reports WHERE ts>=? AND weight>0 "
+                               "GROUP BY node_id, reporter_id", (since,))
+        counts: dict[str, int] = {}
+        for r in rows:
+            out[r["node_id"]] = out.get(r["node_id"], 0.0) + r["w"]
+            counts[r["node_id"]] = counts.get(r["node_id"], 0) + 1
+        return {n: s for n, s in out.items() if counts[n] >= min_reporters}
 
     def node_stats(self, node_id: str) -> dict:
         r = self.db.execute("SELECT * FROM node_stats WHERE node_id=?", (node_id,)).fetchone()

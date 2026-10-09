@@ -50,6 +50,28 @@ def verify(pubkey_hex: str, kind: str, payload, signature_hex: str) -> bool:
         return False
 
 
+ACCOUNT_AUTH_S = 300  # a signed account query is valid this long (clock skew included)
+
+
+def account_params(identity: "Identity", now: float | None = None) -> dict:
+    """Query parameters proving that the caller owns `identity` (balances and per-account statistics are
+    not public: a peer could otherwise match a debit to the job it served)."""
+    import time
+    ts = int(time.time() if now is None else now)
+    return {"ts": ts, "sig": identity.sign("account", {"node_id": identity.node_id, "ts": ts})}
+
+
+def account_authorized(node_id: str, pubkey: str | None, ts, sig: str | None, now: float | None = None) -> bool:
+    import time
+    now = time.time() if now is None else now
+    try:
+        ts = int(ts)
+    except (TypeError, ValueError):
+        return False
+    return (pubkey is not None and isinstance(sig, str) and abs(now - ts) <= ACCOUNT_AUTH_S
+            and verify(pubkey, "account", {"node_id": node_id, "ts": ts}, sig))
+
+
 class Identity:
     def __init__(self, key: Ed25519PrivateKey):
         self._key = key

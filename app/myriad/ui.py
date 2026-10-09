@@ -21,7 +21,8 @@ from . import __version__
 from .config import APP_NAME, Config, parse_active_hours
 from .crypto import pubkey_matches
 from .fusion import detect_task_hint, extract_answer
-from .gateway import SWARM_MODEL, GatewayError, check_local, completion_body, normalize_messages, read_json
+from .gateway import (SWARM_MODEL, GatewayError, check_local, completion_body, normalize_messages, read_json,
+                      until_disconnect)
 from .protocol import Assigned, JobError, JobFrame, ResultFrame
 from .runtime import NodeRuntime
 
@@ -31,6 +32,7 @@ STATIC = {
     "i18n.js": "text/javascript; charset=utf-8",
     "netviz.js": "text/javascript; charset=utf-8",
     "agents.js": "text/javascript; charset=utf-8",
+    "security.js": "text/javascript; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
     "icon.svg": "image/svg+xml",
     "fonts/inter-latin-wght-normal.woff2": "font/woff2",
@@ -142,7 +144,8 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
         if hit is None or now - hit[0] > 2.5:
             stats = None
             try:
-                r = await gw.http.get("/v1/stats", params={"node_id": n.node_id}, timeout=5)
+                from .crypto import account_params
+                r = await gw.http.get("/v1/stats", params={"node_id": n.node_id, **account_params(n.identity)}, timeout=5)
                 if r.status_code == 200:
                     stats = r.json()
             except (httpx.HTTPError, ValueError):
@@ -176,7 +179,7 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             acc = None if acc is None else bool(acc)
         except GatewayError as e:
             return JSONResponse({"error": e.message}, status_code=e.status)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError, OverflowError) as e:
             return JSONResponse({"error": f"valeur invalide : {e}"}, status_code=400)
         if n is None:
             return not_ready()
@@ -216,8 +219,10 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             raise GatewayError(400, "message vide")
         k = body.get("k")
         hint = body.get("task_hint") or None
+        # confirm: the user agreed, this time, to send the sensitive content found; local: keep it here
         return (normalize_messages([{"role": "user", "content": msg}]),
-                {"max_tokens": int(body.get("max_tokens") or 512), "k": int(k) if k else None, "task_hint": hint})
+                {"max_tokens": int(body.get("max_tokens") or 512), "k": int(k) if k else None, "task_hint": hint,
+                 "confirm": body.get("confirm") is True, "local": body.get("local") is True})
 
     @app.post("/api/chat")
     async def chat(request: Request):
@@ -225,10 +230,12 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             messages, kw = await _chat_args(request)
             if rt.gateway is None:
                 return not_ready()
-            ans = await rt.gateway.ask(messages, **kw)
+            ans = await until_disconnect(request, rt.gateway.ask(messages, **kw))
+            if ans is None:  # the page went away: the request was cancelled
+                return Response(status_code=499)
         except GatewayError as e:
-            return JSONResponse({"error": e.message}, status_code=e.status)
-        except (TypeError, ValueError) as e:
+            return JSONResponse({"error": e.message, "code": e.code, **e.extra}, status_code=e.status)
+        except (TypeError, ValueError, OverflowError) as e:
             return JSONResponse({"error": f"valeur invalide : {e}"}, status_code=400)
         return completion_body(ans, SWARM_MODEL)
 
@@ -240,7 +247,7 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             messages, kw = await _chat_args(request)
         except GatewayError as e:
             return JSONResponse({"error": e.message}, status_code=e.status)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError, OverflowError) as e:
             return JSONResponse({"error": f"valeur invalide : {e}"}, status_code=400)
         n, gw = rt.node, rt.gateway
         if gw is None:
@@ -285,7 +292,9 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
                 if jid not in mine:
                     return
                 if isinstance(frame, ResultFrame):
-                    ok = genuine(jid, res)
+                    # a decrypted end-to-end result is shown only once the gateway has opened and
+                    # verified it (observe_local); a plaintext one is checked here
+                    ok = True if getattr(n, "local_view", False) else genuine(jid, res)
                     if ok is False:  # forged or misattributed: the gateway rejects it too
                         q.put_nowait({"type": "failed", "job_id": jid, "error": "signature invalide", "ms": ms()})
                     elif ok:
@@ -312,7 +321,7 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
                 q.put_nowait({"type": "final", "body": completion_body(ans, SWARM_MODEL), "texts": texts,
                               "ms": ms()})
             except GatewayError as e:
-                q.put_nowait({"type": "error", "message": e.message, "status": e.status})
+                q.put_nowait({"type": "error", "message": e.message, "status": e.status, "code": e.code, **e.extra})
             except Exception as e:  # never leave the stream hanging
                 q.put_nowait({"type": "error", "message": f"{type(e).__name__}: {e}", "status": 500})
             finally:
@@ -468,4 +477,6 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
 
     from .agents import install_ui as install_agents_ui
     install_agents_ui(app, rt)  # Agents view: POST /api/agents/run (events), GET /api/agents/demo
+    from .security import install_ui as install_security_ui
+    install_security_ui(app, rt)  # protection settings: GET /api/security, POST /api/security/*
     return app

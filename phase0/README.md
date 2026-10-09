@@ -117,7 +117,7 @@ uv run python analyze_sot.py --tag sot1 --outline-model Qwen/Qwen3.5-4B --judge 
 uv run python -m unittest discover -s tests   # tests sans modèle
 ```
 
-## E11 : du code choisi en l'exécutant (idée 2 de `docs/07_idees_codex_2.md`)
+## E11 : du code choisi en l'exécutant
 
 La question : sur la génération de code, un essaim de petits modèles de familles différentes, qui choisit un
 programme en l'**exécutant** (et non par un vote sur le texte), rivalise-t-il avec des modèles bien plus gros ?
@@ -134,15 +134,24 @@ rôle de la dispersion des réponses en mathématiques ?
 - **Génération** (`run_code.py`, un modèle à la fois sur le GPU, llama-server comme E4) : une solution gloutonne
   et 4 tirages à température 0,8 (graines fixes) par problème, 1024 jetons au plus, réflexion coupée. Le code
   est extrait du bloc ```` ```python ```` qui définit la fonction, puis nettoyé (exemples d'usage, `print`,
-  `assert` et blocs `__main__` retirés).
+  `assert` et blocs `__main__` retirés ; une initialisation dont la solution se sert, `solver = Solver()`,
+  est gardée).
 - **Exécution** (`exec_code.py`, `essaim/sandbox.py`) : chaque programme distinct tourne dans un processus
-  Python séparé, dans un répertoire temporaire neuf, trois fois : tests visibles, entrées supplémentaires
-  (signatures des sorties), tests cachés. Barrières : crochet d'audit (pas d'écriture hors du répertoire
-  temporaire, pas de processus, pas de socket), limites de temps ; sous Linux aussi les rlimits (mémoire,
-  CPU, taille de fichier), un délai par cas et `unshare --net` quand il marche ; sous Windows un objet job
-  (mémoire, arbre tué d'un coup) mais **pas** de délai par cas ni d'espace réseau : Windows ne sert qu'à l'essai
-  de fumée. La solution de référence passe par le même chemin : les tests visibles qu'elle échoue sont ignorés,
-  et un problème qu'elle échoue est exclu (HumanEval/32 : l'oracle exporté est cassé).
+  Python séparé, dans un répertoire temporaire neuf, trois fois : arguments des tests visibles, entrées
+  supplémentaires (signatures des sorties), entrées des tests cachés. **Le processus du programme ne reçoit
+  que des entrées** et renvoie ses sorties (encodage typé, ou empreinte au-delà d'un million de nœuds) ;
+  les valeurs attendues, `assertion`, `ref_func` et les tests eux-mêmes restent dans un **processus noteur
+  de confiance**, qui rejoue les tests du jeu de données sur ces sorties. Barrières : crochet d'audit (pas
+  d'écriture hors du répertoire temporaire, aucune variante `dir_fd`, pas de descripteur de dossier hors de
+  ce répertoire, lectures limitées à l'installation de Python, jamais `data/`, `results/` ni le cache
+  Hugging Face, pas de processus, pas de socket, pas de `ctypes`), limites de temps, sortie bornée ; sous
+  Linux aussi les rlimits (mémoire, CPU, taille de fichier), un délai par appel, `unshare --net` quand il
+  marche, **Landlock** quand le noyau l'a (les mêmes règles de fichiers, imposées par le noyau) et
+  `PR_SET_PDEATHSIG` (un enfant meurt avec son parent) ; sous Windows un objet job (mémoire, arbre tué d'un
+  coup, aussi à la mort du parent) mais **pas** de délai par appel, d'espace réseau ni de Landlock : Windows ne
+  sert qu'à l'essai de fumée. Sur SIGTERM ou Ctrl-C, `exec_code.py` tue tous les enfants en cours. La solution
+  de référence passe par le même chemin : les tests visibles qu'elle échoue sont ignorés, et un problème
+  qu'elle échoue est exclu (HumanEval/32 : l'oracle exporté est cassé).
 - **Entrées supplémentaires** : les entrées visibles, puis 16 entrées tirées d'elles par une ou deux petites
   mutations qui gardent le type et le domaine apparent (signe des nombres, alphabet des chaînes, jamais de
   séquence vide), graine = identifiant du problème. Une entrée hors des préconditions sépare des programmes
@@ -151,8 +160,10 @@ rôle de la dispersion des réponses en mathématiques ?
   (b) vote sur le texte normalisé ; (c) tests visibles puis poids de la famille ; (d) regroupement fonctionnel
   (CodeT, AlphaCode) des candidats qui passent les tests visibles, plus gros groupe (nombre de programmes, de
   familles, ou somme des poids des familles) ; (e) cascade vers la plus grosse référence quand aucun candidat
-  ne passe les tests visibles ou que le groupe gagnant a moins de m familles. pass@1 sur les tests cachés,
-  IC bootstrap appariés et TOST (±2 points) contre le meilleur modèle et chaque référence (seule, et avec la
+  ne passe les tests visibles ou que le groupe gagnant a moins de m familles. Un accord exige au moins une
+  sortie valide en commun : des programmes qui échouent sur toutes les entrées ne forment jamais un groupe.
+  pass@1 sur les tests cachés, intervalle du score de Tango et tests d'équivalence exacts non conditionnels
+  (TOST, ±2 points, `essaim/stats.py`) contre le meilleur modèle et chaque référence (seule, et avec la
   même sélection sur ses propres solutions), passage à l'échelle k = 1..7 familles, programmes exécutés par
   problème, et le **taux de collision fonctionnelle** c (deux programmes faux de familles différentes, qui
   passent les tests visibles, d'accord sur toutes les entrées), l'analogue du c de la théorie du vote.

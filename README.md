@@ -20,14 +20,16 @@
 **English.** Myriad is a decentralised LLM. Every computer runs one small open model (Qwen, Gemma,
 Granite, SmolLM, Ministral, Phi…) and lends it to the network; in return it can ask the whole network.
 A question goes at once to several peers of *different model families*, and their answers are fused
-by a weighted vote. Four 1.7–3 B models voting reach 89.0 % on GSM8K, against 91.0 % for a single 4 B
-model — on hardware that people already own.
+by a weighted vote. Four 1.7–5 B models voting with weights learnt on a held-out half reach 92.0 % on
+GSM8K (+5.5 points over their best member), against 91.0 % for a single 4 B model — on hardware that
+people already own.
 
 **Français.** Myriad est un LLM décentralisé. Chaque ordinateur fait tourner un petit modèle ouvert et
 le prête au réseau ; en échange, il peut interroger tout le réseau. Une question part en même temps
 vers plusieurs pairs de *familles de modèles différentes*, et leurs réponses sont fusionnées par un vote
-pondéré. Quatre modèles de 1,7 à 3 milliards de paramètres atteignent ensemble 89,0 % sur GSM8K, contre
-91,0 % pour un seul modèle de 4 milliards. La documentation détaillée est en français :
+pondéré. Quatre modèles de 1,7 à 5 milliards de paramètres, avec des poids appris sur une moitié
+réservée, atteignent ensemble 92,0 % sur GSM8K (+5,5 points sur leur meilleur membre), contre 91,0 % pour
+un seul modèle de 4 milliards. La documentation détaillée est en français :
 [`app/README.md`](app/README.md).
 
 ## Features
@@ -116,9 +118,20 @@ your own tracker: `myriad tracker`, see [`app/README.md`](app/README.md#déploye
 
 ![Myriad website: the murmuration gathers into one answer](app/docs/landing-desktop.png)
 
-**Limits today.** The tracker is a central point (rendezvous, relay, ledger); questions are not
-end-to-end encrypted (the tracker and the peers asked can read them); a new key gets starter credits
-(Sybil resistance is future work). See the "Limites" section of `app/README.md`.
+**Privacy, honestly.** Questions are end-to-end encrypted (X25519 + ChaCha20-Poly1305) between your
+machine and the peer that computes each answer, under a one-job pseudonym: the tracker only sees
+metadata (who pays, when, which peer, padded sizes, token counts) and the peer never learns who asks.
+But that peer necessarily reads the question in clear — homomorphic encryption is far too slow for an
+LLM and consumer GPUs have no confidential computing — and nothing technical prevents it from copying
+it. So the app detects secrets and personal data before sending, replaces them with placeholders that
+it restores locally in the answer, can keep a question on your machine, rotates peers, lets you block
+nodes, restrict yourself to trusted nodes or a private swarm, and audits peers with indistinguishable
+encrypted canary jobs carrying honeytokens (a leak is detected after the fact, not prevented).
+Details, threat model and arguments: [`docs/08_securite.md`](docs/08_securite.md).
+
+**Limits today.** The tracker is a central point (rendezvous, relay, ledger): colluding with a peer, it
+would know who asked what; a new key gets starter credits (Sybil resistance is future work). See the
+"Limites" section of `app/README.md`.
 
 ## Licence
 

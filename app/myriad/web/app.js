@@ -263,7 +263,7 @@
     for (const p of rows) {
       const rel = own(nw.reliability, p.model);
       const load = p.max_parallel ? Math.min(1, p.busy / p.max_parallel) : 0;
-      tb.append(el("tr", { class: p.node_id === nw.me ? "me" : "" },
+      tb.append(el("tr", { class: p.node_id === nw.me ? "me" : "", "data-node": p.node_id },
         el("td", { class: "mono", text: p.node_id.slice(0, 10) + (p.node_id === nw.me ? ` (${t("peers.you")})` : "") }),
         el("td", { text: p.model }),
         el("td", {}, el("span", { class: "chip" }, el("i", { style: { background: famColor(p.family) } }), p.family || "?")),
@@ -537,6 +537,7 @@
     peerDot(p);
     const e = p.el;
     e.replaceChildren();
+    if (p.node_id) e.dataset.node = p.node_id;  // security.js adds « Bloquer ce nœud »
     e.style.setProperty("--fam", famColor(p.family));
     e.classList.toggle("chosen", !!p.chosen);
     e.classList.toggle("cancelled", p.status === "annulé" || p.status === "sans réponse");
@@ -695,7 +696,8 @@
     scrollToEnd();
     try {
       const r = await fetch("/api/chat/stream", { method: "POST", headers: { "Content-Type": "application/json", "X-Myriad-Token": TOKEN },
-        body: JSON.stringify({ message: q, k: Number($("k").value) || null, task_hint: S.hint || null }) });
+        body: JSON.stringify({ message: q, k: Number($("k").value) || null, task_hint: S.hint || null,
+                               ...(window.MyriadSecurity ? window.MyriadSecurity.take() : {}) }) });
       if (!r.ok || !r.body) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `HTTP ${r.status}`); }
       const reader = r.body.getReader(), dec = new TextDecoder();
       let buf = "", ended = false;  // ended: a final or error event arrived

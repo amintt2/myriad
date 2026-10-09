@@ -96,6 +96,21 @@ def cmd_node(args) -> int:
     return 0
 
 
+def cmd_bans(args) -> int:
+    """`myriad tracker-bans`: the bans a tracker recorded (honeytoken sightings, admin), and lift one."""
+    from .ledger import Ledger
+
+    led = Ledger(args.db)
+    try:
+        if args.remove:
+            print("levé" if led.remove_ban(args.remove) else "aucun bannissement pour ce nœud")
+        for nid, reason in sorted(led.bans().items()):
+            print(f"{nid}  {reason}")
+    finally:
+        led.close()
+    return 0
+
+
 def cmd_tracker(args) -> int:
     from .tracker import run
 
@@ -108,7 +123,7 @@ def cmd_tracker(args) -> int:
         kw["release_repo"] = None if repo.lower() in ("", "off", "none", "0") else repo
     run(host=args.host, port=args.port, db=args.db, starter_credit=args.starter_credit, spot_rate=args.spot_rate,
         receipt_grace_s=args.receipt_grace, wan=wan_from_rtt(args.wan_rtt_ms, args.wan_sigma),
-        landing=not args.no_landing, **kw)
+        landing=not args.no_landing, public_url=args.public_url, ban_file=args.ban_file, **kw)
     return 0
 
 
@@ -251,7 +266,8 @@ def cmd_status(args) -> int:
     print(f"Identifiant : {ident.node_id}\nModèle : {cfg.model or 'aucun'}\nTraqueur : {cfg.tracker_url}")
     from .node import http_url
     try:
-        r = httpx.get(f"{http_url(cfg.tracker_url)}/v1/balance/{ident.node_id}", timeout=5)
+        from .crypto import account_params
+        r = httpx.get(f"{http_url(cfg.tracker_url)}/v1/balance/{ident.node_id}", params=account_params(ident), timeout=5)
         if r.status_code == 200:
             print(f"Crédits : {r.json()['balance']}")
     except httpx.HTTPError:
@@ -339,7 +355,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--port", type=int, default=8500)
     p.add_argument("--db", default="tracker.sqlite")
     p.add_argument("--starter-credit", type=float, default=1000.0)
-    p.add_argument("--spot-rate", type=float, default=0.05, help="part des jobs dupliqués pour contrôle")
+    p.add_argument("--spot-rate", type=float, default=0.05,
+                   help="taux d'audit : part des jobs suivis d'un job canari (chiffrés) ou dupliqués (en clair)")
+    p.add_argument("--public-url", default=None,
+                   help="URL publique du traqueur (adresses et liens des jetons-pièges des canaris)")
+    p.add_argument("--ban-file", default=None,
+                   help="fichier JSON des nœuds bannis par l'administrateur (relu quand il change)")
     p.add_argument("--receipt-grace", type=float, default=60.0, help="délai avant règlement sans reçu (s)")
     p.add_argument("--wan-rtt-ms", type=float, default=0.0,
                    help="EXPÉRIENCES SEULEMENT : retard réseau simulé, aller-retour médian client-traqueur (ms) ; 0 = désactivé")
@@ -349,6 +370,11 @@ def main(argv: list[str] | None = None) -> int:
                    help="dépôt GitHub dont les versions sont annoncées aux nœuds (défaut : MYRIAD_RELEASE_REPO, "
                         "sinon amintt2/myriad ; « off » : aucun)")
     p.set_defaults(func=cmd_tracker)
+
+    p = sub.add_parser("tracker-bans", help="bannissements enregistrés par un traqueur (jetons-pièges) ; en lever un")
+    p.add_argument("--db", default="tracker.sqlite")
+    p.add_argument("--remove", metavar="NODE_ID", help="lever le bannissement de ce nœud")
+    p.set_defaults(func=cmd_bans)
 
     p = sub.add_parser("chat", help="poser une question à l'essaim par la passerelle locale")
     p.add_argument("question")

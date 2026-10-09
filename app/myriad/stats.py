@@ -76,7 +76,12 @@ def install(app: FastAPI, tracker) -> None:
         return state["peers"][1]
 
     @app.get("/v1/stats")
-    async def stats(node_id: str | None = None):
+    async def stats(node_id: str | None = None, ts: int | None = None, sig: str | None = None):
+        """Network figures; the per-account part only for the account's owner (signed query: a peer
+        could otherwise link the debit of a job it served to the requester)."""
+        from .crypto import account_authorized
+        if node_id and not account_authorized(node_id[:128], tracker.ledger.pubkey(node_id[:128]), ts, sig):
+            node_id = None
         now = time.monotonic()
         hit = state["net"]
         if hit is None or now - hit[0] > CACHE_S:

@@ -253,7 +253,7 @@ async def test_gateway_uses_tracker_selection_not_directory(tmp_path):
             assert sel[0]["node_id"] not in {p["node_id"] for p in ex} and len(ex) == 3
             assert (await http.get("/v1/select", params={"exclude": "zz"})).status_code == 422
             h = (await http.get("/v1/health")).json()
-            assert h["protocol"] == "essaim/1" and h["protocol_version"] == "essaim/1.2" and "route" in h["features"]
+            assert h["protocol"] == "essaim/1" and h["protocol_version"] == "essaim/1.3" and "route" in h["features"]
         # An essaim/1-style gateway (directory) still works against the new tracker.
         legacy = Gateway(gw.node, routing="directory", peers_ttl_s=0.0)
         ans = await legacy.ask([MATH], k=4)
@@ -432,6 +432,9 @@ class RefusingNode(NodeClient):
     async def _on_job(self, f):
         await self._reject(f.job, "busy")
 
+    async def _on_sealed_job(self, f):  # essaim/1.3: the same refusal for an encrypted job
+        await self._reject(f.job, "busy")
+
 
 async def test_refused_peer_is_replaced_in_an_unused_family(tmp_path):
     s = await start_swarm(tmp_path)
@@ -519,6 +522,15 @@ class FakeGatewayNode:
         self.waiters[jid].put_nowait(frame)
 
 
+def legacy_gateway(node) -> Gateway:
+    """A gateway facing an essaim/1.1 tracker (features "route" only), plaintext allowed by the user:
+    the routed plaintext path these scripted tests exercise."""
+    from myriad.security import Security
+    gw = Gateway(node, routing="tracker", security=Security({"require_e2e": False}))
+    gw._feat = (node.session, frozenset({"route"}))
+    return gw
+
+
 def peer(fam: str, p: float):
     ident = Identity.generate()
     return ident, PeerCard(node_id=ident.node_id, pubkey=ident.pubkey, model=MODELS[fam], family=fam, reliability=p)
@@ -533,7 +545,7 @@ def result(ident: Identity, card: PeerCard, job_id: str, answer: str) -> ResultF
 async def test_certificate_counts_pending_replacements(replacement_p, stops):
     """No early stop while a replacement's weight is unknown; once known, it counts as pending."""
     node = FakeGatewayNode()
-    gw = Gateway(node, routing="tracker")
+    gw = legacy_gateway(node)
     try:
         task = asyncio.create_task(gw.ask([MATH], k=3, timeout_s=10))
         await wait_until(lambda: len(node.routed) == 3)
@@ -571,7 +583,7 @@ async def test_certificate_counts_pending_replacements(replacement_p, stops):
 
 async def test_no_replacement_when_time_is_short_or_error_is_final():
     node = FakeGatewayNode()
-    gw = Gateway(node, routing="tracker")
+    gw = legacy_gateway(node)
     try:
         task = asyncio.create_task(gw.ask([MATH], k=2, timeout_s=10))
         await wait_until(lambda: len(node.routed) == 2)

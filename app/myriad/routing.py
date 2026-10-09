@@ -41,6 +41,12 @@ class RouteSpec:
         return {"name": self.name, "kind": self.kind, "value": self.value, "fallback": fallback}
 
 
+def peer_family(p: dict) -> str:
+    """The canonical family of a peer: read from its model id (priors.family_of), never from what the
+    node declares, so that the directory, the tracker's selection and the gateways agree (audit net #6)."""
+    return family_of(p.get("model")) if p.get("model") else str(p.get("family") or "")
+
+
 def normalize_tag(raw) -> str | None:
     """'  Python ' -> 'python'; None for anything that is not a valid tag."""
     if not isinstance(raw, str):
@@ -88,7 +94,7 @@ def known_families(peers: list[dict] | None = None) -> set[str]:
     fams = {fam for _, fam in _FAMILY_KEYS}
     fams |= {m.get("family") for m in load().get("models", {}).values() if m.get("family")}
     for p in peers or []:
-        f = p.get("family") or (family_of(p.get("model")) if p.get("model") else None)
+        f = peer_family(p) or None
         if f:
             fams.add(str(f).lower())
     return fams
@@ -138,7 +144,7 @@ def live_routes(peers: list[dict]) -> dict[str, dict]:
         if not p.get("model"):
             continue
         add("myriad", "swarm", None, p)
-        fam = str(p.get("family") or family_of(p["model"])).lower()
+        fam = peer_family(p).lower()
         add(f"myriad:{fam}", "family", fam, p)
         for t in normalize_tags(p.get("tags") or []):
             add(f"myriad:tag={t}" if t in families else f"myriad:{t}", "tag", t, p)

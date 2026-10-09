@@ -2,21 +2,25 @@
 
 **Question.** Decentralised LLM inference usually splits one large model across volunteer machines, so
 the wide-area network sits inside every decoding step and caps throughput at a few tokens per second.
-We study the opposite design: every consumer PC runs a *whole* small open model (≤ 4 B parameters) of a
+We study the opposite design: every consumer PC runs a *whole* small open model (1.5–8 B parameters in total
+in our experiments; Gemma 4 E2B and E4B are named after their 2 B and 4 B *effective* sizes) of a
 *different* family (Qwen, Gemma, Granite, SmolLM, Ministral, Phi…), a request costs **one network round
 trip**, and the answers are fused locally. Can such a swarm match a single model several times larger,
 and with which guarantees?
 
 **Findings so far** (test halves, paired bootstrap 95 % intervals; the paper is in [`paper/`](paper/)):
 
-- Voting pays, writing together does not. On GSM8K, four 1.7–3 B models of four families reach 89.0 %
+- Voting pays, writing together does not. On GSM8K, four 1.7–5 B models of four families reach 89.0 %
   with one round trip (best member 86.5 %, Qwen3-4B alone 91.0 %, not significantly different); writing
   the answer together token block by token block needs 20–33 round trips for no gain.
 - Wrong answers of different families *disperse*, so two agreeing peers almost always beat two
-  disagreeing ones. This is why the Bayes-optimal K-class weight logit(p) − ln(c) works where binary
-  log-odds over-trust the best model.
+  disagreeing ones. This is what the Bayes-optimal K-class weight logit(p) − ln(c) encodes, with p a peer's
+  accuracy among the answers it gives and c the rate at which two wrong answers actually given coincide
+  (0.22 on GSM8K; abstentions cast no vote). Replayed on E2 with weights fitted on dev, weighted votes reach
+  92.0 % (+5.5 points over the best member, [+2.0, +9.0]); binary log-odds weights happen to do as well.
 - An exact **stop certificate** returns the full vote's decision as soon as the missing peers can no
-  longer change it: the requester waits for 2.5 of 4 peers on average, with identical decisions.
+  longer change it, with identical decisions; on E2 the requester waits for 3.3 of 4 peers on average
+  (3.26 with the weights, 3.31 unweighted).
 - A minority appeal judged by peers of the same size does not pay (E5); the gain identity B·r − C·h
   explains why.
 - One tracker core sustains ≈ 74–96 requests/s from 64 to 4,096 simulated nodes (E7, RTT 100 ms).

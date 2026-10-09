@@ -220,7 +220,12 @@ async def test_openai_names_and_models_listing(tswarm):
 
 async def test_gateway_uses_directory_for_tags_with_an_older_tracker(tswarm, monkeypatch):
     monkeypatch.setattr(tracker_mod, "FEATURES", ("route", "ping", "select"))
-    gw, client = await tswarm.add_gateway()
+    from myriad.security import Security
+    strict, _ = await tswarm.add_gateway("strict")
+    with pytest.raises(GatewayError) as e:  # an essaim/1.1 tracker cannot relay encrypted jobs: nothing sent
+        await strict.ask([TEXT], tag="typescript")
+    assert e.value.code == "e2e_unavailable"
+    gw, client = await tswarm.add_gateway(security=Security({"require_e2e": False}))  # plaintext allowed
     ans = await gw.ask([TEXT], tag="typescript")
     assert ans.meta["routing"] == "directory" and ans.meta["peers"][0]["family"] == "smollm"
     ans = await gw.ask([MATH], k=2)

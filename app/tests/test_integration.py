@@ -81,7 +81,9 @@ async def test_free_text_medoid_and_streaming(swarm):
     assert meta["decision"] == "medoid" and meta["task_hint"] == "free" and not meta["early_stop"]
     assert meta["peers_answered"] == 3  # granite fails, the others all answered
     failed = [p for p in meta["peers"] if p["status"] == "erreur"]
-    assert [p["model"] for p in failed] == [MODELS["granite"]] and "panne simulée" in failed[0]["error"]
+    # essaim/1.3: the job was encrypted, so the peer reports a code, never the engine's message
+    assert [p["model"] for p in failed] == [MODELS["granite"]] and failed[0]["error"] == "engine_error"
+    assert all(p["e2e"] for p in meta["peers"]) and meta["privacy"]["e2e"]
     assert "Paris" in text
 
 
@@ -156,10 +158,16 @@ async def test_invalid_job_and_receipt_signatures_are_rejected(swarm):
 class ForgingNode(NodeClient):
     """A node that signs its results with a key that is not its own."""
 
-    async def _execute(self, job):
-        res = JobResult(job_id=job.job_id, node_id=self.node_id, model=self.model, text="The answer is 1.",
-                        completion_tokens=2000).signed_by(Identity.generate())
-        await self.send(ResultFrame(result=res))
+    async def _execute(self, job, session=None):
+        if session is not None:  # an encrypted job: a well-formed envelope, signed by another key
+            from myriad.e2e import seal_result
+            from myriad.protocol import SealedResultFrame
+            sr = seal_result(self.identity, session, self.model, "The answer is 1.", "stop", 2000, None, 1.0)
+            await self.send(SealedResultFrame(result=sr.signed_by(Identity.generate())))
+        else:
+            res = JobResult(job_id=job.job_id, node_id=self.node_id, model=self.model, text="The answer is 1.",
+                            completion_tokens=2000).signed_by(Identity.generate())
+            await self.send(ResultFrame(result=res))
         self.running.pop(job.job_id, None)
 
 
@@ -177,11 +185,26 @@ async def test_forged_result_is_rejected(tmp_path):
 
 
 async def test_spot_check_duplicates_greedy_jobs(tmp_path):
+    """The former spot checks, kept for PLAINTEXT jobs of OLDER requesters only (a requester announcing
+    "e2e" applies a peer policy: its question is never duplicated to a peer it did not check). Encrypted
+    jobs are audited by canaries (test_security.py)."""
+    import httpx
+
+    from myriad.gateway import Gateway
+    from myriad.security import Security
+
+    class OlderClient(NodeClient):
+        FEATURES = ("update",)
+
     s = await start_swarm(tmp_path, spot_rate=1.0, seed=1)
     try:
-        a = await s.add_node("a", FakeEngine(MODELS["qwen"], "The answer is 42.", tokens=4), MODELS["qwen"])
-        b = await s.add_node("b", FakeEngine(MODELS["qwen"], "The answer is 42.", tokens=4), MODELS["qwen"])
-        gw, client = await s.add_gateway()
+        a = await s.add_node("a", FakeEngine(MODELS["qwen"], "The answer is 42.", tokens=4), MODELS["qwen"], e2e=False)
+        b = await s.add_node("b", FakeEngine(MODELS["qwen"], "The answer is 42.", tokens=4), MODELS["qwen"], e2e=False)
+        old = await s.add_node("client", cls=OlderClient, security=Security({"require_e2e": False}))
+        gw = Gateway(old, peers_ttl_s=0.0)
+        client = httpx.AsyncClient(transport=httpx.ASGITransport(app=gw.app), base_url="http://127.0.0.1:8400",
+                                   timeout=30)
+        s.gateways.append((gw, client))
         r = await client.post("/v1/chat/completions",
                               json={"model": MODELS["qwen"], "messages": [MATH], "temperature": 0})
         assert r.status_code == 200 and r.json()["myriad"]["decision"] == "single"

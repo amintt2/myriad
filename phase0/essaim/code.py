@@ -12,12 +12,14 @@ import ast
 import hashlib
 import random
 import re
+import symtable
 import textwrap
 from pathlib import Path
 
 PROMPT_VERSION = "code-v1"
-EXTRACT_VERSION = "extract-v1"
-TESTS_VERSION = "tests-v3"  # visible-test parsing, hidden-test parsing, extra-input generation
+EXTRACT_VERSION = "extract-v2"  # v2: initialisations the solution uses (solver = Solver()) are kept
+# v4: visible tests replayed by the trusted grader on the candidate's outputs, typed output signatures
+TESTS_VERSION = "tests-v4"  # visible-test parsing, hidden-test parsing, extra-input generation, signatures
 BENCHES = ("humanevalplus", "mbppplus")
 RESULTS = Path(__file__).resolve().parent.parent / "results"
 MAX_TOKENS = 1024
@@ -117,7 +119,10 @@ def extract_code(text: str, entry: str) -> tuple[str, str]:
 def sanitize(code: str, entry: str) -> str:
     """Keep what defines the solution: imports, functions, classes, constant assignments, try-imports and
     sys.setrecursionlimit; drop top-level tests and example usage (prints, asserts, loops, __main__ blocks,
-    assignments that call a function of the code). Unparseable code is returned unchanged (it will fail)."""
+    assignments that call a function of the code). An assignment that calls a function of the code is kept
+    when what it assigns may be read by the code that is kept (`solver = Solver()` read by the entry point:
+    an initialisation, not an example), inside `try: ... except Exception: pass` so that an example kept by
+    a name collision cannot break the program. Unparseable code is returned unchanged (it will fail)."""
     code = textwrap.dedent(code).strip("\n")
     try:
         tree = ast.parse(code)
@@ -129,12 +134,127 @@ def sanitize(code: str, entry: str) -> str:
         return any(isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id in defined
                    for c in ast.walk(node))
 
-    keep = []
-    for n in tree.body:
+    def assigned(node) -> set[str]:
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        return {x.id for t in targets for x in ast.walk(t) if isinstance(x, ast.Name)}
+
+    def class_reads(cls: ast.ClassDef) -> set[str]:
+        """Names a class may read from the globals, outside its methods' bodies (left to the symbol table):
+        statement by statement, a name counts unless an earlier UNCONDITIONAL statement of the class body
+        bound it (assignment, def, class, import; `del` unbinds); conditional bindings do not count. Inside a
+        comprehension (but its first iterable) and a lambda body, class names are invisible: only their own
+        targets and parameters are local. Decorators, bases, default values and annotations are read where
+        they appear. When in doubt a name counts: kept initialisations are guarded (see below)."""
+        out = set()
+
+        def targets(t) -> set[str]:
+            return {x.id for x in ast.walk(t) if isinstance(x, ast.Name)}
+
+        def same_scope(stmt):
+            """The nodes of a class-body statement that run in the class scope (not inside a def, a lambda, a
+            nested class or a comprehension)."""
+            todo = [stmt]
+            while todo:
+                n = todo.pop()
+                yield n
+                if n is not stmt and isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda,
+                                                    ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)):
+                    continue
+                if n is stmt and isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    continue
+                todo.extend(ast.iter_child_nodes(n))
+
+        def loads(n, bound: set[str]):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):  # body: the symbol table
+                a = n.args
+                args = a.posonlyargs + a.args + a.kwonlyargs + [x for x in (a.vararg, a.kwarg) if x]
+                for x in n.decorator_list + a.defaults + [d for d in a.kw_defaults if d] + \
+                        [x.annotation for x in args if x.annotation] + ([n.returns] if n.returns else []):
+                    loads(x, bound)
+                return
+            if isinstance(n, ast.ClassDef):  # a nested class: its own body is read on its own
+                for x in n.decorator_list + n.bases + [k.value for k in n.keywords]:
+                    loads(x, bound)
+                out.update(class_reads(n))
+                return
+            if isinstance(n, ast.Lambda):
+                for d in n.args.defaults + [d for d in n.args.kw_defaults if d]:
+                    loads(d, bound)
+                a = n.args
+                loads(n.body, {x.arg for x in a.posonlyargs + a.args + a.kwonlyargs + [x for x in (a.vararg, a.kwarg) if x]})
+                return
+            if isinstance(n, (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)):
+                gens = n.generators
+                loads(gens[0].iter, bound)  # evaluated in the class scope
+                inner = set().union(*(targets(g.target) for g in gens))
+                for k, g in enumerate(gens):
+                    if k:
+                        loads(g.iter, inner)
+                    for c in g.ifs:
+                        loads(c, inner)
+                for e in ([n.key, n.value] if isinstance(n, ast.DictComp) else [n.elt]):
+                    loads(e, inner)
+                return
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id not in bound:
+                out.add(n.id)
+            if isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name) and n.target.id not in bound:
+                out.add(n.target.id)  # x += 1 reads x
+            for c in ast.iter_child_nodes(n):
+                loads(c, bound)
+
+        bound: set[str] = set()
+        for stmt in cls.body:
+            loads(stmt, bound)
+            if isinstance(stmt, ast.Assign):
+                for t in stmt.targets:
+                    bound |= targets(t)
+            elif isinstance(stmt, (ast.AnnAssign, ast.AugAssign)) and (getattr(stmt, "value", None) is not None):
+                bound |= targets(stmt.target)
+            elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                bound.add(stmt.name)
+            elif isinstance(stmt, (ast.Import, ast.ImportFrom)):
+                bound |= {(al.asname or al.name).split(".")[0] for al in stmt.names}
+            # whatever a statement may unbind in the class scope, at any depth of its blocks (`if ...: del x`,
+            # `except E as x`), is no longer bound; deletions inside a method or a nested scope do not count
+            for x in same_scope(stmt):
+                if isinstance(x, ast.Delete):
+                    for t in x.targets:
+                        bound -= targets(t)
+                elif isinstance(x, ast.ExceptHandler) and x.name:
+                    bound.discard(x.name)
+        return out
+
+    def used(nodes) -> set[str]:
+        """Module-level names the nodes may read: references at top level, the GLOBAL references of their
+        functions (a local variable of a function that happens to share a name is not one), and every name
+        their classes read outside method bodies."""
+        out = set()
+
+        def scan(t):
+            for s in t.get_symbols():
+                if s.is_referenced() and (t.get_type() == "module" or s.is_global()):
+                    out.add(s.get_name())
+            for c in t.get_children():
+                scan(c)
+
+        for node in nodes:
+            try:
+                scan(symtable.symtable(ast.unparse(node), "<sanitize>", "exec"))
+            except SyntaxError:  # cannot happen for parsed code; conservative fallback
+                out |= {x.id for x in ast.walk(node) if isinstance(x, ast.Name) and isinstance(x.ctx, ast.Load)}
+            for c in ast.walk(node):
+                if isinstance(c, ast.ClassDef):
+                    out |= class_reads(c)
+        return out
+
+    keep, maybe = set(), []
+    for i, n in enumerate(tree.body):
         if isinstance(n, (ast.Import, ast.ImportFrom, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             ok = True
         elif isinstance(n, (ast.Assign, ast.AnnAssign)):
             ok = not calls_defined(n)
+            if not ok:
+                maybe.append(i)
         elif isinstance(n, ast.Try):
             ok = all(isinstance(s, (ast.Import, ast.ImportFrom, ast.Pass)) for s in n.body)
         elif isinstance(n, ast.Expr) and isinstance(n.value, ast.Call):
@@ -142,12 +262,28 @@ def sanitize(code: str, entry: str) -> str:
         else:
             ok = False
         if ok:
-            keep.append(n)
+            keep.add(i)
+    changed = True
+    while changed:  # an initialisation can itself be needed by another one
+        need = used(tree.body[i] for i in keep)
+        changed = False
+        for i in maybe:
+            if i not in keep and assigned(tree.body[i]) & need:
+                keep.add(i)
+                changed = True
     lines = code.splitlines()
     out = []
-    for n in keep:
+    for i in sorted(keep):
+        n = tree.body[i]
         start = min([n.lineno] + [d.lineno for d in getattr(n, "decorator_list", [])])
-        out.append("\n".join(lines[start - 1: n.end_lineno]))
+        src = "\n".join(lines[start - 1: n.end_lineno])
+        if i in maybe:  # a kept call of the code's own functions: an initialisation, or an example whose name
+            # collides with one the code may read; guarded, so that a failing example never breaks the load
+            # (built from the AST: re-indenting the text would change multi-line string literals)
+            guard = ast.Try(body=[n], handlers=[ast.ExceptHandler(type=ast.Name("Exception", ast.Load()), name=None,
+                                                                  body=[ast.Pass()])], orelse=[], finalbody=[])
+            src = ast.unparse(ast.fix_missing_locations(guard))
+        out.append(src)
     return "\n\n".join(out)
 
 

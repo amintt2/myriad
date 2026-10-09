@@ -1,12 +1,19 @@
 """Answer extraction and grading for generated (not scored) answers: GSM8K, MATH-500, multiple choice.
 
 Votes compare the NORMALISED answers, so two peers agree when their normalised answers are equal.
-MATH normalisation follows Hendrycks et al.'s `strip_string` (the usual MATH grader), plus a numeric
-comparison when both sides parse as numbers.
+MATH normalisation follows Hendrycks et al.'s `strip_string` (the usual MATH grader), plus one canonical
+spelling for every exact rational number (integers, decimals with or without exponent, a/b, \\frac{a}{b}):
+an integer is written in full ("5.00", "1e3" -> "5", "1000"), any other rational as a reduced fraction
+("0.25", "\\frac{2}{8}", "1/4" -> "\\frac{1}{4}"), so that equal numbers are equal strings, for grading
+and for votes alike. Exact arithmetic (fractions.Fraction), no float: 12345678901234567 stays itself.
+Values out of range (more than 400 digits or a decimal exponent above 400) and non-finite spellings
+("inf", "nan") are left as text and never raise.
 """
 from __future__ import annotations
 
 import re
+from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 
 from .common import _END_RE, FINAL_RE, visible_answer_text
 
@@ -52,6 +59,41 @@ def _fix_sqrt(s: str) -> str:
     return re.sub(r"\\sqrt(\w)", r"\\sqrt{\1}", s)
 
 
+_DECIMAL = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+_FRAC_NUM = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)"
+_FRAC = re.compile(rf"([+-]?)\\frac\{{({_FRAC_NUM})\}}\{{({_FRAC_NUM})\}}")
+MAX_DIGITS = 400  # beyond, a "number" is left as text (bounded work, no overflow)
+
+
+def _decimal(s: str) -> Fraction | None:
+    if not _DECIMAL.fullmatch(s) or len(s) > MAX_DIGITS:
+        return None
+    try:
+        d = Decimal(s)
+    except InvalidOperation:
+        return None
+    if not d.is_finite() or abs(d.as_tuple().exponent) > MAX_DIGITS or d.adjusted() > MAX_DIGITS:
+        return None
+    return Fraction(d)
+
+
+def exact_number(s: str) -> Fraction | None:
+    """The exact rational value of a plain number spelling (see the module docstring), else None."""
+    m = _FRAC.fullmatch(s)
+    if m:
+        a, b = _decimal(m.group(2)), _decimal(m.group(3))
+        if a is None or b is None or b == 0:
+            return None
+        return -(a / b) if m.group(1) == "-" else a / b
+    return _decimal(s)
+
+
+def canonical_number(x: Fraction) -> str:
+    if x.denominator == 1:
+        return str(x.numerator)
+    return ("-" if x < 0 else "") + f"\\frac{{{abs(x.numerator)}}}{{{x.denominator}}}"
+
+
 def norm_math(s: str | None) -> str | None:
     """Hendrycks' strip_string, slightly hardened; None stays None."""
     if s is None:
@@ -79,14 +121,10 @@ def norm_math(s: str | None) -> str | None:
     s = s.replace(",\\!", "").replace("{,}", "")
     if re.fullmatch(r"-?\d{1,3}(,\d{3})+(\.\d+)?", s):  # thousands separators
         s = s.replace(",", "")
-    try:  # one canonical spelling for plain numbers: 5, 5.0, 5.00 -> 5
-        x = float(s)
-        s = str(int(x)) if x == int(x) and abs(x) < 1e15 else repr(x)
-    except ValueError:
-        pass
-    if s == "0.5":  # Hendrycks' special case, after canonicalisation so that 0.50 and .5 map here too
-        s = "\\frac{1}{2}"
-    return s
+    # One canonical spelling for exact numbers (5, 5.0, 5.00 -> 5; 0.25, .25, 1/4, \frac{2}{8} -> \frac{1}{4});
+    # it subsumes Hendrycks' special case 0.5 -> \frac{1}{2}.
+    x = exact_number(s)
+    return canonical_number(x) if x is not None else s
 
 
 # MATH answers without \boxed{} (some families ignore the instruction): when True, a COMPLETE answer
