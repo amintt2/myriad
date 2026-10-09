@@ -381,8 +381,8 @@ génération de plusieurs secondes, il est négligeable.
   `max_inflight` plus bas pour les comptes neufs) est laissé au propriétaire.
 - Les reçus (`agreed`) et les signalements restent manipulables par des comptes complices qui se paient
   entre eux : la fiabilité publiée mesure une satisfaction déclarée, pas un calcul vérifié.
-- L'article (`paper/main.tex`) décrit encore les contrôles par duplication de la v1 ; le chemin chiffré
-  essaim/1.3 les remplace par des canaris.
+- L'article (`paper/main.tex`) décrit les canaris d'essaim/1.3 (section *System*) et leur taux d'audit
+  effectif (corollaire *Canary audits*), avec la limite de contenu reconnaissable.
 - Le cache anti-rejeu est en mémoire (fenêtre de rejeu bornée par l'échéance après un redémarrage).
 - Python ne garantit pas l'effacement de la mémoire ; `mlock` dépend des droits du système.
 - Suites possibles : relais à plusieurs sauts (le traqueur ne verrait plus le couple payeur–pair),

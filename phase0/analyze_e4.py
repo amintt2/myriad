@@ -115,6 +115,23 @@ def valid_accuracy(rows: dict, ids: list[str]) -> float:
     return sum(rows[i]["answer"] == rows[i]["gold"] for i in given) / len(given) if given else 0.0
 
 
+def accuracy(rows: dict, ids: list[str]) -> float:
+    """Plain accuracy (an abstention counts as wrong)."""
+    return sum(rows[i]["answer"] == rows[i]["gold"] for i in ids) / len(ids)
+
+
+def fit_weights(dev_by_family: dict[str, dict], ids_dev: list[str]):
+    """K-class weights fitted on dev: (p_dev, p_vote, c, w), all keyed by family. p_dev is the plain dev
+    accuracy (used to rank families), p_vote the accuracy among the answers given (the weights' p_i, clipped
+    to [0.02, 0.98]), c the collision rate of wrong answers, w_i = max(0, logit(p_i) - log c)."""
+    p_dev = {f: accuracy(r, ids_dev) for f, r in dev_by_family.items()}
+    p_vote = {f: valid_accuracy(r, ids_dev) for f, r in dev_by_family.items()}
+    c = collision(dev_by_family, ids_dev)
+    clip = lambda p: min(max(p, .02), .98)
+    w = {f: max(0.0, math.log(clip(p) / (1 - clip(p))) - math.log(c)) for f, p in p_vote.items()}
+    return p_dev, p_vote, c, w
+
+
 def decide(answers: list[tuple[str | None, float, float | None]]) -> str | None:
     """answers: (answer, weight, mean_logp); weighted plurality, ties broken by mean log-probability."""
     score: dict[str, float] = defaultdict(float)
@@ -189,12 +206,8 @@ def main():
                 continue
             if sorted(dev[m]) != ids_dev or sorted(test[m]) != ids:
                 raise SystemExit(f"{m} {bench} : pas les mêmes questions")
-        acc = lambda rows, qs: sum(rows[i]["answer"] == rows[i]["gold"] for i in qs) / len(qs)
-        p_dev = {f: acc(dev[FAMILIES[f]], ids_dev) for f in fams}  # accuracy (abstentions count as wrong)
-        p_vote = {f: valid_accuracy(dev[FAMILIES[f]], ids_dev) for f in fams}  # among the answers given
-        c = collision({f: dev[FAMILIES[f]] for f in fams}, ids_dev)
-        w = {f: max(0.0, math.log(min(max(p_vote[f], .02), .98) / (1 - min(max(p_vote[f], .02), .98))) - math.log(c))
-             for f in fams}
+        acc = accuracy
+        p_dev, p_vote, c, w = fit_weights({f: dev[FAMILIES[f]] for f in fams}, ids_dev)
 
         def swarm(subset: list[str], rule: str, i: str) -> str | None:
             return decide([(test[FAMILIES[f]][i]["answer"], 1.0 if rule == "vote" else w[f], test[FAMILIES[f]][i]["mean_logp"])

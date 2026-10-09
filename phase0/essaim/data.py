@@ -26,7 +26,8 @@ SPLITS = ("dev", "test")
 
 REPOS = {"arc": "allenai/ai2_arc", "mmlupro": "TIGER-Lab/MMLU-Pro", "gsm8k": "openai/gsm8k",
          "math500": "HuggingFaceH4/MATH-500", "mtbench": "HuggingFaceH4/mt_bench_prompts",
-         "humanevalplus": "evalplus/humanevalplus", "mbppplus": "evalplus/mbppplus"}
+         "humanevalplus": "evalplus/humanevalplus", "mbppplus": "evalplus/mbppplus",
+         "gpqa": "Idavidrein/gpqa", "scicode": "SciCode1/SciCode"}  # gpqa, scicode: E12 (essaim/gpqa.py, scicode.py)
 # Dataset commits pinned for the whole phase 0, on every machine.
 REVISIONS = {"arc": "210d026faf9955653af8916fad021475a3f00453",
              "mmlupro": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
@@ -34,13 +35,17 @@ REVISIONS = {"arc": "210d026faf9955653af8916fad021475a3f00453",
              "math500": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
              "mtbench": "e3a795c5e9a82ee40611c416b8a7786c73198991",
              "humanevalplus": "d32357cf319e50e9c8d8dab5ea876c72b0fd321b",
-             "mbppplus": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077"}
+             "mbppplus": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077",
+             "gpqa": "83022cefff930aea54f654c0b282e74b9eeda5c6",
+             "scicode": "4510f6a6aa27c43fad7b43da2c59602a86e88480"}
 # Licences read from the dataset cards at the pinned commits (E11 records them in the data identity).
 # LiveCodeBench (livecodebench/code_generation_lite) is not used: its card says only "cc" (no variant), its
 # problems are copied from LeetCode, AtCoder and Codeforces, whose terms are not permissive, and it is loaded
 # through a dataset script (remote code).
 LICENSES = {"humanevalplus": "apache-2.0 (EvalPlus; HumanEval itself: MIT)",
-            "mbppplus": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)"}
+            "mbppplus": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)",
+            "gpqa": "cc-by-4.0 (gated: the questions must not be revealed online in plain text or images)",
+            "scicode": "apache-2.0"}
 _PREFIX = {"arc": "ARC-Challenge/test", "mmlupro": "data/test", "gsm8k": "main/test",
            "humanevalplus": "data/test", "mbppplus": "data/test"}
 

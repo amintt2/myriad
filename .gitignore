@@ -17,3 +17,5 @@ app/build/
 phase0/results/code_*_smoke_*
 phase0/results/codeexec_*_smoke*
 phase0/results/e11_*_smoke*
+phase0/results/aa_*_smoke*
+phase0/results/sciexec_*_smoke*

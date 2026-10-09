@@ -33,10 +33,18 @@ and a request costs a single network round trip, after which the answers are fus
 guarantees for this protocol: a stop certificate that returns the fused decision as soon as the missing
 peers can no longer change it, which we prove exact and optimal; the Bayes-optimal $K$-class vote weights;
 an identity for the gain of a minority appeal; and incentive conditions for a credit system, including an
-impossibility result for naive duplicate-and-compare audits. Empirically, on GSM8K a swarm of four
+impossibility result for naive duplicate-and-compare audits and the indistinguishability condition under
+which encrypted canary jobs restore detection. Empirically, on GSM8K a swarm of four
 \eTwoSwarmSize{}B models from four families reaches \eTwoVote\% with one round trip, against \eTwoBest\% for its
 best member and \eTwoRef\% for a \eTwoRefSize{}B model, while collaborative token-level writing costs
-\eTwoCroiseTrips{} round trips for no gain. We show why voting works where moment-based theory predicts it
+\eTwoCroiseTrips{} round trips for no gain. On GSM8K, MATH-500, ARC-Challenge and MMLU-Pro, a weighted vote of
+seven \eFourSwarmSize{}B models from seven families averages \eFourMeanSwarm\%, against \eFourMeanQwenNine\% for
+a 9B model, \eFourMeanQwenTwentySeven\% for a 27B model and \eFourMeanGemmaTwelve\% for a 12B model. Over the
+pooled test questions it is non-inferior to the 9B and 27B models within two points but inferior to the 12B
+one; the seven members hold as many parameters as the 27B model, at most \eFourLargestPeerParams{}B per
+device. In an exploratory replay, a cascade that calls the 12B model only on the
+\eFourCascGemmaTwelveMarTwentyCalls\% of questions where the vote's certificate margin is smallest passes an
+unadjusted equivalence test (two points) against it. We show why voting works where moment-based theory predicts it
 should not: wrong answers of different families \emph{disperse}, so two agreeing peers almost always beat
 two disagreeing ones. We
 release an open application that turns any PC into a node of such a swarm, behind NAT, with an
@@ -71,8 +79,14 @@ with $K$ estimated from the collision rate of wrong answers, which keep weak pee
 textbook binary weights silence them (\S\ref{sec:e3}). (iii) A negative result for moment-based ensemble
 theory: accuracies and error correlations do not determine the vote's accuracy, and the observed gain is
 explained by error dispersion (Theorem~\ref{thm:nonid}, \S\ref{sec:why}). (iv) Incentive conditions for
-paid peers and an impossibility result for duplicate-and-compare audits (Theorem~\ref{thm:audit}).
-(v) An open application implementing the protocol (\S\ref{sec:system}).
+paid peers, an impossibility result for duplicate-and-compare audits (Theorem~\ref{thm:audit}), and the
+effective audit rate of canary jobs, which vanishes for a peer that recognises them
+(Corollary~\ref{cor:canary}). (v) A controlled comparison of seven small families with four single models of
+\eFourRefSizes{}B on four benchmarks, with exact paired tests (\S\ref{sec:e4}): over the pooled questions the
+swarm is non-inferior to the 9B and 27B models within two points, and it beats the 27B on MMLU-Pro, but it
+is inferior to Gemma-4-12B, which no selector among its members' answers can reach on MATH-500; an
+exploratory cascade that calls the 12B model on a small fraction of questions passes an unadjusted
+equivalence test against it. (vi) An open application implementing the protocol (\S\ref{sec:system}).
 
 \section{Related work}
 \paragraph{Decentralised inference.} Petals \cite{borzunov2023petals} and SWARM parallelism
@@ -87,7 +101,9 @@ cost, and asks what can be decided \emph{early} and \emph{exactly}.
 \cite{nitzan1982optimal}; correlated voters are studied by Ladha \cite{ladha1992condorcet}. We give
 $K$-class weights for open answers and show why second-order moments cannot settle the question.
 \paragraph{Speculative decoding} \cite{leviathan2023speculative} reduces the number of sequential large-model
-calls; our appeal and certificate reduce waiting in a broadcast protocol.
+calls; our appeal and certificate reduce waiting in a broadcast protocol. \emph{Cascades} such as FrugalGPT
+\cite{chen2023frugalgpt} query a larger model only when a cheaper one is unsure; we replay this with a swarm
+as the cheap stage and the stop certificate as the signal (\S\ref{sec:e4}).
 
 \section{Protocol}\label{sec:protocol}
 A requester holds a prompt $x$. It selects $n$ peers of distinct families, sends $x$ to all of them in one
@@ -168,10 +184,10 @@ ratio of the appeal evidence at $C/B$.
 
 \subsection{Incentives and audits}
 \begin{theorem}[Honest serving]\label{thm:incentive}
-If a fraction $q$ of jobs is audited, an audit sanctions an honest peer with probability $\alpha$ and a
-deviation $d$ with probability $\beta_d$, and a sanction costs $P+R$ (penalty plus reputation), honest
-serving is a best response iff $q(\beta_d-\alpha)(P+R)\ge g_H-g_d$ for every deviation, where $g_H-g_d$ is
-the cost saved by deviating.
+If a job is audited with probability $q$ whatever the peer serves on it, an audit sanctions an honest
+peer with probability $\alpha$ and a deviation $d$ with probability $\beta_d$, a sanction costs $P+R$
+(penalty plus reputation), and payment does not depend on the strategy, honest serving is a best response
+iff $q(\beta_d-\alpha)(P+R)\ge g_H-g_d$ for every deviation, where $g_H-g_d$ is the cost saved by deviating.
 \end{theorem}
 \begin{theorem}[Duplicate-and-compare fails]\label{thm:audit}
 Let honest answers be samples of a distribution $r$, and let an audit compare a served answer with an
@@ -183,12 +199,33 @@ as $g_d<g_H$, or $q(P+R)>0$ and $r$ is not uniform on its support.
 \end{theorem}
 If finding the modal answer costs more than one sample, Theorem~\ref{thm:incentive} can still favour
 honesty (appendix). Audits must therefore use reproducible greedy decoding and verifiable answers, with a
-measured baseline $\alpha$; this is what our application does.
+measured baseline $\alpha$.
+
+When requests are encrypted end to end, the tracker can no longer copy a real job to a second peer; it
+audits with \emph{canary} jobs of its own instead, and the peer may try to tell them apart.
+\begin{corollary}[Canary audits]\label{cor:canary}
+Let a fraction $\pi$ of the jobs a peer receives be canaries, the only audited jobs. The peer flags each
+job as a canary with probability $t$ if it is one and $u$ if it is not, serves the flagged jobs honestly,
+and chooses its strategy on the set $U$ of unflagged jobs, assumed to have probability
+$\pi(1-t)+(1-\pi)(1-u)>0$. Assume that the expected payment of a job in $U$ does not depend on the
+strategy, and let $\alpha_U$ and $\beta_{d,U}$ be the probabilities that a canary in $U$ is sanctioned
+when answered honestly or with deviation $d$, and $g_{H,U}$, $g_{d,U}$ the costs on $U$. Then honesty is a
+best response on $U$ iff $q_{\mathrm{eff}}(\beta_{d,U}-\alpha_U)(P+R)\ge g_{H,U}-g_{d,U}$, where
+\[
+q_{\mathrm{eff}}=\Pr(\text{canary}\mid U)=\frac{\pi(1-t)}{\pi(1-t)+(1-\pi)(1-u)}.
+\]
+If canaries are indistinguishable from real jobs in the peer's view, every test has $t=u$ and
+$q_{\mathrm{eff}}=\pi$. If the peer recognises every canary ($t=1$, $u<1$), $q_{\mathrm{eff}}=0$ and, whatever
+$P$ and $R$, honesty on real jobs is a best response only if deviating saves nothing ($g_{d,U}\ge g_{H,U}$).
+\end{corollary}
+Detection therefore rests on indistinguishability in the peer's \emph{whole} view, contents included, not
+only in the format of the messages (\S\ref{sec:system}).
 
 \section{Experiments}
 All models are open-weight with permissive licences (Apache-2.0 or MIT), served in 8-bit GGUF by
 llama.cpp, fully offloaded to the GPU. Questions are split once into a development half (choices,
-weights) and a test half (reported numbers). Intervals are paired bootstrap 95\% intervals over questions.
+weights) and a test half (reported numbers). Intervals are paired bootstrap 95\% intervals over questions,
+except in E4, which uses exact tests (\S\ref{sec:e4}).
 Model sizes are total parameter counts, embeddings included; Gemma~4 E2B and E4B are named after their
 effective sizes (\eGemmaTwoEffective{}B and \eGemmaFourEffective{}B) but hold \eGemmaTwoTotal{}B and
 \eGemmaFourTotal{}B parameters in total.
@@ -246,6 +283,252 @@ general equivalence. With the stop certificate, the requester waits for \eThreeK
 average with these weights and \eThreeVoteWaited{} with an unweighted vote, and the decisions are identical
 to waiting for all in \eThreeKclassSame{} questions.
 
+\subsection{E4: seven families against larger models}\label{sec:e4}
+\paragraph{Protocol.} The swarm has \eFourFamilies{} members, one small model per family: Qwen3.5-4B,
+Gemma-4-E4B, Granite-4.2-3B, SmolLM3-3B, Ministral-3-3B, Phi-4-mini and OLMo-2-1B
+(\eFourSwarmSize{}B total parameters each, \eFourSwarmParams{}B together). The references are four single
+models of \eFourRefSizes{}B: Qwen3.5-9B, Gemma-4-12B, Ministral-3-14B and Qwen3.8-27B. Every model answers
+every question alone, once, with greedy decoding and thinking disabled, from the same prompt per benchmark
+(at most \eFourGsmMaxTokens{} generated tokens, \eFourMathMaxTokens{} on MATH-500), in \eFourQuant{} GGUF
+served by llama-server (llama.cpp build \eFourBuild) with the model's own chat template, the path used by
+the application. The runs were batched on one data-centre GPU; the swarm's decisions are computed offline
+from these independent answers, which is exactly what one round trip provides. The benchmarks are GSM8K
+\cite{cobbe2021gsm8k}, MATH-500 \cite{hendrycks2021math,lightman2023verify}, ARC-Challenge
+\cite{clark2018arc} and MMLU-Pro \cite{wang2024mmlupro} (the last two answered with a short chain of thought and an option
+letter). For each, a fixed random sample (all of MATH-500) is cut once into disjoint development and test
+halves of \eFourGsmN{} questions (\eFourMathN{} for MATH-500). Everything is fitted on dev, per benchmark: the $K$-class
+weights of Theorem~\ref{thm:np} ($p_i$ is the accuracy among the answers given, $c$ the collision rate of
+wrong answers), and the ranking used by the ``best member'' and ``$k$ best'' baselines. All numbers are on
+test. Grading follows Appendix~\ref{app:grader}; on MATH-500 a complete answer without any
+\texttt{\textbackslash boxed\{\}} falls back to the final expression stated in the text. As a robustness
+check we re-grade MATH-500 with \texttt{\textbackslash boxed\{\}} only. Comparisons are paired over
+questions: we report Tango's score 95\% interval for the difference of accuracies \cite{tango1998equivalence}
+and verdicts from exact unconditional tests on the same statistic (maximised over the nuisance parameter):
+superior or inferior when a one-sided test at 2.5\% rejects, equivalent when both one-sided tests against a
+$\pm2$-point margin reject at 5\% (TOST), non-inferior when only the lower one does, and inconclusive
+otherwise. The supremum over the nuisance parameter is computed numerically (a grid refined around its
+maximum). The pooled tests treat the test questions of the four benchmarks as one sample; since the
+benchmarks are fixed strata with different sizes and different systems' errors, their exactness is only
+approximate, and they weight benchmarks by size, unlike the means of Table~\ref{tab:e4}. There is no
+correction for multiplicity (see Threats to validity).
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lrrrrr}
+\toprule
+Test accuracy (\%) & GSM8K & MATH-500 & ARC & MMLU-Pro & Mean\\
+\midrule
+\multicolumn{6}{l}{\emph{Swarm members (total parameters)}}\\
+Qwen3.5-4B (\eFourParamsQwenFour{}B) & \eFourGsmQwenFour & \eFourMathQwenFour & \eFourArcQwenFour & \eFourMmluQwenFour & \eFourMeanQwenFour\\
+Gemma-4-E4B (\eFourParamsGemmaEFour{}B) & \eFourGsmGemmaEFour & \eFourMathGemmaEFour & \eFourArcGemmaEFour & \eFourMmluGemmaEFour & \eFourMeanGemmaEFour\\
+Granite-4.2-3B (\eFourParamsGraniteThree{}B) & \eFourGsmGraniteThree & \eFourMathGraniteThree & \eFourArcGraniteThree & \eFourMmluGraniteThree & \eFourMeanGraniteThree\\
+SmolLM3-3B (\eFourParamsSmolThree{}B) & \eFourGsmSmolThree & \eFourMathSmolThree & \eFourArcSmolThree & \eFourMmluSmolThree & \eFourMeanSmolThree\\
+Ministral-3-3B (\eFourParamsMinistralThree{}B) & \eFourGsmMinistralThree & \eFourMathMinistralThree & \eFourArcMinistralThree & \eFourMmluMinistralThree & \eFourMeanMinistralThree\\
+Phi-4-mini (\eFourParamsPhiMini{}B) & \eFourGsmPhiMini & \eFourMathPhiMini & \eFourArcPhiMini & \eFourMmluPhiMini & \eFourMeanPhiMini\\
+OLMo-2-1B (\eFourParamsOlmoOne{}B) & \eFourGsmOlmoOne & \eFourMathOlmoOne & \eFourArcOlmoOne & \eFourMmluOlmoOne & \eFourMeanOlmoOne\\
+\midrule
+Swarm, plurality vote & \eFourGsmVote & \eFourMathVote & \eFourArcVote & \eFourMmluVote & \eFourMeanVote\\
+Swarm, weighted vote & \textbf{\eFourGsmSwarm} & \textbf{\eFourMathSwarm} & \textbf{\eFourArcSwarm} & \textbf{\eFourMmluSwarm} & \textbf{\eFourMeanSwarm}\\
+\emph{Oracle (some member right)} & \emph{\eFourGsmOracle} & \emph{\eFourMathOracle} & \emph{\eFourArcOracle} & \emph{\eFourMmluOracle} & \emph{\eFourMeanOracle}\\
+\midrule
+\multicolumn{6}{l}{\emph{Single larger models}}\\
+Qwen3.5-9B (\eFourParamsQwenNine{}B) & \eFourGsmQwenNine & \eFourMathQwenNine & \eFourArcQwenNine & \eFourMmluQwenNine & \eFourMeanQwenNine\\
+Gemma-4-12B (\eFourParamsGemmaTwelve{}B) & \eFourGsmGemmaTwelve & \eFourMathGemmaTwelve & \eFourArcGemmaTwelve & \eFourMmluGemmaTwelve & \eFourMeanGemmaTwelve\\
+Ministral-3-14B (\eFourParamsMinistralFourteen{}B) & \eFourGsmMinistralFourteen & \eFourMathMinistralFourteen & \eFourArcMinistralFourteen & \eFourMmluMinistralFourteen & \eFourMeanMinistralFourteen\\
+Qwen3.8-27B (\eFourParamsQwenTwentySeven{}B) & \eFourGsmQwenTwentySeven & \eFourMathQwenTwentySeven & \eFourArcQwenTwentySeven & \eFourMmluQwenTwentySeven & \eFourMeanQwenTwentySeven\\
+\bottomrule
+\end{tabular}
+\caption{E4 on the test halves ($n=\eFourGsmN$, \eFourMathN, \eFourArcN, \eFourMmluN). Mean: unweighted
+mean of the four benchmarks. Weighted vote: $K$-class weights fitted on dev. Gemma-4-E4B has
+\eGemmaFourEffective{}B effective parameters. Two smaller siblings run with the same protocol but kept out
+of the swarm score \eFourMeanQwenTwo\% (Qwen3.5-2B) and \eFourMeanGemmaETwo\% (Gemma-4-E2B) on average.}
+\label{tab:e4}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+Weighted vote minus & GSM8K & MATH-500 & ARC & MMLU-Pro & All (pooled, $n=\eFourPooledN$)\\
+\midrule
+Best member on dev & \eFourGsmBestDiff{} \eFourGsmBestV & \eFourMathBestDiff{} \eFourMathBestV & \eFourArcBestDiff{} \eFourArcBestV & \eFourMmluBestDiff{} \eFourMmluBestV & \\
+ & {\footnotesize\eFourGsmBestCI} & {\footnotesize\eFourMathBestCI} & {\footnotesize\eFourArcBestCI} & {\footnotesize\eFourMmluBestCI} & \\
+Qwen3.5-9B & \eFourGsmQwenNineDiff{} \eFourGsmQwenNineV & \eFourMathQwenNineDiff{} \eFourMathQwenNineV & \eFourArcQwenNineDiff{} \eFourArcQwenNineV & \eFourMmluQwenNineDiff{} \eFourMmluQwenNineV & \eFourPooledQwenNineDiff{} \eFourPooledQwenNineV\\
+ & {\footnotesize\eFourGsmQwenNineCI} & {\footnotesize\eFourMathQwenNineCI} & {\footnotesize\eFourArcQwenNineCI} & {\footnotesize\eFourMmluQwenNineCI} & {\footnotesize\eFourPooledQwenNineCI}\\
+Gemma-4-12B & \eFourGsmGemmaTwelveDiff{} \eFourGsmGemmaTwelveV & \eFourMathGemmaTwelveDiff{} \eFourMathGemmaTwelveV & \eFourArcGemmaTwelveDiff{} \eFourArcGemmaTwelveV & \eFourMmluGemmaTwelveDiff{} \eFourMmluGemmaTwelveV & \eFourPooledGemmaTwelveDiff{} \eFourPooledGemmaTwelveV\\
+ & {\footnotesize\eFourGsmGemmaTwelveCI} & {\footnotesize\eFourMathGemmaTwelveCI} & {\footnotesize\eFourArcGemmaTwelveCI} & {\footnotesize\eFourMmluGemmaTwelveCI} & {\footnotesize\eFourPooledGemmaTwelveCI}\\
+Ministral-3-14B & \eFourGsmMinistralFourteenDiff{} \eFourGsmMinistralFourteenV & \eFourMathMinistralFourteenDiff{} \eFourMathMinistralFourteenV & \eFourArcMinistralFourteenDiff{} \eFourArcMinistralFourteenV & \eFourMmluMinistralFourteenDiff{} \eFourMmluMinistralFourteenV & \eFourPooledMinistralFourteenDiff{} \eFourPooledMinistralFourteenV\\
+ & {\footnotesize\eFourGsmMinistralFourteenCI} & {\footnotesize\eFourMathMinistralFourteenCI} & {\footnotesize\eFourArcMinistralFourteenCI} & {\footnotesize\eFourMmluMinistralFourteenCI} & {\footnotesize\eFourPooledMinistralFourteenCI}\\
+Qwen3.8-27B & \eFourGsmQwenTwentySevenDiff{} \eFourGsmQwenTwentySevenV & \eFourMathQwenTwentySevenDiff{} \eFourMathQwenTwentySevenV & \eFourArcQwenTwentySevenDiff{} \eFourArcQwenTwentySevenV & \eFourMmluQwenTwentySevenDiff{} \eFourMmluQwenTwentySevenV & \eFourPooledQwenTwentySevenDiff{} \eFourPooledQwenTwentySevenV\\
+ & {\footnotesize\eFourGsmQwenTwentySevenCI} & {\footnotesize\eFourMathQwenTwentySevenCI} & {\footnotesize\eFourArcQwenTwentySevenCI} & {\footnotesize\eFourMmluQwenTwentySevenCI} & {\footnotesize\eFourPooledQwenTwentySevenCI}\\
+\bottomrule
+\end{tabular}
+\caption{Paired differences in points (weighted vote minus the other system, test), Tango score 95\%
+intervals and exact-test verdicts: \textsc{sup} superior, \textsc{inf} inferior, \textsc{eq} equivalent
+within $\pm2$ points, \textsc{ni} non-inferior ($-2$), -- inconclusive. The best member on dev is
+\eFourGsmBestName{}, \eFourMathBestName{}, \eFourArcBestName{} and \eFourMmluBestName{} respectively. The
+pooled column treats the \eFourPooledN{} test questions as one sample (an approximation: the benchmarks are
+fixed strata), so it weights the benchmarks by their sizes (pooled accuracies: swarm \eFourPooledSwarm\%, references \eFourPooledQwenNine, \eFourPooledGemmaTwelve,
+\eFourPooledMinistralFourteen{} and \eFourPooledQwenTwentySeven\%).}
+\label{tab:e4tests}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_scaling.pdf}
+\caption{E4 accuracy against the number of families $k$. Solid: mean over all $\binom{7}{k}$ subsets
+(weighted vote with the weights fitted for the full swarm, so a member of zero weight, OLMo-2-1B on
+MMLU-Pro, abstains when alone and $k=1$ is not the mean standalone accuracy). Dashed: the $k$ families with the best dev accuracy (a single
+subset per $k$, hence noisier). Horizontal lines: the single larger models (total parameters).}
+\label{fig:scaling}
+\end{figure}
+
+\paragraph{Results.} Table~\ref{tab:e4} gives the accuracies and Table~\ref{tab:e4tests} the tests. Averaged
+over the four benchmarks, the weighted vote of the seven small models reaches \eFourMeanSwarm\%, against
+\eFourMeanQwenNine\% for Qwen3.5-9B, \eFourMeanQwenTwentySeven\% for Qwen3.8-27B, \eFourMeanMinistralFourteen\%
+for Ministral-3-14B and \eFourMeanGemmaTwelve\% for Gemma-4-12B; its best member averages
+\eFourMeanQwenFour\%. On the pooled test questions the swarm is non-inferior to the 9B and the 27B models
+within two points, superior to Ministral-3-14B, and inferior to Gemma-4-12B
+(\eFourPooledGemmaTwelveDiff{} points, \eFourPooledGemmaTwelveCI; last column of
+Table~\ref{tab:e4tests}). Per benchmark the picture is mixed: of the \eFourNShown{} comparisons of Table~\ref{tab:e4tests},
+\eFourNInconclusive{} are inconclusive at these sample sizes, \eFourNNonInferior{} non-inferior,
+\eFourNSuperior{} superior and \eFourNInferior{} inferior. The clearest gains are on MMLU-Pro, where the vote
+beats its dev-selected member (\eFourMmluBestName, \eFourMmluGemmaEFour\%; Qwen3.5-4B, stronger on test,
+scores \eFourMmluQwenFour\%) by \eFourMmluBestDiff{} points (\eFourMmluBestCI) and Qwen3.8-27B by
+\eFourMmluQwenTwentySevenDiff{} (\eFourMmluQwenTwentySevenCI), and on MATH-500, where it beats its best member
+by \eFourMathBestDiff{} (\eFourMathBestCI). The clearest loss is MATH-500 against Gemma-4-12B
+(\eFourMathGemmaTwelveDiff, \eFourMathGemmaTwelveCI). There the oracle, which credits the swarm whenever any
+member is right, reaches only \eFourMathOracle\% against \eFourMathGemmaTwelve\% for Gemma-4-12B: no selector
+restricted to the members' recorded answers could close the gap (a combiner that writes new answers or asks
+again is not bounded by the oracle). On
+ARC the vote does not beat its strongest member (\eFourArcBestDiff, \eFourArcBestCI): Qwen3.5-4B alone
+reaches \eFourArcQwenFour\%, close to the oracle's \eFourArcOracle\%, which leaves a vote little to gain.
+The plurality vote averages \eFourMeanVote\%: the weights add less here than with four peers in E3
+(\S\ref{sec:e3}).
+
+\paragraph{Scaling with the number of families.} Figure~\ref{fig:scaling} shows the weighted vote of every
+subset of $k$ families. Averaged over all subsets and benchmarks, accuracy rises from \eFourMeanScaleOne\%
+for one family to \eFourMeanScaleTwo\% for two, \eFourMeanScaleFour\% for four and \eFourMeanScaleSeven\% for
+seven, with diminishing returns after four. The $k$ best families on dev average \eFourMeanBestThree\% for
+$k=3$ and \eFourMeanBestFour\% for $k=4$, so a requester that knows which families are strong can query
+fewer peers; this single-subset curve is too noisy to pick an optimal $k$.
+
+\paragraph{Grading robustness.} Gemma-4-E4B often omits \texttt{\textbackslash boxed\{\}}: with strict
+grading its MATH-500 accuracy falls from \eFourMathGemmaEFour\% to \eFourStrictMathGemmaEFour\%. The
+swarm moves from \eFourMathSwarm\% to \eFourStrictMathSwarm\% (weights refitted on dev under the same
+grader); it remains superior to its best member (\eFourStrictMathBestDiff, \eFourStrictMathBestCI) and
+inferior to Gemma-4-12B (\eFourStrictMathGemmaTwelveDiff, \eFourStrictMathGemmaTwelveCI), but its
+comparison with Qwen3.5-9B changes from non-inferior to inconclusive (\eFourStrictMathQwenNineDiff,
+\eFourStrictMathQwenNineCI). The four-benchmark mean becomes \eFourStrictMeanSwarm\%. Re-running the cascade
+of the next paragraph under strict grading (weights and thresholds refitted on dev), the margin rule with a
+20\% budget calls Gemma-4-12B on \eFourStrictCascGemmaTwelveMarTwentyCalls\% of the questions and averages
+\eFourStrictCascGemmaTwelveMarTwentyAcc\% (pooled difference \eFourStrictCascGemmaTwelveMarTwentyDiff,
+\eFourStrictCascGemmaTwelveMarTwentyCI, \eFourStrictCascGemmaTwelveMarTwentyVerdict). The references' scores do not
+change.
+
+\paragraph{Stop certificate.} With the measured generation times as arrival order, the exact certificate of
+Theorem~\ref{thm:cert} lets the requester stop after \eFourWaitsMin{} (GSM8K) to \eFourWaitsMax{} (MMLU-Pro)
+of the 7 answers on average (\eFourMathWaits{} on MATH-500, \eFourArcWaits{} on ARC), with decisions
+identical to waiting for all by construction. The times come from batched runs on a shared GPU, so these
+waits only illustrate the mechanism; E7 measures latencies under a network model.
+
+\paragraph{Cascade.} A requester can also call a larger model only when the swarm is unsure. We replay
+this offline: the cascade returns the swarm's decision, or the reference's own answer when the weighted
+margin between the decision and the runner-up is at most $t$, i.e.\ when the stop certificate with a reserve
+$t$ fails (the decision would not be certified if peers of total weight $t$ were still missing). The
+threshold $t$ is chosen on dev as the most accurate one that calls the reference on at most 10\% or 20\% of
+the dev questions, then frozen. We also report the rule fixed in advance from an exploratory replay of E3:
+call when no answer has two votes. Table~\ref{tab:cascade} gives the results. Calling Gemma-4-12B on
+\eFourCascGemmaTwelveMarTwentyCalls\% of the test questions on average lifts the mean to
+\eFourCascGemmaTwelveMarTwentyAcc\%; on the pooled questions it passes the equivalence test against
+Gemma-4-12B alone (\eFourCascGemmaTwelveMarTwentyDiff, \eFourCascGemmaTwelveMarTwentyCI; unadjusted for
+the choice of this configuration among those of Table~\ref{tab:cascade}) and gains
+\eFourCascGemmaTwelveMarTwentySwarmDiff{} points over the swarm (\eFourCascGemmaTwelveMarTwentySwarmCI); on
+MATH-500 alone the same cascade reaches \eFourCascGemmaTwelveMarTwentyMathAcc\% with
+\eFourCascGemmaTwelveMarTwentyMathCalls\% of calls. The larger model then serves a small fraction of the
+requests, as a rare and expensive peer would. The fixed rule does not transfer from four to seven peers:
+two of seven answers almost always agree, so it calls on only \eFourCascQwenNineSupTwoCalls\% of the
+questions on average (\eFourCascQwenNineSupTwoMmluCalls\% on MMLU-Pro, \eFourCascQwenNineSupTwoMathCalls\% on
+MATH-500, \eFourCascQwenNineSupTwoGsmCalls\% and \eFourCascQwenNineSupTwoArcCalls\% on GSM8K and ARC), and on
+MMLU-Pro the calls break more answers than they repair with every reference (with Qwen3.5-9B:
+\eFourCascQwenNineSupTwoMmluRescued{} repaired, \eFourCascQwenNineSupTwoMmluBroken{} broken; with
+Gemma-4-12B: \eFourCascGemmaTwelveSupTwoMmluRescued{} and \eFourCascGemmaTwelveSupTwoMmluBroken). These replays select among three budgets and two signals per
+reference (the other variants are in the repository); they are exploratory.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrcr}
+\toprule
+Reference (mean) & Call rule & Calls (\%) & Mean (\%) & Minus reference, pooled & Compute\\
+\midrule
+Qwen3.5-9B (\eFourMeanQwenNine) & never & 0 & \eFourMeanSwarm & \eFourPooledQwenNineDiff{} {\footnotesize\eFourPooledQwenNineCI} \eFourPooledQwenNineV & \eFourComputeQwenNine\\
+ & no 2 votes & \eFourCascQwenNineSupTwoCalls & \eFourCascQwenNineSupTwoAcc & \eFourCascQwenNineSupTwoDiff{} {\footnotesize\eFourCascQwenNineSupTwoCI} \eFourCascQwenNineSupTwoV & \eFourCascQwenNineSupTwoCompute\\
+ & margin, 10\% & \eFourCascQwenNineMarTenCalls & \eFourCascQwenNineMarTenAcc & \eFourCascQwenNineMarTenDiff{} {\footnotesize\eFourCascQwenNineMarTenCI} \eFourCascQwenNineMarTenV & \eFourCascQwenNineMarTenCompute\\
+ & margin, 20\% & \eFourCascQwenNineMarTwentyCalls & \eFourCascQwenNineMarTwentyAcc & \eFourCascQwenNineMarTwentyDiff{} {\footnotesize\eFourCascQwenNineMarTwentyCI} \eFourCascQwenNineMarTwentyV & \eFourCascQwenNineMarTwentyCompute\\
+\midrule
+Gemma-4-12B (\eFourMeanGemmaTwelve) & never & 0 & \eFourMeanSwarm & \eFourPooledGemmaTwelveDiff{} {\footnotesize\eFourPooledGemmaTwelveCI} \eFourPooledGemmaTwelveV & \eFourComputeGemmaTwelve\\
+ & no 2 votes & \eFourCascGemmaTwelveSupTwoCalls & \eFourCascGemmaTwelveSupTwoAcc & \eFourCascGemmaTwelveSupTwoDiff{} {\footnotesize\eFourCascGemmaTwelveSupTwoCI} \eFourCascGemmaTwelveSupTwoV & \eFourCascGemmaTwelveSupTwoCompute\\
+ & margin, 10\% & \eFourCascGemmaTwelveMarTenCalls & \eFourCascGemmaTwelveMarTenAcc & \eFourCascGemmaTwelveMarTenDiff{} {\footnotesize\eFourCascGemmaTwelveMarTenCI} \eFourCascGemmaTwelveMarTenV & \eFourCascGemmaTwelveMarTenCompute\\
+ & margin, 20\% & \eFourCascGemmaTwelveMarTwentyCalls & \eFourCascGemmaTwelveMarTwentyAcc & \eFourCascGemmaTwelveMarTwentyDiff{} {\footnotesize\eFourCascGemmaTwelveMarTwentyCI} \eFourCascGemmaTwelveMarTwentyV & \eFourCascGemmaTwelveMarTwentyCompute\\
+\midrule
+Ministral-3-14B (\eFourMeanMinistralFourteen) & never & 0 & \eFourMeanSwarm & \eFourPooledMinistralFourteenDiff{} {\footnotesize\eFourPooledMinistralFourteenCI} \eFourPooledMinistralFourteenV & \eFourComputeMinistralFourteen\\
+ & no 2 votes & \eFourCascMinistralFourteenSupTwoCalls & \eFourCascMinistralFourteenSupTwoAcc & \eFourCascMinistralFourteenSupTwoDiff{} {\footnotesize\eFourCascMinistralFourteenSupTwoCI} \eFourCascMinistralFourteenSupTwoV & \eFourCascMinistralFourteenSupTwoCompute\\
+ & margin, 10\% & \eFourCascMinistralFourteenMarTenCalls & \eFourCascMinistralFourteenMarTenAcc & \eFourCascMinistralFourteenMarTenDiff{} {\footnotesize\eFourCascMinistralFourteenMarTenCI} \eFourCascMinistralFourteenMarTenV & \eFourCascMinistralFourteenMarTenCompute\\
+ & margin, 20\% & \eFourCascMinistralFourteenMarTwentyCalls & \eFourCascMinistralFourteenMarTwentyAcc & \eFourCascMinistralFourteenMarTwentyDiff{} {\footnotesize\eFourCascMinistralFourteenMarTwentyCI} \eFourCascMinistralFourteenMarTwentyV & \eFourCascMinistralFourteenMarTwentyCompute\\
+\midrule
+Qwen3.8-27B (\eFourMeanQwenTwentySeven) & never & 0 & \eFourMeanSwarm & \eFourPooledQwenTwentySevenDiff{} {\footnotesize\eFourPooledQwenTwentySevenCI} \eFourPooledQwenTwentySevenV & \eFourComputeQwenTwentySeven\\
+ & no 2 votes & \eFourCascQwenTwentySevenSupTwoCalls & \eFourCascQwenTwentySevenSupTwoAcc & \eFourCascQwenTwentySevenSupTwoDiff{} {\footnotesize\eFourCascQwenTwentySevenSupTwoCI} \eFourCascQwenTwentySevenSupTwoV & \eFourCascQwenTwentySevenSupTwoCompute\\
+ & margin, 10\% & \eFourCascQwenTwentySevenMarTenCalls & \eFourCascQwenTwentySevenMarTenAcc & \eFourCascQwenTwentySevenMarTenDiff{} {\footnotesize\eFourCascQwenTwentySevenMarTenCI} \eFourCascQwenTwentySevenMarTenV & \eFourCascQwenTwentySevenMarTenCompute\\
+ & margin, 20\% & \eFourCascQwenTwentySevenMarTwentyCalls & \eFourCascQwenTwentySevenMarTwentyAcc & \eFourCascQwenTwentySevenMarTwentyDiff{} {\footnotesize\eFourCascQwenTwentySevenMarTwentyCI} \eFourCascQwenTwentySevenMarTwentyV & \eFourCascQwenTwentySevenMarTwentyCompute\\
+\bottomrule
+\end{tabular}
+\caption{Cascade replay on the E4 test halves: the swarm answers, and the reference is called only by the
+rule: never, when no answer has two votes (fixed in advance), or when the certificate margin is at
+most a threshold chosen on dev under a 10\% or 20\% call budget. Calls and accuracy: means over the four
+benchmarks. Minus reference: cascade minus the reference
+alone on the \eFourPooledN{} pooled test questions, with Tango 95\% interval and verdict (as in
+Table~\ref{tab:e4tests}). Compute: generated tokens times total parameters, summed over the models that
+ran, relative to the reference alone (mean of the four benchmarks; prompt processing ignored).}
+\label{tab:cascade}
+\end{table}
+
+\paragraph{Memory, compute and latency.} The comparison is between seven machines and one, and its terms
+should be explicit. The seven members hold \eFourSwarmParams{}B parameters together (\eFourSwarmGB{}\,GB of
+\eFourQuant{} weights), about as much as Qwen3.8-27B alone (\eFourQwenTwentySevenGB{}\,GB) and more than twice
+Gemma-4-12B (\eFourGemmaTwelveGB{}\,GB). What the swarm changes is where the memory sits: no peer holds more
+than \eFourLargestPeerGB{}\,GB of weights (plus its KV cache), within reach of common 12--16\,GB consumer
+GPUs, whereas the \eFourQwenTwentySevenGB{}\,GB of weights of the 27B model exceed any consumer GPU below
+32\,GB before any cache. With a decode-compute proxy (generated tokens times total parameters, prompt
+processing ignored, averaged over the four benchmarks), the swarm costs \eFourComputeQwenTwentySeven{} times
+Qwen3.8-27B, but \eFourComputeGemmaTwelve{} times Gemma-4-12B and \eFourComputeQwenNine{} times Qwen3.5-9B:
+against the 9B model the swarm buys non-inferiority (not equivalence) with about three times the proxy
+compute, and against the 12B model it stays below it with two and a half times, spread over seven owners'
+machines. The proxy counts Gemma-4-E4B at its total size and is not a measurement of FLOPs, time or
+energy. Per peer, a request costs one generation by a model of at
+most \eFourLargestPeerParams{}B parameters. The requester's latency is one round trip plus the generation time
+of the slowest peer it waits for; in this replay the certificate spared \eFourAvoidedMin{} to
+\eFourAvoidedMax{} answers out of 7 on average. We did not measure end-to-end latency on consumer hardware
+in E4.
+
+\paragraph{Threats to validity.} Each model ran once, greedily: the results do not include sampling
+variance or the run-to-run nondeterminism of batched inference, and greedy decoding without thinking
+under-represents models that are trained to reason at length (both Qwen references, in particular). The
+test halves have 250--300 questions, so per-benchmark intervals span 4--11 points and many verdicts are
+inconclusive. We computed \eFourNComputed{} per-benchmark comparisons (weighted and plurality votes; the
+\eFourNShown{} of the weighted vote are displayed) and 4 pooled ones, plus the cascade variants, without
+multiplicity correction and without a prespecified primary hypothesis: the superiority over Qwen3.8-27B on
+MMLU-Pro (one-sided $p=\eFourMmluQwenTwentySevenPSup$) would not survive a Bonferroni correction over the
+\eFourNShown{} displayed comparisons (threshold \eFourBonferroniAlpha), and the per-benchmark verdicts are
+best read as exploratory. The benchmarks are
+public and may be in the training data of any model, small or large, to different extents. Answers are
+extracted by rules (Appendix~\ref{app:grader}); the MATH-500 fallback changes one member's score a lot, and
+the strict re-grading above is a sensitivity check of the vote and of the cascade under a second rule, not
+a bound on grading error. The dev and test halves come from the same
+distributions, so the fitted weights and cascade thresholds have not been tested under distribution shift,
+and the same prompt was used for every model rather than each model's preferred format.
+
 \subsection{E5: the minority appeal does not pay with peer-sized judges}\label{sec:e5}
 We tested the appeal of Theorem~\ref{thm:appeal} on the E1 multiple-choice data: when the runner-up of
 the calibrated mixture is some expert's first choice, the most confident proposer is set aside and the
@@ -258,11 +541,43 @@ conservative that only \eFiveArcFlips{} answer changes on test (\eFiveArcGain{} 
 Theorem~\ref{thm:appeal}, an appeal pays only if $r>(C/B)\,h$; judges of the same size as the experts do
 not separate the two cases well enough. A stronger judge, or a verifiable check, would be needed.
 
-\subsection{E4: seven families against larger models}\label{sec:e4}
-\textit{[In progress: seven \eFourSwarmSize{}B models of seven families (Qwen3.5-4B, Gemma-4-E4B,
-Granite-4.2-3B, SmolLM3-3B, Ministral-3-3B, Phi-4-mini, OLMo-2-1B) against \eFourRefSizes{}B models
-(Qwen3.5-9B, Gemma-4-12B, Ministral-3-14B and Qwen3.8-27B) on GSM8K, MATH-500, ARC and MMLU-Pro, with exact
-equivalence tests and scaling curves over all subsets.]}
+\subsection{E10: parallel sections trade judged quality for modelled latency}\label{sec:e10}
+We tested a Skeleton-of-Thought scheme \cite{ning2023skeleton} on first-turn MT-Bench prompts
+\cite{zheng2023judging}: Qwen3.5-4B writes a
+skeleton, then its points are expanded round-robin across \eTenPeers{} heterogeneous peers and
+concatenated without revision. Writing, roleplay, STEM and humanities provide \eTenDevN{} dev
+prompts and \eTenTestN{} test prompts; the remaining \eTenOtherN{} prompts are reported separately.
+The single model against which the parallel answer scores lowest on dev (soft probabilities break
+ties), \eTenBestName{}, is frozen for test; it is also the skeleton model.
+Qwen3.8-27B judges each comparison in both display orders. We average win/tie/loss scores across
+orders per prompt, treating a win/loss reversal as a tie, and bootstrap prompts
+(\eTenBoot{} resamples, \eTenCILevel\% intervals). Against the frozen solo, test gives
+\eTenTestWin{} wins, \eTenTestTie{} ties and \eTenTestLoss{} losses, with mean score
+\eTenTestScore{} (CI \eTenTestScoreCI; a score of one half denotes parity).
+Order consistency is \eTenTestConsistency\%. This is one model's preference, not human evaluation
+or verified correctness; residual judge and family biases remain, and these modest samples do not
+establish equivalence. On the excluded categories, the corresponding score is
+\eTenOtherScore{} (CI \eTenOtherScoreCI), with \eTenOtherFallback{} skeleton fallback.
+
+Latency is \emph{modelled}, not measured network latency: solo time is RTT plus output tokens
+at the model's decoding rate; parallel time adds the skeleton and the slowest peer's assigned
+expansions, with two RTTs. Rates come from single-stream Q8 decoding on an RX~6650~XT where available;
+\eTenDefaulted{} models (Qwen, Gemma, Ministral and Phi) instead use an assumed
+\eTenDefaultSpeed{} tokens/s. At parameterized RTT \eTenRttMid{} ms, test mean times are
+\eTenTestSeconds{} s parallel and \eTenTestSoloSeconds{} s solo, a latency ratio of
+\eTenTestSpeedup{}; assuming \eTenUniformSpeed{} tokens/s for every peer gives
+\eTenTestUniformSpeedup{}. The report also varies RTT from \eTenRttLow{} to \eTenRttHigh{} ms.
+This model omits prompt processing, queueing and contention; batched generation times from the
+campaign are not used as single-stream latencies.
+
+Length budgets differ: solo answers allow \eTenBaselineBudget{} tokens, skeletons
+\eTenOutlineBudget{}, and each expansion \eTenExpandBudget{}. Test answers average
+\eTenTestTokens{} generation tokens parallel versus \eTenTestSoloTokens{} solo
+(counts use each producer's tokenizer). On test, \eTenTestCut{} of \eTenTestExpansions{}
+expansions and \eTenTestSoloCut{} solo answers reach their length cap; there are
+\eTenTestFallback{} skeleton fallbacks and \eTenTestLongPoints{} point exceeding the requested
+word limit. Thus the projected latency saving accompanies longer output and substantially worse
+judged quality against the dev-selected solo under this protocol.
 
 \section{System}\label{sec:system}
 We release an implementation of the protocol as a desktop application (Python, llama.cpp).
@@ -277,20 +592,42 @@ one relayed round trip to each selected peer, in parallel.
 key. Login is a signed challenge; jobs are signed by the requester, results by the serving node, and
 receipts by the requester, over canonical JSON with a message-type and protocol-version domain separator.
 All fields are size-bounded and every job has a deadline.
+\paragraph{End-to-end encryption (protocol 1.3).} Each serving node publishes a short-lived X25519 key
+certified by its ed25519 identity. The requester derives per-job keys from a fresh ephemeral key (X25519,
+HKDF-SHA256) and seals the request with ChaCha20-Poly1305 under a single-use pseudonym, padded to a
+power-of-two size class; the result comes back sealed in authenticated chunks. The tracker routes and
+settles credits from a signed plaintext header (target, token limit, deadline); it cannot read contents,
+and altered or replayed messages are rejected. The serving peer reads the question in clear; the
+requester's account is withheld from it, unless the content itself reveals it or the peer colludes with
+the tracker. The tracker still sees metadata (payer, peer, sizes, timings).
 \paragraph{Fusion.} The gateway selects $k$ peers of distinct families by reliability, broadcasts the
 request, extracts answers when the task allows it (final number, boxed expression, option letter), and
 applies the $K$-class weighted vote with the stop certificate of Theorem~\ref{thm:cert}; stragglers are
 cancelled. Free-form answers fall back to a weighted medoid. The response carries the per-peer answers,
 weights, decision rule and latency.
 \paragraph{Credits and audits.} A served job earns completion tokens times a size factor; the requester pays
-the sum over answering peers on a signed receipt. Following Theorem~\ref{thm:audit}, spot checks duplicate
-a small fraction of \emph{greedy} jobs with extractable answers to another node serving the same weights and
-compare extracted answers; the honest disagreement rate $\alpha$ is measured per model, and a node's
-reputation drops only when its disagreement exceeds $\alpha$ by more than three standard deviations.
-\paragraph{Limitations of v1.} The tracker is a single point of failure and sees request contents; token
-counts are bounded but not verified; Sybil identities can collect the starter credit. The roadmap replaces
-the central ledger by peer-verified receipts and the tracker by a federation, then a DHT with direct
-NAT traversal.
+the sum over answering peers on a signed receipt. Encryption rules out the plaintext spot checks of our
+first version, which duplicated real jobs to a second node. Audits now use \emph{canary} jobs: after a real
+job relayed to a peer, with probability $q$ and after a random delay, the tracker sends that peer and
+another node serving the same model file a question with a verifiable answer, sealed exactly like a real
+job (same frame, header fields copied from the real job, same padded size class, fresh pseudonym, settled
+as a receipt). It decrypts both answers and compares the extracted answers (a peer without a second node is checked
+against the known answer); a truncated answer is believed only if it is long enough for its token limit,
+and repeated truncations count against the peer. Following Theorem~\ref{thm:audit}, canaries are greedy with extractable answers, the honest
+disagreement rate $\alpha$ is measured per model, and a node's reputation drops only when its disagreement
+exceeds $\alpha$ by more than three standard deviations. By Corollary~\ref{cor:canary}, the deterrence is
+$q_{\mathrm{eff}}$, not $q$, and it requires canaries that the peer cannot recognise. Our canaries use the same frame format, padding and settlement type as real jobs (checked by tests);
+whether their metadata and timing (they follow a real job within seconds) can be told apart is not
+measured, and they are \emph{not} indistinguishable by content: their questions come from a dozen public templates that a peer can recognise and answer correctly
+while deviating elsewhere. Today they deter only non-adaptive cheaters, and only on the auditable class of
+jobs; a peer that deviates on sampled or free-form jobs is never caught by a canary, and there only answer
+fusion and quarantine protect the requester. Measuring adversarial canary detectors and generating
+varied canaries are open work.
+\paragraph{Limitations.} The tracker is a single point of failure and sees metadata; a tracker that runs
+its own peers reads the questions it routes to them; token counts are bounded but not verified; Sybil
+identities can collect the starter credit, and colluding peers can validate each other on canaries. The
+roadmap replaces the central ledger by peer-verified receipts and the tracker by a federation, then a DHT
+with direct NAT traversal.
 \paragraph{Scalability (E7).} We ran the real tracker in its own process with up to 4{,}096 simulated nodes
 (real WebSocket clients, signatures and gateways; answers drawn from the measured per-family accuracies
 with collision rate $c=0.09$, our first estimate of the GSM8K value, which counted abstentions as wrong
@@ -308,16 +645,26 @@ backoff. Beyond one core, trackers could be sharded by request hash (not evaluat
 beyond per-family indexes.
 
 \section{Limitations}
-Our swarm uses more total compute than one model of a single member's size; the claim is about what
-consumer devices can achieve \emph{together} at one round trip, not about compute efficiency. Voting needs
-extractable answers; free-form text requires a similarity-based medoid whose quality we have not
-evaluated. A non-significant difference is not equivalence; we use equivalence tests with an explicit
-margin where we claim parity. The credit ledger is centralised in v1.
+Our swarm uses more total compute than one model of a single member's size: in E4, by a decode-compute
+proxy, about as much as the 27B reference and two to three times as much as the 9B and 12B ones, for
+non-inferiority to the 9B and inferiority to the 12B. The claim
+is about what consumer devices can achieve \emph{together} at one round trip, not about compute efficiency.
+The E4 comparisons rest on one greedy run per model, without thinking modes, on public benchmarks
+(\S\ref{sec:e4}). Voting needs extractable answers; free-form text requires a similarity-based medoid whose
+quality we have not evaluated. A non-significant difference is not equivalence; we use equivalence tests
+with an explicit margin where we claim parity, and non-inferiority is weaker than equivalence. Canary
+audits deter only peers that cannot recognise canaries, and today's canary contents are recognisable
+(\S\ref{sec:system}). The credit ledger is centralised.
 
 \section{Conclusion}
 A single round trip, a vote with the right weights and an exact stop certificate let a swarm of small
-heterogeneous models on consumer devices match larger models on verifiable tasks, without putting the
-network in the decoding loop.
+heterogeneous models be non-inferior, within two points, to single 9B and 27B models on the pooled test
+questions of four verifiable benchmarks (in an offline replay, greedy decoding), without putting the network in the decoding loop and without any device holding more than
+a small model. The swarm is not a free lunch: by our proxy it spends as much compute as the largest of
+these models, it stays below the strongest 12B model we tested, and where all its members fail, as on part
+of MATH-500, no selection among their answers helps. Calling a larger peer only when the certificate margin is small closed that gap in
+our exploratory replay, which suggests networks where most requests are served by small nodes and a few by rare large
+ones.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
@@ -392,5 +739,16 @@ Without the cost condition the conclusion can fail: with $r=(0.6,0.4)$ ($\alpha=
 $P+R=10$, $g_H=1$ and $g_d=3$ (finding the mode costs more than one sample), $U_H-U_d=1.2>0$.
 Example: with $q=5\%$, $\alpha=1\%$, $\beta=95\%$, $P=12{,}000$ credits and a 1{,}000-token job paying one
 credit per token, honest serving earns 394 credits against 330 for cheating (simulated: 393.6 and 333.4).
+
+\paragraph{Corollary~\ref{cor:canary}.}
+On a job of $U$ the expected payment is the same under both strategies (assumption), and only canaries
+can be sanctioned, so the expected utilities differ by
+$q_{\mathrm{eff}}(\beta_{d,U}-\alpha_U)(P+R)-(g_{H,U}-g_{d,U})$ with $q_{\mathrm{eff}}=\Pr(\text{canary}\mid U)$,
+as in the proof above; Bayes' rule gives its value, well defined since $\Pr(U)>0$. If the peer's view of a
+canary has the same distribution as its view of a real job, any test (randomised or not) flags both with
+the same probability, so $t=u$ and $q_{\mathrm{eff}}=\pi$. With $t=1$ and $u<1$, $q_{\mathrm{eff}}=0$ and the
+condition reads $0\ge g_{H,U}-g_{d,U}$. The application pays by declared tokens and sanctions through a
+reputation that accumulates over audits, so the corollary is a model of its incentives under these
+assumptions, not a guarantee.
 
 \end{document}

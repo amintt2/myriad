@@ -42,6 +42,20 @@ def launcher_alive():
     return pid if pid.isdigit() and os.path.exists(f"/proc/{pid}") else None
 
 
+def unpack_code(archive):
+    with tarfile.open(archive) as t:
+        has_gpqa = "phase0/data/gpqa_diamond.csv" in t.getnames()
+        t.extractall(WORK, filter="data")
+    with open(f"{WORK}/phase0/colab_plan.txt") as f:
+        plan = f.read().strip()
+    if plan.startswith("aa-") and not has_gpqa:
+        try:
+            os.remove(f"{WORK}/phase0/data/gpqa_diamond.csv")  # a reused VM must match the new archive
+        except FileNotFoundError:
+            pass
+    return plan
+
+
 try:
     pid = launcher_alive()
     if pid:
@@ -49,9 +63,7 @@ try:
         raise SystemExit(0)
 
     status("décompression du code")
-    with tarfile.open("/content/dllm.tgz") as t:
-        t.extractall(WORK, filter="data")
-    PLAN = open(f"{WORK}/phase0/colab_plan.txt").read().strip()
+    PLAN = unpack_code("/content/dllm.tgz")
     restored = []
     for src in glob.glob(f"{WORK}/checkpoints/*.jsonl"):
         dst = f"{RESULTS}/{os.path.basename(src)}"
@@ -89,10 +101,11 @@ try:
     status("environnement Python (uv)")
     if shutil.which("uv", path=env["PATH"]) is None:
         run("curl -LsSf https://astral.sh/uv/install.sh | sh", shell=True, env=env)
-    run(["uv", "sync", "-q"], cwd=f"{WORK}/phase0", env=env)
+    groups = ["--group", "scicode"] if PLAN.startswith("aa-") else []  # E12: h5py, scipy, sympy for the SciCode tests
+    run(["uv", "sync", "-q", *groups], cwd=f"{WORK}/phase0", env=env)
 
     log = open(f"{RESULTS}/colab_launcher.log", "a")
-    p = subprocess.Popen(["uv", "run", "python", "colab_jobs.py", "--plan", PLAN], cwd=f"{WORK}/phase0", env=env,
+    p = subprocess.Popen(["uv", "run", *groups, "python", "colab_jobs.py", "--plan", PLAN], cwd=f"{WORK}/phase0", env=env,
                          stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     time.sleep(20)
     if p.poll() is not None:

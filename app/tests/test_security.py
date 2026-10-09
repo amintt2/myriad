@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sys
 import time
 
 import httpx
@@ -321,6 +322,46 @@ async def test_local_only_mode_sends_nothing(swarm, monkeypatch):
     before = len(seen)
     ans = await gw2.ask([{"role": "user", "content": "My IBAN is DE89370400440532013000, 40+2?"}])
     assert ans.meta["decision"] == "local" and qwen.engine.calls == calls + 1 and len(seen) == before
+
+
+@pytest.mark.parametrize("content", ["Combien font 40 + 2 ?", "carte 4111 1111 1111 1111, 40 + 2 ?"])
+@pytest.mark.parametrize("failure", ["inference", "corruption"])
+async def test_optional_privacy_failure_stops_gateway_before_network(swarm, monkeypatch, tmp_path, content, failure):
+    from myriad import privacy_model as pm
+    monkeypatch.setitem(sys.modules, "myriad.privacy_model", pm)
+    class BrokenClassifier:
+        def token_scores(self, text):
+            raise RuntimeError("inférence impossible")
+    scanner = pm.PrivacyScanner(home=tmp_path, classifier=BrokenClassifier() if failure == "inference" else None)
+    if failure == "corruption":
+        path = pm.model_dir(scanner.model, tmp_path) / scanner.model.onnx.file
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"incomplete")
+    monkeypatch.setattr(pm, "_default", scanner)
+    seen = capture(swarm.tracker, monkeypatch)
+    _, client = await swarm.add_gateway()
+    before = {k: e.calls for k, e in swarm.engines.items()}
+    r = await client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": content}]})
+    assert r.status_code == 409 and r.json()["error"]["type"] == "confirmation_required"
+    assert r.json()["error"]["privacy"]["confirm_types"] == ["other"]
+    assert all(json.loads(t)["t"] == "welcome" for _, _, t in seen)
+    assert before == {k: e.calls for k, e in swarm.engines.items()}
+
+
+async def test_optional_model_local_decision_stops_gateway(swarm, monkeypatch, tmp_path):
+    from myriad import privacy_model as pm
+    monkeypatch.setitem(sys.modules, "myriad.privacy_model", pm)
+    class SensitiveClassifier:
+        def token_scores(self, text):
+            return [(0, len(text), 0.99, "PERSON")]
+    cal = pm.Calibration(0.3, 0.2, 0.8, 0.01, 1000)
+    monkeypatch.setattr(pm, "_default", pm.PrivacyScanner(home=tmp_path, classifier=SensitiveClassifier(),
+                                                       calibration=cal))
+    seen = capture(swarm.tracker, monkeypatch)
+    gw, _ = await swarm.add_gateway()
+    with pytest.raises(GatewayError) as e:
+        await gw.ask([{"role": "user", "content": "Camille Lefèvre"}], confirm=True)
+    assert e.value.code == "kept_local" and all(json.loads(t)["t"] == "welcome" for _, _, t in seen)
 
 
 async def test_no_job_text_reaches_logs_or_disk(tmp_path, caplog):

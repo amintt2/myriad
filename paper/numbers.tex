@@ -15,8 +15,1492 @@
 \newcommand{\eFiveMmluGainCI}{[$-$2.3, +6.3]}
 \newcommand{\eFiveMmluH}{30}
 \newcommand{\eFiveMmluR}{55}
+\newcommand{\eFourArcBestCI}{[$-$3.4, +1.2]}
+\newcommand{\eFourArcBestDiff}{$-$1.0}
+\newcommand{\eFourArcBestName}{Qwen3.5-4B}
+\newcommand{\eFourArcBestPSup}{1.000}
+\newcommand{\eFourArcBestV}{--}
+\newcommand{\eFourArcBestVerdict}{inconclusive}
+\newcommand{\eFourArcCollision}{0.71}
+\newcommand{\eFourArcGemmaEFour}{95.3}
+\newcommand{\eFourArcGemmaETwo}{91.3}
+\newcommand{\eFourArcGemmaTwelve}{97.7}
+\newcommand{\eFourArcGemmaTwelveCI}{[$-$4.6, +0.1]}
+\newcommand{\eFourArcGemmaTwelveDiff}{$-$2.0}
+\newcommand{\eFourArcGemmaTwelvePSup}{1.000}
+\newcommand{\eFourArcGemmaTwelveV}{--}
+\newcommand{\eFourArcGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourArcGraniteThree}{88.0}
+\newcommand{\eFourArcMaxTokens}{1024}
+\newcommand{\eFourArcMinistralFourteen}{94.7}
+\newcommand{\eFourArcMinistralFourteenCI}{[$-$1.5, +3.7]}
+\newcommand{\eFourArcMinistralFourteenDiff}{+1.0}
+\newcommand{\eFourArcMinistralFourteenPSup}{0.265}
+\newcommand{\eFourArcMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourArcMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourArcMinistralThree}{90.3}
+\newcommand{\eFourArcN}{300}
+\newcommand{\eFourArcOlmoOne}{28.0}
+\newcommand{\eFourArcOracle}{99.0}
+\newcommand{\eFourArcPhiMini}{87.7}
+\newcommand{\eFourArcQwenFour}{96.7}
+\newcommand{\eFourArcQwenNine}{97.0}
+\newcommand{\eFourArcQwenNineCI}{[$-$4.0, +1.1]}
+\newcommand{\eFourArcQwenNineDiff}{$-$1.3}
+\newcommand{\eFourArcQwenNinePSup}{1.000}
+\newcommand{\eFourArcQwenNineV}{--}
+\newcommand{\eFourArcQwenNineVerdict}{inconclusive}
+\newcommand{\eFourArcQwenTwentySeven}{97.7}
+\newcommand{\eFourArcQwenTwentySevenCI}{[$-$4.7, +0.3]}
+\newcommand{\eFourArcQwenTwentySevenDiff}{$-$2.0}
+\newcommand{\eFourArcQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourArcQwenTwentySevenV}{--}
+\newcommand{\eFourArcQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourArcQwenTwo}{89.0}
+\newcommand{\eFourArcScaleFive}{95.3}
+\newcommand{\eFourArcScaleFour}{94.9}
+\newcommand{\eFourArcScaleOne}{81.4}
+\newcommand{\eFourArcScaleSeven}{95.7}
+\newcommand{\eFourArcScaleSix}{95.3}
+\newcommand{\eFourArcScaleThree}{93.8}
+\newcommand{\eFourArcScaleTwo}{92.6}
+\newcommand{\eFourArcSmolThree}{84.0}
+\newcommand{\eFourArcSwarm}{95.7}
+\newcommand{\eFourArcVote}{95.0}
+\newcommand{\eFourArcWaits}{5.11}
+\newcommand{\eFourAvoidedMax}{2.28}
+\newcommand{\eFourAvoidedMin}{1.27}
+\newcommand{\eFourBonferroniAlpha}{0.00125}
+\newcommand{\eFourBuild}{11505}
+\newcommand{\eFourCascGemmaTwelveMarTenAcc}{88.7}
+\newcommand{\eFourCascGemmaTwelveMarTenArcAcc}{97.0}
+\newcommand{\eFourCascGemmaTwelveMarTenArcBroken}{2}
+\newcommand{\eFourCascGemmaTwelveMarTenArcCI}{[$-$2.4, +0.6]}
+\newcommand{\eFourCascGemmaTwelveMarTenArcCalls}{7.7}
+\newcommand{\eFourCascGemmaTwelveMarTenArcDiff}{$-$0.7}
+\newcommand{\eFourCascGemmaTwelveMarTenArcPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTenArcRescued}{6}
+\newcommand{\eFourCascGemmaTwelveMarTenArcSwarmCI}{[$-$0.6, +3.7]}
+\newcommand{\eFourCascGemmaTwelveMarTenArcSwarmDiff}{+1.3}
+\newcommand{\eFourCascGemmaTwelveMarTenArcSwarmPSup}{0.107}
+\newcommand{\eFourCascGemmaTwelveMarTenArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTenArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTenArcV}{--}
+\newcommand{\eFourCascGemmaTwelveMarTenArcVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveMarTenCI}{[$-$2.1, +0.7]}
+\newcommand{\eFourCascGemmaTwelveMarTenCalls}{8.1}
+\newcommand{\eFourCascGemmaTwelveMarTenCompute}{2.61}
+\newcommand{\eFourCascGemmaTwelveMarTenDiff}{$-$0.7}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmAcc}{98.0}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmBroken}{1}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmCI}{[$-$1.2, +2.8]}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmCalls}{6.7}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmDiff}{+0.7}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmPSup}{0.267}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmRescued}{7}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmSwarmCI}{[+0.2, +4.4]}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmSwarmDiff}{+2.0}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmSwarmPSup}{0.017}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTenGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTenMathAcc}{88.4}
+\newcommand{\eFourCascGemmaTwelveMarTenMathBroken}{0}
+\newcommand{\eFourCascGemmaTwelveMarTenMathCI}{[$-$6.8, +0.9]}
+\newcommand{\eFourCascGemmaTwelveMarTenMathCalls}{7.2}
+\newcommand{\eFourCascGemmaTwelveMarTenMathDiff}{$-$2.8}
+\newcommand{\eFourCascGemmaTwelveMarTenMathPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTenMathRescued}{7}
+\newcommand{\eFourCascGemmaTwelveMarTenMathSwarmCI}{[+1.2, +5.7]}
+\newcommand{\eFourCascGemmaTwelveMarTenMathSwarmDiff}{+2.8}
+\newcommand{\eFourCascGemmaTwelveMarTenMathSwarmPSup}{0.005}
+\newcommand{\eFourCascGemmaTwelveMarTenMathSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTenMathSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTenMathV}{--}
+\newcommand{\eFourCascGemmaTwelveMarTenMathVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluAcc}{71.3}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluBroken}{6}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluCI}{[$-$4.5, +3.8]}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluCalls}{10.7}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluDiff}{$-$0.3}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluRescued}{8}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluSwarmCI}{[$-$2.0, +3.4]}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluSwarmDiff}{+0.7}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluSwarmPSup}{0.342}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluV}{--}
+\newcommand{\eFourCascGemmaTwelveMarTenMmluVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveMarTenPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTenPooledAcc}{88.7}
+\newcommand{\eFourCascGemmaTwelveMarTenSwarmCI}{[+0.7, +2.8]}
+\newcommand{\eFourCascGemmaTwelveMarTenSwarmDiff}{+1.7}
+\newcommand{\eFourCascGemmaTwelveMarTenSwarmPSup}{0.001}
+\newcommand{\eFourCascGemmaTwelveMarTenSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTenSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTenV}{\textsc{eq}}
+\newcommand{\eFourCascGemmaTwelveMarTenVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascGemmaTwelveMarTwentyAcc}{89.9}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcAcc}{97.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcBroken}{2}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcCI}{[$-$2.4, +0.6]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcCalls}{7.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcDiff}{$-$0.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcRescued}{6}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcSwarmCI}{[$-$0.6, +3.7]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcSwarmDiff}{+1.3}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcSwarmPSup}{0.107}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcV}{--}
+\newcommand{\eFourCascGemmaTwelveMarTwentyArcVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveMarTwentyCI}{[$-$0.7, +1.6]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyCalls}{14.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyCompute}{2.68}
+\newcommand{\eFourCascGemmaTwelveMarTwentyDiff}{+0.4}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmAcc}{98.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmBroken}{1}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmCI}{[+0.1, +3.4]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmCalls}{10.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmDiff}{+1.3}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmPSup}{0.024}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmRescued}{9}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmSwarmCI}{[+0.8, +5.3]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmSwarmDiff}{+2.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmSwarmPSup}{0.006}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyGsmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathAcc}{91.2}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathBroken}{1}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathCI}{[$-$3.1, +3.1]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathCalls}{16.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathDiff}{+0.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathRescued}{15}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathSwarmCI}{[+2.9, +9.3]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathSwarmDiff}{+5.6}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathSwarmPSup}{0.000}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathV}{--}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMathVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluAcc}{72.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluBroken}{10}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluCI}{[$-$2.4, +4.5]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluCalls}{21.7}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluDiff}{+1.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluPSup}{0.285}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluRescued}{16}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluSwarmCI}{[$-$1.4, +5.6]}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluSwarmDiff}{+2.0}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluSwarmPSup}{0.124}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluV}{\textsc{ni}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyMmluVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascGemmaTwelveMarTwentyPSup}{0.231}
+\newcommand{\eFourCascGemmaTwelveMarTwentyPooledAcc}{89.8}
+\newcommand{\eFourCascGemmaTwelveMarTwentySwarmCI}{[+1.5, +4.2]}
+\newcommand{\eFourCascGemmaTwelveMarTwentySwarmDiff}{+2.8}
+\newcommand{\eFourCascGemmaTwelveMarTwentySwarmPSup}{0.000}
+\newcommand{\eFourCascGemmaTwelveMarTwentySwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveMarTwentySwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveMarTwentyV}{\textsc{eq}}
+\newcommand{\eFourCascGemmaTwelveMarTwentyVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascGemmaTwelveSupTwoAcc}{87.7}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcAcc}{95.7}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcBroken}{0}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcCI}{[$-$4.6, +0.1]}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcCalls}{0.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcDiff}{$-$2.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcRescued}{0}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcSwarmDiff}{+0.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcSwarmPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcV}{--}
+\newcommand{\eFourCascGemmaTwelveSupTwoArcVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveSupTwoCI}{[$-$3.3, $-$0.2]}
+\newcommand{\eFourCascGemmaTwelveSupTwoCalls}{5.2}
+\newcommand{\eFourCascGemmaTwelveSupTwoCompute}{2.57}
+\newcommand{\eFourCascGemmaTwelveSupTwoDiff}{$-$1.7}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmAcc}{96.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmBroken}{0}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmCI}{[$-$4.2, +1.3]}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmCalls}{0.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmDiff}{$-$1.3}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmRescued}{0}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmV}{--}
+\newcommand{\eFourCascGemmaTwelveSupTwoGsmVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathAcc}{88.8}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathBroken}{0}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathCI}{[$-$6.3, +1.2]}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathCalls}{7.6}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathDiff}{$-$2.4}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathRescued}{8}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathSwarmCI}{[+1.6, +6.2]}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathSwarmDiff}{+3.2}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathSwarmPSup}{0.002}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathSwarmVerdict}{superior}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathV}{--}
+\newcommand{\eFourCascGemmaTwelveSupTwoMathVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluAcc}{70.3}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluBroken}{8}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluCI}{[$-$5.4, +2.7]}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluCalls}{13.0}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluDiff}{$-$1.3}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluRescued}{7}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluSwarmCI}{[$-$3.2, +2.4]}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluSwarmDiff}{$-$0.3}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluSwarmV}{--}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluV}{--}
+\newcommand{\eFourCascGemmaTwelveSupTwoMmluVerdict}{inconclusive}
+\newcommand{\eFourCascGemmaTwelveSupTwoPSup}{1.000}
+\newcommand{\eFourCascGemmaTwelveSupTwoPooledAcc}{87.7}
+\newcommand{\eFourCascGemmaTwelveSupTwoSwarmCI}{[$-$0.2, +1.5]}
+\newcommand{\eFourCascGemmaTwelveSupTwoSwarmDiff}{+0.6}
+\newcommand{\eFourCascGemmaTwelveSupTwoSwarmPSup}{0.076}
+\newcommand{\eFourCascGemmaTwelveSupTwoSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascGemmaTwelveSupTwoSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascGemmaTwelveSupTwoV}{\textsc{inf}}
+\newcommand{\eFourCascGemmaTwelveSupTwoVerdict}{inferior}
+\newcommand{\eFourCascMinistralFourteenMarTenAcc}{87.3}
+\newcommand{\eFourCascMinistralFourteenMarTenArcAcc}{96.3}
+\newcommand{\eFourCascMinistralFourteenMarTenArcBroken}{1}
+\newcommand{\eFourCascMinistralFourteenMarTenArcCI}{[$-$0.4, +4.2]}
+\newcommand{\eFourCascMinistralFourteenMarTenArcCalls}{4.3}
+\newcommand{\eFourCascMinistralFourteenMarTenArcDiff}{+1.7}
+\newcommand{\eFourCascMinistralFourteenMarTenArcPSup}{0.052}
+\newcommand{\eFourCascMinistralFourteenMarTenArcRescued}{3}
+\newcommand{\eFourCascMinistralFourteenMarTenArcSwarmCI}{[$-$1.0, +2.6]}
+\newcommand{\eFourCascMinistralFourteenMarTenArcSwarmDiff}{+0.7}
+\newcommand{\eFourCascMinistralFourteenMarTenArcSwarmPSup}{0.265}
+\newcommand{\eFourCascMinistralFourteenMarTenArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTenArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenArcV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTenArcVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenCI}{[+3.5, +7.0]}
+\newcommand{\eFourCascMinistralFourteenMarTenCalls}{4.2}
+\newcommand{\eFourCascMinistralFourteenMarTenCompute}{2.27}
+\newcommand{\eFourCascMinistralFourteenMarTenDiff}{+5.2}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmAcc}{95.7}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmBroken}{4}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmCI}{[+0.4, +3.8]}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmCalls}{4.0}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmDiff}{+1.7}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmPSup}{0.013}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmRescued}{3}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmSwarmCI}{[$-$2.5, +1.7]}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmSwarmDiff}{$-$0.3}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmSwarmV}{--}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTenGsmVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenMarTenMathAcc}{85.6}
+\newcommand{\eFourCascMinistralFourteenMarTenMathBroken}{0}
+\newcommand{\eFourCascMinistralFourteenMarTenMathCI}{[+10.7, +19.8]}
+\newcommand{\eFourCascMinistralFourteenMarTenMathCalls}{0.0}
+\newcommand{\eFourCascMinistralFourteenMarTenMathDiff}{+14.8}
+\newcommand{\eFourCascMinistralFourteenMarTenMathPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenMarTenMathRescued}{0}
+\newcommand{\eFourCascMinistralFourteenMarTenMathSwarmCI}{[$-$1.5, +1.5]}
+\newcommand{\eFourCascMinistralFourteenMarTenMathSwarmDiff}{+0.0}
+\newcommand{\eFourCascMinistralFourteenMarTenMathSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTenMathSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenMarTenMathSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenMathV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTenMathVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluAcc}{71.7}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluBroken}{2}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluCI}{[$-$0.4, +9.2]}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluCalls}{8.7}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluDiff}{+4.3}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluPSup}{0.040}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluRescued}{5}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluSwarmCI}{[$-$0.9, +3.3]}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluSwarmDiff}{+1.0}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluSwarmPSup}{0.146}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTenMmluVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenMarTenPooledAcc}{87.4}
+\newcommand{\eFourCascMinistralFourteenMarTenSwarmCI}{[$-$0.4, +1.2]}
+\newcommand{\eFourCascMinistralFourteenMarTenSwarmDiff}{+0.3}
+\newcommand{\eFourCascMinistralFourteenMarTenSwarmPSup}{0.180}
+\newcommand{\eFourCascMinistralFourteenMarTenSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenMarTenSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenMarTenV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTenVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenMarTwentyAcc}{86.8}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcAcc}{96.3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcBroken}{1}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcCI}{[$-$0.4, +4.2]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcCalls}{4.3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcDiff}{+1.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcPSup}{0.052}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcRescued}{3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcSwarmCI}{[$-$1.0, +2.6]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcSwarmDiff}{+0.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcSwarmPSup}{0.265}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyArcVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTwentyCI}{[+3.2, +6.4]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyCalls}{6.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyCompute}{2.30}
+\newcommand{\eFourCascMinistralFourteenMarTwentyDiff}{+4.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmAcc}{95.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmBroken}{4}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmCI}{[+0.4, +3.8]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmCalls}{4.0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmDiff}{+1.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmPSup}{0.013}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmRescued}{3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmSwarmCI}{[$-$2.5, +1.7]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmSwarmDiff}{$-$0.3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmSwarmV}{--}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyGsmVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathAcc}{85.6}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathBroken}{0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathCI}{[+10.7, +19.8]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathCalls}{0.0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathDiff}{+14.8}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathRescued}{0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathSwarmCI}{[$-$1.5, +1.5]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathSwarmDiff}{+0.0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMathVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluAcc}{69.7}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluBroken}{14}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluCI}{[$-$1.6, +6.4]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluCalls}{18.3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluDiff}{+2.3}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluPSup}{0.125}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluRescued}{11}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluSwarmCI}{[$-$4.5, +2.4]}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluSwarmDiff}{$-$1.0}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluSwarmV}{--}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyMmluVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenMarTwentyPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentyPooledAcc}{86.9}
+\newcommand{\eFourCascMinistralFourteenMarTwentySwarmCI}{[$-$1.3, +0.9]}
+\newcommand{\eFourCascMinistralFourteenMarTwentySwarmDiff}{$-$0.2}
+\newcommand{\eFourCascMinistralFourteenMarTwentySwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenMarTwentySwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenMarTwentySwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenMarTwentyV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenMarTwentyVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenSupTwoAcc}{86.1}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcAcc}{95.7}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcBroken}{0}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcCI}{[$-$1.5, +3.7]}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcCalls}{0.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcDiff}{+1.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcPSup}{0.265}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcRescued}{0}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcSwarmDiff}{+0.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenSupTwoArcVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenSupTwoCI}{[+2.3, +5.8]}
+\newcommand{\eFourCascMinistralFourteenSupTwoCalls}{5.2}
+\newcommand{\eFourCascMinistralFourteenSupTwoCompute}{2.31}
+\newcommand{\eFourCascMinistralFourteenSupTwoDiff}{+4.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmAcc}{96.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmBroken}{0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmCI}{[$-$0.3, +4.7]}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmCalls}{0.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmDiff}{+2.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmPSup}{0.047}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmRescued}{0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmV}{\textsc{ni}}
+\newcommand{\eFourCascMinistralFourteenSupTwoGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathAcc}{84.4}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathBroken}{3}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathCI}{[+9.7, +18.5]}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathCalls}{7.6}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathDiff}{+13.6}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathRescued}{0}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathSwarmCI}{[$-$3.5, +0.3]}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathSwarmDiff}{$-$1.2}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathSwarmV}{--}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenSupTwoMathVerdict}{superior}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluAcc}{68.3}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluBroken}{12}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluCI}{[$-$3.4, +5.4]}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluCalls}{13.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluDiff}{+1.0}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluPSup}{0.343}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluRescued}{5}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluSwarmCI}{[$-$5.4, +0.4]}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluSwarmDiff}{$-$2.3}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluSwarmV}{--}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluV}{--}
+\newcommand{\eFourCascMinistralFourteenSupTwoMmluVerdict}{inconclusive}
+\newcommand{\eFourCascMinistralFourteenSupTwoPSup}{0.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoPooledAcc}{86.2}
+\newcommand{\eFourCascMinistralFourteenSupTwoSwarmCI}{[$-$1.8, $-$0.1]}
+\newcommand{\eFourCascMinistralFourteenSupTwoSwarmDiff}{$-$0.9}
+\newcommand{\eFourCascMinistralFourteenSupTwoSwarmPSup}{1.000}
+\newcommand{\eFourCascMinistralFourteenSupTwoSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascMinistralFourteenSupTwoSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascMinistralFourteenSupTwoV}{\textsc{sup}}
+\newcommand{\eFourCascMinistralFourteenSupTwoVerdict}{superior}
+\newcommand{\eFourCascQwenNineMarTenAcc}{87.5}
+\newcommand{\eFourCascQwenNineMarTenArcAcc}{97.3}
+\newcommand{\eFourCascQwenNineMarTenArcBroken}{1}
+\newcommand{\eFourCascQwenNineMarTenArcCI}{[$-$1.5, +2.3]}
+\newcommand{\eFourCascQwenNineMarTenArcCalls}{7.7}
+\newcommand{\eFourCascQwenNineMarTenArcDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTenArcPSup}{0.377}
+\newcommand{\eFourCascQwenNineMarTenArcRescued}{6}
+\newcommand{\eFourCascQwenNineMarTenArcSwarmCI}{[$-$0.1, +4.0]}
+\newcommand{\eFourCascQwenNineMarTenArcSwarmDiff}{+1.7}
+\newcommand{\eFourCascQwenNineMarTenArcSwarmPSup}{0.035}
+\newcommand{\eFourCascQwenNineMarTenArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTenArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTenArcV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTenArcVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTenCI}{[$-$0.2, +3.0]}
+\newcommand{\eFourCascQwenNineMarTenCalls}{4.7}
+\newcommand{\eFourCascQwenNineMarTenCompute}{3.02}
+\newcommand{\eFourCascQwenNineMarTenDiff}{+1.4}
+\newcommand{\eFourCascQwenNineMarTenGsmAcc}{96.0}
+\newcommand{\eFourCascQwenNineMarTenGsmBroken}{0}
+\newcommand{\eFourCascQwenNineMarTenGsmCI}{[$-$1.9, +2.7]}
+\newcommand{\eFourCascQwenNineMarTenGsmCalls}{0.0}
+\newcommand{\eFourCascQwenNineMarTenGsmDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTenGsmPSup}{0.411}
+\newcommand{\eFourCascQwenNineMarTenGsmRescued}{0}
+\newcommand{\eFourCascQwenNineMarTenGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenNineMarTenGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineMarTenGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineMarTenGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTenGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTenGsmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTenGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTenMathAcc}{85.6}
+\newcommand{\eFourCascQwenNineMarTenMathBroken}{0}
+\newcommand{\eFourCascQwenNineMarTenMathCI}{[$-$1.8, +4.5]}
+\newcommand{\eFourCascQwenNineMarTenMathCalls}{5.6}
+\newcommand{\eFourCascQwenNineMarTenMathDiff}{+1.2}
+\newcommand{\eFourCascQwenNineMarTenMathPSup}{0.265}
+\newcommand{\eFourCascQwenNineMarTenMathRescued}{0}
+\newcommand{\eFourCascQwenNineMarTenMathSwarmCI}{[$-$1.5, +1.5]}
+\newcommand{\eFourCascQwenNineMarTenMathSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineMarTenMathSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineMarTenMathSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTenMathSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTenMathV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTenMathVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTenMmluAcc}{71.0}
+\newcommand{\eFourCascQwenNineMarTenMmluBroken}{1}
+\newcommand{\eFourCascQwenNineMarTenMmluCI}{[$-$1.3, +8.7]}
+\newcommand{\eFourCascQwenNineMarTenMmluCalls}{5.3}
+\newcommand{\eFourCascQwenNineMarTenMmluDiff}{+3.7}
+\newcommand{\eFourCascQwenNineMarTenMmluPSup}{0.076}
+\newcommand{\eFourCascQwenNineMarTenMmluRescued}{2}
+\newcommand{\eFourCascQwenNineMarTenMmluSwarmCI}{[$-$1.3, +2.1]}
+\newcommand{\eFourCascQwenNineMarTenMmluSwarmDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTenMmluSwarmPSup}{0.342}
+\newcommand{\eFourCascQwenNineMarTenMmluSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTenMmluSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTenMmluV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTenMmluVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTenPSup}{0.041}
+\newcommand{\eFourCascQwenNineMarTenPooledAcc}{87.6}
+\newcommand{\eFourCascQwenNineMarTenSwarmCI}{[$-$0.0, +1.2]}
+\newcommand{\eFourCascQwenNineMarTenSwarmDiff}{+0.5}
+\newcommand{\eFourCascQwenNineMarTenSwarmPSup}{0.030}
+\newcommand{\eFourCascQwenNineMarTenSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTenSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTenV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTwentyAcc}{87.2}
+\newcommand{\eFourCascQwenNineMarTwentyArcAcc}{97.3}
+\newcommand{\eFourCascQwenNineMarTwentyArcBroken}{1}
+\newcommand{\eFourCascQwenNineMarTwentyArcCI}{[$-$1.5, +2.3]}
+\newcommand{\eFourCascQwenNineMarTwentyArcCalls}{7.7}
+\newcommand{\eFourCascQwenNineMarTwentyArcDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTwentyArcPSup}{0.377}
+\newcommand{\eFourCascQwenNineMarTwentyArcRescued}{6}
+\newcommand{\eFourCascQwenNineMarTwentyArcSwarmCI}{[$-$0.1, +4.0]}
+\newcommand{\eFourCascQwenNineMarTwentyArcSwarmDiff}{+1.7}
+\newcommand{\eFourCascQwenNineMarTwentyArcSwarmPSup}{0.035}
+\newcommand{\eFourCascQwenNineMarTwentyArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTwentyArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTwentyArcV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTwentyArcVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTwentyCI}{[$-$0.2, +2.5]}
+\newcommand{\eFourCascQwenNineMarTwentyCalls}{8.1}
+\newcommand{\eFourCascQwenNineMarTwentyCompute}{3.06}
+\newcommand{\eFourCascQwenNineMarTwentyDiff}{+1.1}
+\newcommand{\eFourCascQwenNineMarTwentyGsmAcc}{96.0}
+\newcommand{\eFourCascQwenNineMarTwentyGsmBroken}{0}
+\newcommand{\eFourCascQwenNineMarTwentyGsmCI}{[$-$1.9, +2.7]}
+\newcommand{\eFourCascQwenNineMarTwentyGsmCalls}{0.0}
+\newcommand{\eFourCascQwenNineMarTwentyGsmDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTwentyGsmPSup}{0.411}
+\newcommand{\eFourCascQwenNineMarTwentyGsmRescued}{0}
+\newcommand{\eFourCascQwenNineMarTwentyGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenNineMarTwentyGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineMarTwentyGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineMarTwentyGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTwentyGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTwentyGsmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTwentyGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTwentyMathAcc}{85.6}
+\newcommand{\eFourCascQwenNineMarTwentyMathBroken}{0}
+\newcommand{\eFourCascQwenNineMarTwentyMathCI}{[$-$1.8, +4.5]}
+\newcommand{\eFourCascQwenNineMarTwentyMathCalls}{5.6}
+\newcommand{\eFourCascQwenNineMarTwentyMathDiff}{+1.2}
+\newcommand{\eFourCascQwenNineMarTwentyMathPSup}{0.265}
+\newcommand{\eFourCascQwenNineMarTwentyMathRescued}{0}
+\newcommand{\eFourCascQwenNineMarTwentyMathSwarmCI}{[$-$1.5, +1.5]}
+\newcommand{\eFourCascQwenNineMarTwentyMathSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineMarTwentyMathSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineMarTwentyMathSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTwentyMathSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTwentyMathV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTwentyMathVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTwentyMmluAcc}{70.0}
+\newcommand{\eFourCascQwenNineMarTwentyMmluBroken}{13}
+\newcommand{\eFourCascQwenNineMarTwentyMmluCI}{[$-$1.3, +6.8]}
+\newcommand{\eFourCascQwenNineMarTwentyMmluCalls}{19.0}
+\newcommand{\eFourCascQwenNineMarTwentyMmluDiff}{+2.7}
+\newcommand{\eFourCascQwenNineMarTwentyMmluPSup}{0.124}
+\newcommand{\eFourCascQwenNineMarTwentyMmluRescued}{11}
+\newcommand{\eFourCascQwenNineMarTwentyMmluSwarmCI}{[$-$4.1, +2.7]}
+\newcommand{\eFourCascQwenNineMarTwentyMmluSwarmDiff}{$-$0.7}
+\newcommand{\eFourCascQwenNineMarTwentyMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineMarTwentyMmluSwarmV}{--}
+\newcommand{\eFourCascQwenNineMarTwentyMmluSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascQwenNineMarTwentyMmluV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTwentyMmluVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineMarTwentyPSup}{0.052}
+\newcommand{\eFourCascQwenNineMarTwentyPooledAcc}{87.3}
+\newcommand{\eFourCascQwenNineMarTwentySwarmCI}{[$-$0.7, +1.3]}
+\newcommand{\eFourCascQwenNineMarTwentySwarmDiff}{+0.3}
+\newcommand{\eFourCascQwenNineMarTwentySwarmPSup}{0.342}
+\newcommand{\eFourCascQwenNineMarTwentySwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineMarTwentySwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineMarTwentyV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineMarTwentyVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineSupTwoAcc}{86.2}
+\newcommand{\eFourCascQwenNineSupTwoArcAcc}{95.7}
+\newcommand{\eFourCascQwenNineSupTwoArcBroken}{0}
+\newcommand{\eFourCascQwenNineSupTwoArcCI}{[$-$4.0, +1.1]}
+\newcommand{\eFourCascQwenNineSupTwoArcCalls}{0.0}
+\newcommand{\eFourCascQwenNineSupTwoArcDiff}{$-$1.3}
+\newcommand{\eFourCascQwenNineSupTwoArcPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoArcRescued}{0}
+\newcommand{\eFourCascQwenNineSupTwoArcSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenNineSupTwoArcSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineSupTwoArcSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoArcSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineSupTwoArcSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineSupTwoArcV}{--}
+\newcommand{\eFourCascQwenNineSupTwoArcVerdict}{inconclusive}
+\newcommand{\eFourCascQwenNineSupTwoCI}{[$-$1.4, +1.6]}
+\newcommand{\eFourCascQwenNineSupTwoCalls}{5.2}
+\newcommand{\eFourCascQwenNineSupTwoCompute}{3.03}
+\newcommand{\eFourCascQwenNineSupTwoDiff}{+0.1}
+\newcommand{\eFourCascQwenNineSupTwoGsmAcc}{96.0}
+\newcommand{\eFourCascQwenNineSupTwoGsmBroken}{0}
+\newcommand{\eFourCascQwenNineSupTwoGsmCI}{[$-$1.9, +2.7]}
+\newcommand{\eFourCascQwenNineSupTwoGsmCalls}{0.0}
+\newcommand{\eFourCascQwenNineSupTwoGsmDiff}{+0.3}
+\newcommand{\eFourCascQwenNineSupTwoGsmPSup}{0.411}
+\newcommand{\eFourCascQwenNineSupTwoGsmRescued}{0}
+\newcommand{\eFourCascQwenNineSupTwoGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenNineSupTwoGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenNineSupTwoGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineSupTwoGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineSupTwoGsmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineSupTwoGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineSupTwoMathAcc}{86.0}
+\newcommand{\eFourCascQwenNineSupTwoMathBroken}{1}
+\newcommand{\eFourCascQwenNineSupTwoMathCI}{[$-$1.0, +4.6]}
+\newcommand{\eFourCascQwenNineSupTwoMathCalls}{7.6}
+\newcommand{\eFourCascQwenNineSupTwoMathDiff}{+1.6}
+\newcommand{\eFourCascQwenNineSupTwoMathPSup}{0.125}
+\newcommand{\eFourCascQwenNineSupTwoMathRescued}{2}
+\newcommand{\eFourCascQwenNineSupTwoMathSwarmCI}{[$-$1.5, +2.5]}
+\newcommand{\eFourCascQwenNineSupTwoMathSwarmDiff}{+0.4}
+\newcommand{\eFourCascQwenNineSupTwoMathSwarmPSup}{0.342}
+\newcommand{\eFourCascQwenNineSupTwoMathSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineSupTwoMathSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineSupTwoMathV}{\textsc{ni}}
+\newcommand{\eFourCascQwenNineSupTwoMathVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenNineSupTwoMmluAcc}{67.3}
+\newcommand{\eFourCascQwenNineSupTwoMmluBroken}{12}
+\newcommand{\eFourCascQwenNineSupTwoMmluCI}{[$-$4.6, +4.6]}
+\newcommand{\eFourCascQwenNineSupTwoMmluCalls}{13.0}
+\newcommand{\eFourCascQwenNineSupTwoMmluDiff}{+0.0}
+\newcommand{\eFourCascQwenNineSupTwoMmluPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoMmluRescued}{2}
+\newcommand{\eFourCascQwenNineSupTwoMmluSwarmCI}{[$-$6.3, $-$1.0]}
+\newcommand{\eFourCascQwenNineSupTwoMmluSwarmDiff}{$-$3.3}
+\newcommand{\eFourCascQwenNineSupTwoMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoMmluSwarmV}{\textsc{inf}}
+\newcommand{\eFourCascQwenNineSupTwoMmluSwarmVerdict}{inferior}
+\newcommand{\eFourCascQwenNineSupTwoMmluV}{--}
+\newcommand{\eFourCascQwenNineSupTwoMmluVerdict}{inconclusive}
+\newcommand{\eFourCascQwenNineSupTwoPSup}{0.474}
+\newcommand{\eFourCascQwenNineSupTwoPooledAcc}{86.3}
+\newcommand{\eFourCascQwenNineSupTwoSwarmCI}{[$-$1.6, $-$0.1]}
+\newcommand{\eFourCascQwenNineSupTwoSwarmDiff}{$-$0.8}
+\newcommand{\eFourCascQwenNineSupTwoSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenNineSupTwoSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineSupTwoSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenNineSupTwoV}{\textsc{eq}}
+\newcommand{\eFourCascQwenNineSupTwoVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTenAcc}{87.8}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcAcc}{96.7}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcBroken}{2}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcCI}{[$-$3.1, +0.7]}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcCalls}{6.0}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcDiff}{$-$1.0}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcRescued}{5}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcSwarmCI}{[$-$0.9, +3.3]}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcSwarmDiff}{+1.0}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcSwarmPSup}{0.146}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcV}{--}
+\newcommand{\eFourCascQwenTwentySevenMarTenArcVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenMarTenCI}{[$-$0.4, +3.0]}
+\newcommand{\eFourCascQwenTwentySevenMarTenCalls}{5.9}
+\newcommand{\eFourCascQwenTwentySevenMarTenCompute}{0.94}
+\newcommand{\eFourCascQwenTwentySevenMarTenDiff}{+1.3}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmAcc}{98.3}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmBroken}{0}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmCI}{[$-$0.6, +2.4]}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmCalls}{6.7}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmDiff}{+0.7}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmPSup}{0.107}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmRescued}{7}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmSwarmCI}{[+1.0, +4.7]}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmSwarmDiff}{+2.3}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmSwarmPSup}{0.005}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmSwarmVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTenGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathAcc}{85.6}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathBroken}{1}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathCI}{[$-$4.6, +2.0]}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathCalls}{5.6}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathDiff}{$-$1.2}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathRescued}{1}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathSwarmCI}{[$-$1.9, +1.9]}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathV}{--}
+\newcommand{\eFourCascQwenTwentySevenMarTenMathVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluAcc}{70.7}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluBroken}{1}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluCI}{[+0.8, +12.0]}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluCalls}{5.3}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluDiff}{+6.3}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluPSup}{0.013}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluRescued}{1}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluSwarmCI}{[$-$1.6, +1.6]}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTenMmluVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTenPSup}{0.064}
+\newcommand{\eFourCascQwenTwentySevenMarTenPooledAcc}{87.9}
+\newcommand{\eFourCascQwenTwentySevenMarTenSwarmCI}{[+0.2, +1.7]}
+\newcommand{\eFourCascQwenTwentySevenMarTenSwarmDiff}{+0.9}
+\newcommand{\eFourCascQwenTwentySevenMarTenSwarmPSup}{0.010}
+\newcommand{\eFourCascQwenTwentySevenMarTenSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTenSwarmVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTenV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyAcc}{88.1}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcAcc}{96.7}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcBroken}{2}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcCI}{[$-$3.1, +0.7]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcCalls}{6.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcDiff}{$-$1.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcRescued}{5}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcSwarmCI}{[$-$0.9, +3.3]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcSwarmDiff}{+1.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcSwarmPSup}{0.146}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcV}{--}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyArcVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyCI}{[+0.1, +2.9]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyCalls}{11.6}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyCompute}{1.02}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyDiff}{+1.5}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmAcc}{98.3}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmBroken}{0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmCI}{[$-$0.6, +2.4]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmCalls}{7.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmDiff}{+0.7}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmPSup}{0.107}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmRescued}{7}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmSwarmCI}{[+1.0, +4.7]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmSwarmDiff}{+2.3}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmSwarmPSup}{0.005}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmSwarmVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyGsmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathAcc}{88.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathBroken}{1}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathCI}{[$-$1.4, +4.1]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathCalls}{14.4}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathDiff}{+1.2}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathPSup}{0.265}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathRescued}{7}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathSwarmCI}{[+0.2, +5.3]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathSwarmDiff}{+2.4}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathSwarmPSup}{0.018}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathSwarmV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathSwarmVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMathVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluAcc}{69.3}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluBroken}{14}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluCI}{[+0.3, +9.8]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluCalls}{19.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluDiff}{+5.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluPSup}{0.020}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluRescued}{10}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluSwarmCI}{[$-$4.8, +2.0]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluSwarmDiff}{$-$1.3}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluSwarmV}{--}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluSwarmVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyMmluVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyPSup}{0.020}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyPooledAcc}{88.1}
+\newcommand{\eFourCascQwenTwentySevenMarTwentySwarmCI}{[$-$0.1, +2.3]}
+\newcommand{\eFourCascQwenTwentySevenMarTwentySwarmDiff}{+1.0}
+\newcommand{\eFourCascQwenTwentySevenMarTwentySwarmPSup}{0.041}
+\newcommand{\eFourCascQwenTwentySevenMarTwentySwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentySwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyV}{\textsc{sup}}
+\newcommand{\eFourCascQwenTwentySevenMarTwentyVerdict}{superior}
+\newcommand{\eFourCascQwenTwentySevenSupTwoAcc}{86.2}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcAcc}{95.7}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcBroken}{0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcCI}{[$-$4.7, +0.3]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcCalls}{0.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcDiff}{$-$2.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcRescued}{0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcV}{--}
+\newcommand{\eFourCascQwenTwentySevenSupTwoArcVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenSupTwoCI}{[$-$2.1, +1.2]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoCalls}{5.2}
+\newcommand{\eFourCascQwenTwentySevenSupTwoCompute}{0.93}
+\newcommand{\eFourCascQwenTwentySevenSupTwoDiff}{$-$0.4}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmAcc}{96.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmBroken}{0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmCI}{[$-$4.2, +0.4]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmCalls}{0.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmDiff}{$-$1.7}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmRescued}{0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmSwarmCI}{[$-$1.3, +1.3]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmSwarmDiff}{+0.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmV}{--}
+\newcommand{\eFourCascQwenTwentySevenSupTwoGsmVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathAcc}{86.4}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathBroken}{1}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathCI}{[$-$3.6, +2.7]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathCalls}{7.6}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathDiff}{$-$0.4}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathRescued}{3}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathSwarmCI}{[$-$1.1, +3.1]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathSwarmDiff}{+0.8}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathSwarmPSup}{0.265}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathSwarmV}{\textsc{ni}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathSwarmVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathV}{--}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMathVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluAcc}{66.7}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluBroken}{13}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluCI}{[$-$2.8, +7.5]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluCalls}{13.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluDiff}{+2.3}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluPSup}{0.265}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluRescued}{1}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluSwarmCI}{[$-$7.0, $-$1.9]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluSwarmDiff}{$-$4.0}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluSwarmV}{\textsc{inf}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluSwarmVerdict}{inferior}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluV}{--}
+\newcommand{\eFourCascQwenTwentySevenSupTwoMmluVerdict}{inconclusive}
+\newcommand{\eFourCascQwenTwentySevenSupTwoPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoPooledAcc}{86.2}
+\newcommand{\eFourCascQwenTwentySevenSupTwoSwarmCI}{[$-$1.7, $-$0.2]}
+\newcommand{\eFourCascQwenTwentySevenSupTwoSwarmDiff}{$-$0.9}
+\newcommand{\eFourCascQwenTwentySevenSupTwoSwarmPSup}{1.000}
+\newcommand{\eFourCascQwenTwentySevenSupTwoSwarmV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoSwarmVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourCascQwenTwentySevenSupTwoV}{\textsc{eq}}
+\newcommand{\eFourCascQwenTwentySevenSupTwoVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourComputeGemmaTwelve}{2.48}
+\newcommand{\eFourComputeMinistralFourteen}{2.20}
+\newcommand{\eFourComputeQwenNine}{2.94}
+\newcommand{\eFourComputeQwenTwentySeven}{0.84}
+\newcommand{\eFourFamilies}{7}
+\newcommand{\eFourGemmaTwelveGB}{12.7}
+\newcommand{\eFourGemmaTwelveParams}{12}
+\newcommand{\eFourGsmBestCI}{[$-$0.4, +4.2]}
+\newcommand{\eFourGsmBestDiff}{+1.7}
+\newcommand{\eFourGsmBestName}{Gemma-4-E4B}
+\newcommand{\eFourGsmBestPSup}{0.052}
+\newcommand{\eFourGsmBestV}{\textsc{ni}}
+\newcommand{\eFourGsmBestVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourGsmCollision}{0.46}
+\newcommand{\eFourGsmGemmaEFour}{94.3}
+\newcommand{\eFourGsmGemmaETwo}{91.7}
+\newcommand{\eFourGsmGemmaTwelve}{97.3}
+\newcommand{\eFourGsmGemmaTwelveCI}{[$-$4.2, +1.3]}
+\newcommand{\eFourGsmGemmaTwelveDiff}{$-$1.3}
+\newcommand{\eFourGsmGemmaTwelvePSup}{1.000}
+\newcommand{\eFourGsmGemmaTwelveV}{--}
+\newcommand{\eFourGsmGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourGsmGraniteThree}{88.0}
+\newcommand{\eFourGsmMaxTokens}{1024}
+\newcommand{\eFourGsmMinistralFourteen}{94.0}
+\newcommand{\eFourGsmMinistralFourteenCI}{[$-$0.3, +4.7]}
+\newcommand{\eFourGsmMinistralFourteenDiff}{+2.0}
+\newcommand{\eFourGsmMinistralFourteenPSup}{0.047}
+\newcommand{\eFourGsmMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourGsmMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourGsmMinistralThree}{90.7}
+\newcommand{\eFourGsmN}{300}
+\newcommand{\eFourGsmOlmoOne}{59.7}
+\newcommand{\eFourGsmOracle}{98.0}
+\newcommand{\eFourGsmPhiMini}{91.7}
+\newcommand{\eFourGsmQwenFour}{91.7}
+\newcommand{\eFourGsmQwenNine}{95.7}
+\newcommand{\eFourGsmQwenNineCI}{[$-$1.9, +2.7]}
+\newcommand{\eFourGsmQwenNineDiff}{+0.3}
+\newcommand{\eFourGsmQwenNinePSup}{0.411}
+\newcommand{\eFourGsmQwenNineV}{\textsc{ni}}
+\newcommand{\eFourGsmQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourGsmQwenTwentySeven}{97.7}
+\newcommand{\eFourGsmQwenTwentySevenCI}{[$-$4.2, +0.4]}
+\newcommand{\eFourGsmQwenTwentySevenDiff}{$-$1.7}
+\newcommand{\eFourGsmQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourGsmQwenTwentySevenV}{--}
+\newcommand{\eFourGsmQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourGsmQwenTwo}{72.7}
+\newcommand{\eFourGsmScaleFive}{95.3}
+\newcommand{\eFourGsmScaleFour}{95.0}
+\newcommand{\eFourGsmScaleOne}{86.0}
+\newcommand{\eFourGsmScaleSeven}{96.0}
+\newcommand{\eFourGsmScaleSix}{95.9}
+\newcommand{\eFourGsmScaleThree}{94.3}
+\newcommand{\eFourGsmScaleTwo}{92.4}
+\newcommand{\eFourGsmSmolThree}{86.0}
+\newcommand{\eFourGsmSwarm}{96.0}
+\newcommand{\eFourGsmVote}{95.3}
+\newcommand{\eFourGsmWaits}{4.72}
+\newcommand{\eFourLargestPeerGB}{8.0}
+\newcommand{\eFourLargestPeerParams}{8}
+\newcommand{\eFourMathBestCI}{[+2.2, +7.2]}
+\newcommand{\eFourMathBestDiff}{+4.0}
+\newcommand{\eFourMathBestName}{Qwen3.5-4B}
+\newcommand{\eFourMathBestPSup}{0.001}
+\newcommand{\eFourMathBestV}{\textsc{sup}}
+\newcommand{\eFourMathBestVerdict}{superior}
+\newcommand{\eFourMathCollision}{0.16}
+\newcommand{\eFourMathGemmaEFour}{77.2}
+\newcommand{\eFourMathGemmaETwo}{73.2}
+\newcommand{\eFourMathGemmaTwelve}{91.2}
+\newcommand{\eFourMathGemmaTwelveCI}{[$-$10.1, $-$1.6]}
+\newcommand{\eFourMathGemmaTwelveDiff}{$-$5.6}
+\newcommand{\eFourMathGemmaTwelvePSup}{1.000}
+\newcommand{\eFourMathGemmaTwelveV}{\textsc{inf}}
+\newcommand{\eFourMathGemmaTwelveVerdict}{inferior}
+\newcommand{\eFourMathGraniteThree}{68.8}
+\newcommand{\eFourMathMaxTokens}{2048}
+\newcommand{\eFourMathMinistralFourteen}{70.8}
+\newcommand{\eFourMathMinistralFourteenCI}{[+10.7, +19.8]}
+\newcommand{\eFourMathMinistralFourteenDiff}{+14.8}
+\newcommand{\eFourMathMinistralFourteenPSup}{0.000}
+\newcommand{\eFourMathMinistralFourteenV}{\textsc{sup}}
+\newcommand{\eFourMathMinistralFourteenVerdict}{superior}
+\newcommand{\eFourMathMinistralThree}{67.6}
+\newcommand{\eFourMathN}{250}
+\newcommand{\eFourMathOlmoOne}{20.0}
+\newcommand{\eFourMathOracle}{88.4}
+\newcommand{\eFourMathPhiMini}{68.0}
+\newcommand{\eFourMathQwenFour}{81.6}
+\newcommand{\eFourMathQwenNine}{84.4}
+\newcommand{\eFourMathQwenNineCI}{[$-$1.8, +4.5]}
+\newcommand{\eFourMathQwenNineDiff}{+1.2}
+\newcommand{\eFourMathQwenNinePSup}{0.265}
+\newcommand{\eFourMathQwenNineV}{\textsc{ni}}
+\newcommand{\eFourMathQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourMathQwenTwentySeven}{86.8}
+\newcommand{\eFourMathQwenTwentySevenCI}{[$-$4.8, +2.2]}
+\newcommand{\eFourMathQwenTwentySevenDiff}{$-$1.2}
+\newcommand{\eFourMathQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourMathQwenTwentySevenV}{--}
+\newcommand{\eFourMathQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourMathQwenTwo}{64.4}
+\newcommand{\eFourMathScaleFive}{84.3}
+\newcommand{\eFourMathScaleFour}{83.0}
+\newcommand{\eFourMathScaleOne}{64.9}
+\newcommand{\eFourMathScaleSeven}{85.6}
+\newcommand{\eFourMathScaleSix}{85.1}
+\newcommand{\eFourMathScaleThree}{80.8}
+\newcommand{\eFourMathScaleTwo}{77.1}
+\newcommand{\eFourMathSmolThree}{70.8}
+\newcommand{\eFourMathSwarm}{85.6}
+\newcommand{\eFourMathVote}{85.6}
+\newcommand{\eFourMathWaits}{5.34}
+\newcommand{\eFourMeanBestFive}{87.8}
+\newcommand{\eFourMeanBestFour}{87.6}
+\newcommand{\eFourMeanBestOne}{83.0}
+\newcommand{\eFourMeanBestSeven}{87.0}
+\newcommand{\eFourMeanBestSix}{87.0}
+\newcommand{\eFourMeanBestThree}{86.8}
+\newcommand{\eFourMeanBestTwo}{85.8}
+\newcommand{\eFourMeanGemmaEFour}{81.6}
+\newcommand{\eFourMeanGemmaETwo}{75.5}
+\newcommand{\eFourMeanGemmaTwelve}{89.5}
+\newcommand{\eFourMeanGraniteThree}{70.5}
+\newcommand{\eFourMeanMinistralFourteen}{81.7}
+\newcommand{\eFourMeanMinistralThree}{75.2}
+\newcommand{\eFourMeanOlmoOne}{29.2}
+\newcommand{\eFourMeanOracle}{91.8}
+\newcommand{\eFourMeanPhiMini}{75.3}
+\newcommand{\eFourMeanQwenFour}{83.5}
+\newcommand{\eFourMeanQwenNine}{86.1}
+\newcommand{\eFourMeanQwenTwentySeven}{86.6}
+\newcommand{\eFourMeanQwenTwo}{67.6}
+\newcommand{\eFourMeanScaleFive}{85.8}
+\newcommand{\eFourMeanScaleFour}{84.8}
+\newcommand{\eFourMeanScaleOne}{69.2}
+\newcommand{\eFourMeanScaleSeven}{87.0}
+\newcommand{\eFourMeanScaleSix}{86.5}
+\newcommand{\eFourMeanScaleThree}{83.1}
+\newcommand{\eFourMeanScaleTwo}{80.2}
+\newcommand{\eFourMeanSmolThree}{71.3}
+\newcommand{\eFourMeanSwarm}{87.0}
+\newcommand{\eFourMeanVote}{86.1}
+\newcommand{\eFourMinistralFourteenGB}{14.4}
+\newcommand{\eFourMinistralFourteenParams}{14}
+\newcommand{\eFourMmluBestCI}{[+7.2, +16.0]}
+\newcommand{\eFourMmluBestDiff}{+11.3}
+\newcommand{\eFourMmluBestName}{Gemma-4-E4B}
+\newcommand{\eFourMmluBestPSup}{0.000}
+\newcommand{\eFourMmluBestV}{\textsc{sup}}
+\newcommand{\eFourMmluBestVerdict}{superior}
+\newcommand{\eFourMmluCollision}{0.39}
+\newcommand{\eFourMmluGemmaEFour}{59.3}
+\newcommand{\eFourMmluGemmaETwo}{45.7}
+\newcommand{\eFourMmluGemmaTwelve}{71.7}
+\newcommand{\eFourMmluGemmaTwelveCI}{[$-$5.8, +3.8]}
+\newcommand{\eFourMmluGemmaTwelveDiff}{$-$1.0}
+\newcommand{\eFourMmluGemmaTwelvePSup}{1.000}
+\newcommand{\eFourMmluGemmaTwelveV}{--}
+\newcommand{\eFourMmluGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourMmluGraniteThree}{37.0}
+\newcommand{\eFourMmluMaxTokens}{1024}
+\newcommand{\eFourMmluMinistralFourteen}{67.3}
+\newcommand{\eFourMmluMinistralFourteenCI}{[$-$1.8, +8.5]}
+\newcommand{\eFourMmluMinistralFourteenDiff}{+3.3}
+\newcommand{\eFourMmluMinistralFourteenPSup}{0.124}
+\newcommand{\eFourMmluMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourMmluMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourMmluMinistralThree}{52.0}
+\newcommand{\eFourMmluN}{300}
+\newcommand{\eFourMmluOlmoOne}{9.0}
+\newcommand{\eFourMmluOracle}{82.0}
+\newcommand{\eFourMmluPhiMini}{54.0}
+\newcommand{\eFourMmluQwenFour}{64.0}
+\newcommand{\eFourMmluQwenNine}{67.3}
+\newcommand{\eFourMmluQwenNineCI}{[$-$1.8, +8.5]}
+\newcommand{\eFourMmluQwenNineDiff}{+3.3}
+\newcommand{\eFourMmluQwenNinePSup}{0.124}
+\newcommand{\eFourMmluQwenNineV}{\textsc{ni}}
+\newcommand{\eFourMmluQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourMmluQwenTwentySeven}{64.3}
+\newcommand{\eFourMmluQwenTwentySevenCI}{[+0.7, +12.0]}
+\newcommand{\eFourMmluQwenTwentySevenDiff}{+6.3}
+\newcommand{\eFourMmluQwenTwentySevenPSup}{0.016}
+\newcommand{\eFourMmluQwenTwentySevenV}{\textsc{sup}}
+\newcommand{\eFourMmluQwenTwentySevenVerdict}{superior}
+\newcommand{\eFourMmluQwenTwo}{44.3}
+\newcommand{\eFourMmluScaleFive}{68.2}
+\newcommand{\eFourMmluScaleFour}{66.2}
+\newcommand{\eFourMmluScaleOne}{44.4}
+\newcommand{\eFourMmluScaleSeven}{70.7}
+\newcommand{\eFourMmluScaleSix}{69.8}
+\newcommand{\eFourMmluScaleThree}{63.6}
+\newcommand{\eFourMmluScaleTwo}{58.9}
+\newcommand{\eFourMmluSmolThree}{44.3}
+\newcommand{\eFourMmluSwarm}{70.7}
+\newcommand{\eFourMmluVote}{68.3}
+\newcommand{\eFourMmluWaits}{5.73}
+\newcommand{\eFourNComputed}{40}
+\newcommand{\eFourNInconclusive}{8}
+\newcommand{\eFourNInferior}{1}
+\newcommand{\eFourNNonInferior}{7}
+\newcommand{\eFourNShown}{20}
+\newcommand{\eFourNSuperior}{4}
+\newcommand{\eFourParamsGemmaEFour}{8}
+\newcommand{\eFourParamsGemmaETwo}{5}
+\newcommand{\eFourParamsGemmaTwelve}{12}
+\newcommand{\eFourParamsGraniteThree}{3}
+\newcommand{\eFourParamsMinistralFourteen}{14}
+\newcommand{\eFourParamsMinistralThree}{3.4}
+\newcommand{\eFourParamsOlmoOne}{1.5}
+\newcommand{\eFourParamsPhiMini}{3.8}
+\newcommand{\eFourParamsQwenFour}{4}
+\newcommand{\eFourParamsQwenNine}{9}
+\newcommand{\eFourParamsQwenTwentySeven}{27}
+\newcommand{\eFourParamsQwenTwo}{2}
+\newcommand{\eFourParamsSmolThree}{3.1}
+\newcommand{\eFourPooledGemmaTwelve}{89.4}
+\newcommand{\eFourPooledGemmaTwelveCI}{[$-$4.1, $-$0.6]}
+\newcommand{\eFourPooledGemmaTwelveDiff}{$-$2.3}
+\newcommand{\eFourPooledGemmaTwelvePSup}{1.000}
+\newcommand{\eFourPooledGemmaTwelveV}{\textsc{inf}}
+\newcommand{\eFourPooledGemmaTwelveVerdict}{inferior}
+\newcommand{\eFourPooledMinistralFourteen}{82.2}
+\newcommand{\eFourPooledMinistralFourteenCI}{[+3.0, +6.8]}
+\newcommand{\eFourPooledMinistralFourteenDiff}{+4.9}
+\newcommand{\eFourPooledMinistralFourteenPSup}{0.000}
+\newcommand{\eFourPooledMinistralFourteenV}{\textsc{sup}}
+\newcommand{\eFourPooledMinistralFourteenVerdict}{superior}
+\newcommand{\eFourPooledN}{1150}
+\newcommand{\eFourPooledQwenNine}{86.2}
+\newcommand{\eFourPooledQwenNineCI}{[$-$0.8, +2.6]}
+\newcommand{\eFourPooledQwenNineDiff}{+0.9}
+\newcommand{\eFourPooledQwenNinePSup}{0.155}
+\newcommand{\eFourPooledQwenNineV}{\textsc{ni}}
+\newcommand{\eFourPooledQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourPooledQwenTwentySeven}{86.6}
+\newcommand{\eFourPooledQwenTwentySevenCI}{[$-$1.4, +2.3]}
+\newcommand{\eFourPooledQwenTwentySevenDiff}{+0.4}
+\newcommand{\eFourPooledQwenTwentySevenPSup}{0.329}
+\newcommand{\eFourPooledQwenTwentySevenV}{\textsc{ni}}
+\newcommand{\eFourPooledQwenTwentySevenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourPooledSwarm}{87.0}
+\newcommand{\eFourQuant}{Q8\_0}
+\newcommand{\eFourQwenNineGB}{9.5}
+\newcommand{\eFourQwenNineParams}{9}
+\newcommand{\eFourQwenTwentySevenGB}{29.0}
+\newcommand{\eFourQwenTwentySevenParams}{27}
 \newcommand{\eFourRefSizes}{9--27}
+\newcommand{\eFourStrictArcBestCI}{[$-$3.4, +1.2]}
+\newcommand{\eFourStrictArcBestDiff}{$-$1.0}
+\newcommand{\eFourStrictArcBestName}{Qwen3.5-4B}
+\newcommand{\eFourStrictArcBestPSup}{1.000}
+\newcommand{\eFourStrictArcBestV}{--}
+\newcommand{\eFourStrictArcBestVerdict}{inconclusive}
+\newcommand{\eFourStrictArcCollision}{0.71}
+\newcommand{\eFourStrictArcGemmaEFour}{95.3}
+\newcommand{\eFourStrictArcGemmaETwo}{91.3}
+\newcommand{\eFourStrictArcGemmaTwelve}{97.7}
+\newcommand{\eFourStrictArcGemmaTwelveCI}{[$-$4.6, +0.1]}
+\newcommand{\eFourStrictArcGemmaTwelveDiff}{$-$2.0}
+\newcommand{\eFourStrictArcGemmaTwelvePSup}{1.000}
+\newcommand{\eFourStrictArcGemmaTwelveV}{--}
+\newcommand{\eFourStrictArcGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourStrictArcGraniteThree}{88.0}
+\newcommand{\eFourStrictArcMinistralFourteen}{94.7}
+\newcommand{\eFourStrictArcMinistralFourteenCI}{[$-$1.5, +3.7]}
+\newcommand{\eFourStrictArcMinistralFourteenDiff}{+1.0}
+\newcommand{\eFourStrictArcMinistralFourteenPSup}{0.265}
+\newcommand{\eFourStrictArcMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourStrictArcMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictArcMinistralThree}{90.3}
+\newcommand{\eFourStrictArcN}{300}
+\newcommand{\eFourStrictArcOlmoOne}{28.0}
+\newcommand{\eFourStrictArcOracle}{99.0}
+\newcommand{\eFourStrictArcPhiMini}{87.7}
+\newcommand{\eFourStrictArcQwenFour}{96.7}
+\newcommand{\eFourStrictArcQwenNine}{97.0}
+\newcommand{\eFourStrictArcQwenNineCI}{[$-$4.0, +1.1]}
+\newcommand{\eFourStrictArcQwenNineDiff}{$-$1.3}
+\newcommand{\eFourStrictArcQwenNinePSup}{1.000}
+\newcommand{\eFourStrictArcQwenNineV}{--}
+\newcommand{\eFourStrictArcQwenNineVerdict}{inconclusive}
+\newcommand{\eFourStrictArcQwenTwentySeven}{97.7}
+\newcommand{\eFourStrictArcQwenTwentySevenCI}{[$-$4.7, +0.3]}
+\newcommand{\eFourStrictArcQwenTwentySevenDiff}{$-$2.0}
+\newcommand{\eFourStrictArcQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourStrictArcQwenTwentySevenV}{--}
+\newcommand{\eFourStrictArcQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourStrictArcQwenTwo}{89.0}
+\newcommand{\eFourStrictArcScaleFive}{95.3}
+\newcommand{\eFourStrictArcScaleFour}{94.9}
+\newcommand{\eFourStrictArcScaleOne}{81.4}
+\newcommand{\eFourStrictArcScaleSeven}{95.7}
+\newcommand{\eFourStrictArcScaleSix}{95.3}
+\newcommand{\eFourStrictArcScaleThree}{93.8}
+\newcommand{\eFourStrictArcScaleTwo}{92.6}
+\newcommand{\eFourStrictArcSmolThree}{84.0}
+\newcommand{\eFourStrictArcSwarm}{95.7}
+\newcommand{\eFourStrictArcVote}{95.0}
+\newcommand{\eFourStrictArcWaits}{5.11}
+\newcommand{\eFourStrictAvoidedMax}{2.28}
+\newcommand{\eFourStrictAvoidedMin}{1.27}
+\newcommand{\eFourStrictBonferroniAlpha}{0.00125}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenAcc}{88.6}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenCI}{[$-$2.2, +0.6]}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenCalls}{8.4}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenDiff}{$-$0.8}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenPSup}{1.000}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenV}{\textsc{eq}}
+\newcommand{\eFourStrictCascGemmaTwelveMarTenVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyAcc}{89.8}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyCI}{[$-$0.8, +1.5]}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyCalls}{14.1}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyDiff}{+0.3}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyPSup}{0.283}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyV}{\textsc{eq}}
+\newcommand{\eFourStrictCascGemmaTwelveMarTwentyVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoAcc}{87.4}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoCI}{[$-$3.6, $-$0.5]}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoCalls}{5.8}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoDiff}{$-$2.0}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoPSup}{1.000}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoV}{\textsc{inf}}
+\newcommand{\eFourStrictCascGemmaTwelveSupTwoVerdict}{inferior}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenAcc}{86.9}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenCI}{[+3.2, +6.7]}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenCalls}{4.2}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenDiff}{+4.9}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenPSup}{0.000}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenV}{\textsc{sup}}
+\newcommand{\eFourStrictCascMinistralFourteenMarTenVerdict}{superior}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyAcc}{86.4}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyCI}{[+2.8, +6.0]}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyCalls}{6.7}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyDiff}{+4.3}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyPSup}{0.000}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyV}{\textsc{sup}}
+\newcommand{\eFourStrictCascMinistralFourteenMarTwentyVerdict}{superior}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoAcc}{85.3}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoCI}{[+1.6, +5.1]}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoCalls}{5.8}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoDiff}{+3.3}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoPSup}{0.000}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoV}{\textsc{sup}}
+\newcommand{\eFourStrictCascMinistralFourteenSupTwoVerdict}{superior}
+\newcommand{\eFourStrictCascQwenNineMarTenAcc}{87.3}
+\newcommand{\eFourStrictCascQwenNineMarTenCI}{[$-$0.4, +2.8]}
+\newcommand{\eFourStrictCascQwenNineMarTenCalls}{4.3}
+\newcommand{\eFourStrictCascQwenNineMarTenDiff}{+1.2}
+\newcommand{\eFourStrictCascQwenNineMarTenPSup}{0.066}
+\newcommand{\eFourStrictCascQwenNineMarTenV}{\textsc{ni}}
+\newcommand{\eFourStrictCascQwenNineMarTenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictCascQwenNineMarTwentyAcc}{87.2}
+\newcommand{\eFourStrictCascQwenNineMarTwentyCI}{[$-$0.2, +2.5]}
+\newcommand{\eFourStrictCascQwenNineMarTwentyCalls}{10.0}
+\newcommand{\eFourStrictCascQwenNineMarTwentyDiff}{+1.1}
+\newcommand{\eFourStrictCascQwenNineMarTwentyPSup}{0.048}
+\newcommand{\eFourStrictCascQwenNineMarTwentyV}{\textsc{ni}}
+\newcommand{\eFourStrictCascQwenNineMarTwentyVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictCascQwenNineSupTwoAcc}{85.8}
+\newcommand{\eFourStrictCascQwenNineSupTwoCI}{[$-$1.8, +1.3]}
+\newcommand{\eFourStrictCascQwenNineSupTwoCalls}{5.8}
+\newcommand{\eFourStrictCascQwenNineSupTwoDiff}{$-$0.3}
+\newcommand{\eFourStrictCascQwenNineSupTwoPSup}{1.000}
+\newcommand{\eFourStrictCascQwenNineSupTwoV}{\textsc{eq}}
+\newcommand{\eFourStrictCascQwenNineSupTwoVerdict}{equivalent ($\pm$2)}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenAcc}{87.7}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenCI}{[$-$0.5, +2.9]}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenCalls}{5.6}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenDiff}{+1.2}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenPSup}{0.106}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenV}{\textsc{ni}}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyAcc}{88.0}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyCI}{[$-$0.0, +2.9]}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyCalls}{12.0}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyDiff}{+1.4}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyPSup}{0.028}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyV}{\textsc{ni}}
+\newcommand{\eFourStrictCascQwenTwentySevenMarTwentyVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoAcc}{85.9}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoCI}{[$-$2.4, +1.0]}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoCalls}{5.8}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoDiff}{$-$0.7}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoPSup}{1.000}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoV}{--}
+\newcommand{\eFourStrictCascQwenTwentySevenSupTwoVerdict}{inconclusive}
+\newcommand{\eFourStrictGsmBestCI}{[$-$0.4, +4.2]}
+\newcommand{\eFourStrictGsmBestDiff}{+1.7}
+\newcommand{\eFourStrictGsmBestName}{Gemma-4-E4B}
+\newcommand{\eFourStrictGsmBestPSup}{0.052}
+\newcommand{\eFourStrictGsmBestV}{\textsc{ni}}
+\newcommand{\eFourStrictGsmBestVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictGsmCollision}{0.46}
+\newcommand{\eFourStrictGsmGemmaEFour}{94.3}
+\newcommand{\eFourStrictGsmGemmaETwo}{91.7}
+\newcommand{\eFourStrictGsmGemmaTwelve}{97.3}
+\newcommand{\eFourStrictGsmGemmaTwelveCI}{[$-$4.2, +1.3]}
+\newcommand{\eFourStrictGsmGemmaTwelveDiff}{$-$1.3}
+\newcommand{\eFourStrictGsmGemmaTwelvePSup}{1.000}
+\newcommand{\eFourStrictGsmGemmaTwelveV}{--}
+\newcommand{\eFourStrictGsmGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourStrictGsmGraniteThree}{88.0}
+\newcommand{\eFourStrictGsmMinistralFourteen}{94.0}
+\newcommand{\eFourStrictGsmMinistralFourteenCI}{[$-$0.3, +4.7]}
+\newcommand{\eFourStrictGsmMinistralFourteenDiff}{+2.0}
+\newcommand{\eFourStrictGsmMinistralFourteenPSup}{0.047}
+\newcommand{\eFourStrictGsmMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourStrictGsmMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictGsmMinistralThree}{90.7}
+\newcommand{\eFourStrictGsmN}{300}
+\newcommand{\eFourStrictGsmOlmoOne}{59.7}
+\newcommand{\eFourStrictGsmOracle}{98.0}
+\newcommand{\eFourStrictGsmPhiMini}{91.7}
+\newcommand{\eFourStrictGsmQwenFour}{91.7}
+\newcommand{\eFourStrictGsmQwenNine}{95.7}
+\newcommand{\eFourStrictGsmQwenNineCI}{[$-$1.9, +2.7]}
+\newcommand{\eFourStrictGsmQwenNineDiff}{+0.3}
+\newcommand{\eFourStrictGsmQwenNinePSup}{0.411}
+\newcommand{\eFourStrictGsmQwenNineV}{\textsc{ni}}
+\newcommand{\eFourStrictGsmQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictGsmQwenTwentySeven}{97.7}
+\newcommand{\eFourStrictGsmQwenTwentySevenCI}{[$-$4.2, +0.4]}
+\newcommand{\eFourStrictGsmQwenTwentySevenDiff}{$-$1.7}
+\newcommand{\eFourStrictGsmQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourStrictGsmQwenTwentySevenV}{--}
+\newcommand{\eFourStrictGsmQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourStrictGsmQwenTwo}{72.7}
+\newcommand{\eFourStrictGsmScaleFive}{95.3}
+\newcommand{\eFourStrictGsmScaleFour}{95.0}
+\newcommand{\eFourStrictGsmScaleOne}{86.0}
+\newcommand{\eFourStrictGsmScaleSeven}{96.0}
+\newcommand{\eFourStrictGsmScaleSix}{95.9}
+\newcommand{\eFourStrictGsmScaleThree}{94.3}
+\newcommand{\eFourStrictGsmScaleTwo}{92.4}
+\newcommand{\eFourStrictGsmSmolThree}{86.0}
+\newcommand{\eFourStrictGsmSwarm}{96.0}
+\newcommand{\eFourStrictGsmVote}{95.3}
+\newcommand{\eFourStrictGsmWaits}{4.72}
+\newcommand{\eFourStrictMathBestCI}{[+0.2, +5.3]}
+\newcommand{\eFourStrictMathBestDiff}{+2.4}
+\newcommand{\eFourStrictMathBestName}{Qwen3.5-4B}
+\newcommand{\eFourStrictMathBestPSup}{0.018}
+\newcommand{\eFourStrictMathBestV}{\textsc{sup}}
+\newcommand{\eFourStrictMathBestVerdict}{superior}
+\newcommand{\eFourStrictMathCollision}{0.17}
+\newcommand{\eFourStrictMathGemmaEFour}{21.2}
+\newcommand{\eFourStrictMathGemmaETwo}{23.2}
+\newcommand{\eFourStrictMathGemmaTwelve}{91.2}
+\newcommand{\eFourStrictMathGemmaTwelveCI}{[$-$11.8, $-$3.1]}
+\newcommand{\eFourStrictMathGemmaTwelveDiff}{$-$7.2}
+\newcommand{\eFourStrictMathGemmaTwelvePSup}{1.000}
+\newcommand{\eFourStrictMathGemmaTwelveV}{\textsc{inf}}
+\newcommand{\eFourStrictMathGemmaTwelveVerdict}{inferior}
+\newcommand{\eFourStrictMathGraniteThree}{68.8}
+\newcommand{\eFourStrictMathMinistralFourteen}{70.8}
+\newcommand{\eFourStrictMathMinistralFourteenCI}{[+8.9, +18.3]}
+\newcommand{\eFourStrictMathMinistralFourteenDiff}{+13.2}
+\newcommand{\eFourStrictMathMinistralFourteenPSup}{0.000}
+\newcommand{\eFourStrictMathMinistralFourteenV}{\textsc{sup}}
+\newcommand{\eFourStrictMathMinistralFourteenVerdict}{superior}
+\newcommand{\eFourStrictMathMinistralThree}{67.6}
+\newcommand{\eFourStrictMathN}{250}
+\newcommand{\eFourStrictMathOlmoOne}{20.0}
+\newcommand{\eFourStrictMathOracle}{87.2}
+\newcommand{\eFourStrictMathPhiMini}{68.0}
+\newcommand{\eFourStrictMathQwenFour}{81.6}
+\newcommand{\eFourStrictMathQwenNine}{84.4}
+\newcommand{\eFourStrictMathQwenNineCI}{[$-$3.8, +2.9]}
+\newcommand{\eFourStrictMathQwenNineDiff}{$-$0.4}
+\newcommand{\eFourStrictMathQwenNinePSup}{1.000}
+\newcommand{\eFourStrictMathQwenNineV}{--}
+\newcommand{\eFourStrictMathQwenNineVerdict}{inconclusive}
+\newcommand{\eFourStrictMathQwenTwentySeven}{86.8}
+\newcommand{\eFourStrictMathQwenTwentySevenCI}{[$-$6.8, +0.9]}
+\newcommand{\eFourStrictMathQwenTwentySevenDiff}{$-$2.8}
+\newcommand{\eFourStrictMathQwenTwentySevenPSup}{1.000}
+\newcommand{\eFourStrictMathQwenTwentySevenV}{--}
+\newcommand{\eFourStrictMathQwenTwentySevenVerdict}{inconclusive}
+\newcommand{\eFourStrictMathQwenTwo}{64.4}
+\newcommand{\eFourStrictMathScaleFive}{82.3}
+\newcommand{\eFourStrictMathScaleFour}{80.7}
+\newcommand{\eFourStrictMathScaleOne}{56.7}
+\newcommand{\eFourStrictMathScaleSeven}{84.0}
+\newcommand{\eFourStrictMathScaleSix}{83.4}
+\newcommand{\eFourStrictMathScaleThree}{78.2}
+\newcommand{\eFourStrictMathScaleTwo}{72.8}
+\newcommand{\eFourStrictMathSmolThree}{70.0}
+\newcommand{\eFourStrictMathSwarm}{84.0}
+\newcommand{\eFourStrictMathVote}{84.0}
+\newcommand{\eFourStrictMathWaits}{5.57}
+\newcommand{\eFourStrictMeanBestFive}{87.3}
+\newcommand{\eFourStrictMeanBestFour}{86.9}
+\newcommand{\eFourStrictMeanBestOne}{83.0}
+\newcommand{\eFourStrictMeanBestSeven}{86.6}
+\newcommand{\eFourStrictMeanBestSix}{86.5}
+\newcommand{\eFourStrictMeanBestThree}{86.1}
+\newcommand{\eFourStrictMeanBestTwo}{85.6}
+\newcommand{\eFourStrictMeanGemmaEFour}{67.6}
+\newcommand{\eFourStrictMeanGemmaETwo}{63.0}
+\newcommand{\eFourStrictMeanGemmaTwelve}{89.5}
+\newcommand{\eFourStrictMeanGraniteThree}{70.5}
+\newcommand{\eFourStrictMeanMinistralFourteen}{81.7}
+\newcommand{\eFourStrictMeanMinistralThree}{75.2}
+\newcommand{\eFourStrictMeanOlmoOne}{29.2}
+\newcommand{\eFourStrictMeanOracle}{91.5}
+\newcommand{\eFourStrictMeanPhiMini}{75.3}
+\newcommand{\eFourStrictMeanQwenFour}{83.5}
+\newcommand{\eFourStrictMeanQwenNine}{86.1}
+\newcommand{\eFourStrictMeanQwenTwentySeven}{86.6}
+\newcommand{\eFourStrictMeanQwenTwo}{67.6}
+\newcommand{\eFourStrictMeanScaleFive}{85.3}
+\newcommand{\eFourStrictMeanScaleFour}{84.2}
+\newcommand{\eFourStrictMeanScaleOne}{67.1}
+\newcommand{\eFourStrictMeanScaleSeven}{86.6}
+\newcommand{\eFourStrictMeanScaleSix}{86.1}
+\newcommand{\eFourStrictMeanScaleThree}{82.5}
+\newcommand{\eFourStrictMeanScaleTwo}{79.2}
+\newcommand{\eFourStrictMeanSmolThree}{71.1}
+\newcommand{\eFourStrictMeanSwarm}{86.6}
+\newcommand{\eFourStrictMeanVote}{85.7}
+\newcommand{\eFourStrictMmluBestCI}{[+7.2, +16.0]}
+\newcommand{\eFourStrictMmluBestDiff}{+11.3}
+\newcommand{\eFourStrictMmluBestName}{Gemma-4-E4B}
+\newcommand{\eFourStrictMmluBestPSup}{0.000}
+\newcommand{\eFourStrictMmluBestV}{\textsc{sup}}
+\newcommand{\eFourStrictMmluBestVerdict}{superior}
+\newcommand{\eFourStrictMmluCollision}{0.39}
+\newcommand{\eFourStrictMmluGemmaEFour}{59.3}
+\newcommand{\eFourStrictMmluGemmaETwo}{45.7}
+\newcommand{\eFourStrictMmluGemmaTwelve}{71.7}
+\newcommand{\eFourStrictMmluGemmaTwelveCI}{[$-$5.8, +3.8]}
+\newcommand{\eFourStrictMmluGemmaTwelveDiff}{$-$1.0}
+\newcommand{\eFourStrictMmluGemmaTwelvePSup}{1.000}
+\newcommand{\eFourStrictMmluGemmaTwelveV}{--}
+\newcommand{\eFourStrictMmluGemmaTwelveVerdict}{inconclusive}
+\newcommand{\eFourStrictMmluGraniteThree}{37.0}
+\newcommand{\eFourStrictMmluMinistralFourteen}{67.3}
+\newcommand{\eFourStrictMmluMinistralFourteenCI}{[$-$1.8, +8.5]}
+\newcommand{\eFourStrictMmluMinistralFourteenDiff}{+3.3}
+\newcommand{\eFourStrictMmluMinistralFourteenPSup}{0.124}
+\newcommand{\eFourStrictMmluMinistralFourteenV}{\textsc{ni}}
+\newcommand{\eFourStrictMmluMinistralFourteenVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictMmluMinistralThree}{52.0}
+\newcommand{\eFourStrictMmluN}{300}
+\newcommand{\eFourStrictMmluOlmoOne}{9.0}
+\newcommand{\eFourStrictMmluOracle}{82.0}
+\newcommand{\eFourStrictMmluPhiMini}{54.0}
+\newcommand{\eFourStrictMmluQwenFour}{64.0}
+\newcommand{\eFourStrictMmluQwenNine}{67.3}
+\newcommand{\eFourStrictMmluQwenNineCI}{[$-$1.8, +8.5]}
+\newcommand{\eFourStrictMmluQwenNineDiff}{+3.3}
+\newcommand{\eFourStrictMmluQwenNinePSup}{0.124}
+\newcommand{\eFourStrictMmluQwenNineV}{\textsc{ni}}
+\newcommand{\eFourStrictMmluQwenNineVerdict}{non-inferior ($-$2)}
+\newcommand{\eFourStrictMmluQwenTwentySeven}{64.3}
+\newcommand{\eFourStrictMmluQwenTwentySevenCI}{[+0.7, +12.0]}
+\newcommand{\eFourStrictMmluQwenTwentySevenDiff}{+6.3}
+\newcommand{\eFourStrictMmluQwenTwentySevenPSup}{0.016}
+\newcommand{\eFourStrictMmluQwenTwentySevenV}{\textsc{sup}}
+\newcommand{\eFourStrictMmluQwenTwentySevenVerdict}{superior}
+\newcommand{\eFourStrictMmluQwenTwo}{44.3}
+\newcommand{\eFourStrictMmluScaleFive}{68.2}
+\newcommand{\eFourStrictMmluScaleFour}{66.2}
+\newcommand{\eFourStrictMmluScaleOne}{44.4}
+\newcommand{\eFourStrictMmluScaleSeven}{70.7}
+\newcommand{\eFourStrictMmluScaleSix}{69.8}
+\newcommand{\eFourStrictMmluScaleThree}{63.6}
+\newcommand{\eFourStrictMmluScaleTwo}{58.9}
+\newcommand{\eFourStrictMmluSmolThree}{44.3}
+\newcommand{\eFourStrictMmluSwarm}{70.7}
+\newcommand{\eFourStrictMmluVote}{68.3}
+\newcommand{\eFourStrictMmluWaits}{5.73}
+\newcommand{\eFourStrictNComputed}{40}
+\newcommand{\eFourStrictNInconclusive}{9}
+\newcommand{\eFourStrictNInferior}{1}
+\newcommand{\eFourStrictNNonInferior}{6}
+\newcommand{\eFourStrictNShown}{20}
+\newcommand{\eFourStrictNSuperior}{4}
+\newcommand{\eFourStrictWaitsMax}{5.73}
+\newcommand{\eFourStrictWaitsMin}{4.72}
+\newcommand{\eFourSwarmGB}{29.0}
+\newcommand{\eFourSwarmParams}{26.8}
 \newcommand{\eFourSwarmSize}{1.5--8}
+\newcommand{\eFourWaitsMax}{5.73}
+\newcommand{\eFourWaitsMin}{4.72}
 \newcommand{\eGemmaFourEffective}{4}
 \newcommand{\eGemmaFourTotal}{8}
 \newcommand{\eGemmaTwoEffective}{2}
@@ -59,6 +1543,73 @@
 \newcommand{\eSevenRpsSixtyFour}{73.7}
 \newcommand{\eSevenRpsTwoFiftySix}{95.5}
 \newcommand{\eSmallSizes}{1.5--8}
+\newcommand{\eTenBaselineBudget}{1024}
+\newcommand{\eTenBestName}{Qwen3.5-4B}
+\newcommand{\eTenBoot}{10000}
+\newcommand{\eTenCILevel}{95}
+\newcommand{\eTenDefaultSpeed}{40}
+\newcommand{\eTenDefaulted}{4}
+\newcommand{\eTenDevConsistency}{81.2}
+\newcommand{\eTenDevCut}{22}
+\newcommand{\eTenDevExpansions}{116}
+\newcommand{\eTenDevFallback}{0}
+\newcommand{\eTenDevLongPoints}{0}
+\newcommand{\eTenDevLoss}{13}
+\newcommand{\eTenDevN}{16}
+\newcommand{\eTenDevScore}{0.141}
+\newcommand{\eTenDevScoreCI}{[0.047, 0.250]}
+\newcommand{\eTenDevSeconds}{10.0}
+\newcommand{\eTenDevSoloCut}{5}
+\newcommand{\eTenDevSoloSeconds}{15.3}
+\newcommand{\eTenDevSoloTokens}{608}
+\newcommand{\eTenDevSpeedup}{1.52}
+\newcommand{\eTenDevTie}{3}
+\newcommand{\eTenDevTokens}{1263}
+\newcommand{\eTenDevUniformSpeedup}{1.52}
+\newcommand{\eTenDevWin}{0}
+\newcommand{\eTenExpandBudget}{256}
+\newcommand{\eTenOtherConsistency}{95.0}
+\newcommand{\eTenOtherCut}{13}
+\newcommand{\eTenOtherExpansions}{221}
+\newcommand{\eTenOtherFallback}{1}
+\newcommand{\eTenOtherLongPoints}{7}
+\newcommand{\eTenOtherLoss}{38}
+\newcommand{\eTenOtherN}{40}
+\newcommand{\eTenOtherScore}{0.050}
+\newcommand{\eTenOtherScoreCI}{[0.006, 0.113]}
+\newcommand{\eTenOtherSeconds}{7.7}
+\newcommand{\eTenOtherSoloCut}{4}
+\newcommand{\eTenOtherSoloSeconds}{10.4}
+\newcommand{\eTenOtherSoloTokens}{412}
+\newcommand{\eTenOtherSpeedup}{1.36}
+\newcommand{\eTenOtherTie}{1}
+\newcommand{\eTenOtherTokens}{793}
+\newcommand{\eTenOtherUniformSpeedup}{1.35}
+\newcommand{\eTenOtherWin}{1}
+\newcommand{\eTenOutlineBudget}{256}
+\newcommand{\eTenPeers}{6}
+\newcommand{\eTenRttHigh}{150}
+\newcommand{\eTenRttLow}{50}
+\newcommand{\eTenRttMid}{100}
+\newcommand{\eTenTestConsistency}{87.5}
+\newcommand{\eTenTestCut}{30}
+\newcommand{\eTenTestExpansions}{171}
+\newcommand{\eTenTestFallback}{0}
+\newcommand{\eTenTestLongPoints}{1}
+\newcommand{\eTenTestLoss}{20}
+\newcommand{\eTenTestN}{24}
+\newcommand{\eTenTestScore}{0.115}
+\newcommand{\eTenTestScoreCI}{[0.042, 0.198]}
+\newcommand{\eTenTestSeconds}{10.1}
+\newcommand{\eTenTestSoloCut}{8}
+\newcommand{\eTenTestSoloSeconds}{17.0}
+\newcommand{\eTenTestSoloTokens}{677}
+\newcommand{\eTenTestSpeedup}{1.68}
+\newcommand{\eTenTestTie}{4}
+\newcommand{\eTenTestTokens}{1252}
+\newcommand{\eTenTestUniformSpeedup}{1.69}
+\newcommand{\eTenTestWin}{0}
+\newcommand{\eTenUniformSpeed}{50}
 \newcommand{\eThreeBestAcc}{86.5}
 \newcommand{\eThreeBinaryAcc}{92.0}
 \newcommand{\eThreeBinaryGain}{+5.5}

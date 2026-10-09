@@ -35,3 +35,8 @@ gguf = [
 paper = [
     "matplotlib>=3.11.2",
 ]
+scicode = [  # E12: what the SciCode tests import (the official scicode package itself: colab_jobs.SCICODE_PIP)
+    "h5py>=3.10",
+    "scipy>=1.11",
+    "sympy>=1.12",
+]

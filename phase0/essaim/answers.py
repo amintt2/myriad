@@ -234,7 +234,7 @@ def extract(bench: str, text: str, item: dict, ended: bool = True) -> str | None
             return norm_math(boxed)
         asked = equation_asked(str(item.get("question", "")))
         return norm_math(final_math(text, equation_asked=asked))
-    if bench in ("arc", "mmlupro"):
+    if bench in ("arc", "mmlupro", "gpqa"):
         letters = [chr(65 + i) for i in range(len(item["options"]))]
         return mc_letter(text, letters)
     raise ValueError(bench)

@@ -95,9 +95,18 @@ PLANS["sot-1"] = ([("sot-base", m, "all") for m in SOT["peers"]] + [("sot-expand
 # runs every distinct program in the sandbox (Linux: rlimits, per-case timeouts, no network if unshare works).
 CODE_TAG = "e11"
 PLANS["code-1"] = [("code", m, "all") for m in SOLO] + [("code-exec", CODE_TAG, "all")]
+# E12 (run_aa.py, exec_scicode.py): GPQA Diamond and SciCode, the benchmarks of Artificial Analysis. Stage 0 runs the
+# dev reference code through the SciCode harness on the CPU (a broken harness stops the plan before any GPU
+# time is spent), stage 1 every SOLO model answers GPQA and writes the SciCode sub-problems, stage 2 grades them.
+# Files from the owner, sent by colab/colab_phase0.sh: data/scicode_test_data.h5 (required) and
+# data/gpqa_diamond.csv (optional, gated); see essaim/gpqa.py, essaim/scicode.py.
+AA_TAG = "e12"
+AA_CTX_PER_SLOT = 8192  # run_aa.CTX_PER_SLOT: the same KV cache as E4's slots, in fewer and longer slots
+PLANS["aa-1"] = [("aa-oracle", AA_TAG, "all")] + [("aa", m, "all") for m in SOLO] + [("aa-exec", AA_TAG, "all")]
 # Jobs run stage by stage: a stage starts once every job of the earlier stages has succeeded.
-STAGE = {"sot-base": 0, "sot-expand": 1, "sot-judge": 2, "code": 0, "code-exec": 1}
-NO_MODEL = ("gen", "genref", "code-exec")  # job kinds whose second field is not a model to download
+STAGE = {"sot-base": 0, "sot-expand": 1, "sot-judge": 2, "code": 0, "code-exec": 1, "aa-oracle": 0, "aa": 1, "aa-exec": 2}
+NO_MODEL = ("gen", "genref", "code-exec", "aa-oracle", "aa-exec")  # job kinds whose second field is not a model to download
+SCICODE_PIP = "scicode @ git+https://github.com/scicode-bench/SciCode@e3158ea011d4235245a547460d3688d7ccbf9900"  # = scicode.OFFICIAL_COMMIT
 
 
 # Experiment 2 peers, all on this VM (one llama-server each); the coordinator talks to them over HTTP.
@@ -212,6 +221,16 @@ def job_cmd(kind: str, model: str, split: str) -> list[str]:
     if kind == "code":
         return [sys.executable, "run_code.py", "--model", model, "--gguf", str(MODELS / SOLO[model][1]),
                 "--suffix", SUFFIX, "--parallel", str(SOLO[model][3])]
+    if kind == "aa":
+        benches = aa_benches()
+        return [sys.executable, "run_aa.py", "--model", model, "--gguf", str(MODELS / SOLO[model][1]),
+                "--suffix", SUFFIX, "--benches", *benches,
+                "--parallel", str(max(1, SOLO[model][3] * 3072 // AA_CTX_PER_SLOT))]
+    if kind == "aa-oracle":
+        return [sys.executable, "exec_scicode.py", "--oracle", "--splits", "dev", "--suffix", SUFFIX,
+                "--workers", str(exec_workers())]
+    if kind == "aa-exec":
+        return [sys.executable, "exec_scicode.py", "--suffix", SUFFIX, "--models", *SOLO, "--workers", str(exec_workers())]
     if kind == "code-exec":
         return [sys.executable, "exec_code.py", "--suffix", SUFFIX, "--tag", model, "--models", *SOLO,
                 "--workers", str(exec_workers())]
@@ -316,9 +335,9 @@ def start_peers(peers: dict[str, int]) -> list[subprocess.Popen]:
 
 def run_job(job, budget: MemoryBudget) -> bool:
     kind, model, split = job
-    if kind in ("gen", "genref", "code-exec"):  # peers' memory already taken by start_peers; code-exec: CPU only
+    if kind in ("gen", "genref", "code-exec", "aa-oracle", "aa-exec"):  # peers' memory already taken by start_peers; the rest: CPU only
         need = 0
-    elif kind in ("solo", "code") or kind.startswith("sot-"):
+    elif kind in ("solo", "code", "aa") or kind.startswith("sot-"):
         need = SOLO[model][2]
     else:
         need = GGUF[model][2] + (THINK_EXTRA_GIB if kind == "think" else 0)
@@ -378,6 +397,34 @@ def run_stages(jobs: list[tuple], run, ex: ThreadPoolExecutor, state=None) -> li
     return results
 
 
+def aa_benches() -> list[str]:
+    """Select E12 benchmarks from the files sent by the PC; never download gated data implicitly."""
+    from essaim import gpqa
+    path = gpqa.local_path(HERE / "data" / gpqa.FILE)
+    if path is None:
+        return ["scicode"]
+    gpqa.check_file(path.read_bytes())
+    return ["gpqa", "scicode"]
+
+
+def prepare_aa():
+    """E12 prerequisites, checked before any job starts: the optional gated GPQA file and the SciCode targets (sent
+    by the PC), the SciCode data, and the official scicode package (installed without its dependencies)."""
+    from essaim import gpqa, scicode
+    if "gpqa" in aa_benches():
+        gpqa.diamond()
+    for split in ("dev", "test"):
+        scicode.problems(split)
+    scicode.h5_identity()
+    if any("scicode" in m for m in scicode.preflight()):
+        r = sh(["uv", "pip", "install", "--python", sys.executable, "--no-deps", SCICODE_PIP])
+        if r.returncode != 0:
+            raise SystemExit(f"installation du paquet scicode impossible : {r.stderr[-400:]}")
+    missing = scicode.preflight()
+    if missing:
+        raise SystemExit("environnement SciCode incomplet : " + " ; ".join(missing))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", choices=sorted(PLANS), default="colab-1")
@@ -416,6 +463,8 @@ def main():
         for split in data.SPLITS:
             for load in data.CODE_LOADERS.values():
                 load(split=split)
+    if any(j[0].startswith("aa") for j in jobs):
+        prepare_aa()
     free = gpu_free_gib()
     budget = MemoryBudget(free)
     print(f"GPU : {free:.0f} Gio libres, {len(jobs)} jobs", flush=True)

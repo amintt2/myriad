@@ -1,0 +1,45 @@
+{
+  "judge": "Qwen/Qwen3.8-27B",
+  "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.8-27B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.8-27B-Q8_0.gguf",
+    "size": 29047086048,
+    "sha256": "a680f44a06920e5d689774823782006aa3acc8db95750323373b24139b67e348"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/mt_bench_prompts",
+    "revision": "e3a795c5e9a82ee40611c416b8a7786c73198991",
+    "sha256": "0befb77217cc999fba04e431486bf66b86273b901605d021ee96f4bf7fab57a9"
+  },
+  "split": "other",
+  "n": 40,
+  "judge_prompt": "sot-judge-v1",
+  "prompt": "sot-v1",
+  "tag": "sot1",
+  "outline_model": "Qwen/Qwen3.5-4B",
+  "peers": [
+    "Qwen/Qwen3.5-4B",
+    "google/gemma-4-E4B-it",
+    "ibm-granite/granite-4.2-3b",
+    "mistralai/Ministral-3-3B-Instruct-2512",
+    "microsoft/Phi-4-mini-instruct",
+    "HuggingFaceTB/SmolLM3-3B"
+  ],
+  "baselines": [
+    "Qwen/Qwen3.5-4B",
+    "google/gemma-4-E4B-it",
+    "ibm-granite/granite-4.2-3b",
+    "mistralai/Ministral-3-3B-Instruct-2512",
+    "microsoft/Phi-4-mini-instruct",
+    "HuggingFaceTB/SmolLM3-3B"
+  ],
+  "inputs_sha256": "246ca8495f483c245b926b97aa3bc8bb176abf250e4d4f5034f768e59c184b80",
+  "grammar": "root ::= \"A\" | \"B\" | \"C\"",
+  "top_logprobs": 20,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 6144
+}

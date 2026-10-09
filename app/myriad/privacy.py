@@ -17,7 +17,7 @@ Detectors (regular expressions with validity checks, no network):
 - custom: terms the user listed (project names, clients...);   -> TERME_n
 A second detector can be plugged in: if the module `myriad.privacy_model` exists, its
 `scan(text) -> {"p_sensitive", "decision", "spans": [{start, end, type, score}]}` is called too; spans are
-united (overlaps resolved in favour of the earliest, longest span), the most conservative decision wins,
+united with conservative overlap coverage, the most conservative model-only decision wins,
 and an error of that detector counts as sensitive content (fail-closed: confirmation required).
 
 Each type has a mode: "mask" (replaced before sending), "warn" (sent as is, reported; the first time a
@@ -34,6 +34,9 @@ import importlib
 import re
 from dataclasses import dataclass, field
 
+from . import privacy_rules
+from .privacy_rules import iban_ok, luhn_ok
+
 TYPES = ("private_key", "api_key", "card", "iban", "email", "phone", "path", "name", "custom", "other")
 PREFIX = {"private_key": "CLE_PRIVEE", "api_key": "CLE", "card": "CARTE", "iban": "IBAN", "email": "EMAIL",
           "phone": "TEL", "path": "UTILISATEUR", "name": "PERSONNE", "custom": "TERME", "other": "DONNEE"}
@@ -44,50 +47,6 @@ DEFAULT_MODES = {"private_key": "mask", "api_key": "mask", "card": "mask", "iban
 DECISIONS = ("send", "mask", "ask", "local")  # increasingly conservative
 MAX_TERMS = 200
 _PLACEHOLDER = re.compile(r"\b(" + "|".join(sorted(PREFIX.values(), key=len, reverse=True)) + r")_(\d{1,4})\b")
-
-_PRIVATE_KEY = re.compile(r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]+?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----")
-_API_KEYS = [re.compile(p) for p in (
-    r"\bsk-(?:ant-|proj-|live-|test-)?[A-Za-z0-9_\-]{20,}",
-    r"\bgh[pousr]_[A-Za-z0-9]{30,}\b", r"\bgithub_pat_[A-Za-z0-9_]{40,}\b", r"\bglpat-[A-Za-z0-9_\-]{20,}\b",
-    r"\bxox[abprs]-[A-Za-z0-9\-]{10,}\b", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b", r"\bAIza[0-9A-Za-z_\-]{35}\b",
-    r"\bhf_[A-Za-z0-9]{30,}\b", r"\beyJ[A-Za-z0-9_\-]{8,}\.eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}",
-    r"(?<=Bearer )[A-Za-z0-9._~+/\-]{20,}=*")]
-_ASSIGN = re.compile(r"(?i)\b(?:api[_-]?key|secret(?:[_-]?key)?|access[_-]?token|auth[_-]?token|token|password|passwd|"
-                     r"pwd|mot[_ ]de[_ ]passe)\b\s*[:=]\s*[\"']?([^\s\"',;]{6,})")
-_EMAIL = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,24}\b")
-_PHONE = re.compile(r"(?<![\w+])(?:(?:\+33\s?|0033\s?|0)[1-9](?:[\s.\-]?\d{2}){4}|\+(?:[1-9]\d{0,2})[\s.\-]?"
-                    r"(?:\(?\d{1,4}\)?[\s.\-]?){2,5}\d{2,4})(?![\w])")
-_CARD = re.compile(r"(?<![\d\-])(?:\d[ \-]?){12,18}\d(?![\d\-])")
-_IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?\b")
-_PATH = re.compile(r"(?i)(?:[A-Z]:\\(?:Users|Documents and Settings)\\|/home/|/Users/)([^\\/\s\"'<>|:*?]{2,64})")
-_NAME = re.compile(r"(?:\b(?:[Jj]e m'appelle|[Jj]e suis|[Mm]y name is|I am|I'm|[Mm]onsieur|[Mm]adame|"
-                   r"[Mm]ademoiselle|Mme|Mlle|Mr|Mrs|Ms|Dr|Pr|Dear|Cher|Chère|Bonjour|Hello|Hi)\.?|\bM\.)[ \t]+"
-                   r"([A-ZÀ-Ý][a-zà-ÿ'\-]+(?:[ \t]+[A-ZÀ-Ý][a-zà-ÿ'\-]+){0,2})")
-_NOT_NAMES = frozenset({"Je", "I", "Le", "La", "Les", "The", "A", "Un", "Une", "Tout", "All", "Not", "Here",
-                        "Ici", "Ok", "Merci", "Thanks", "Monsieur", "Madame"})
-
-
-def luhn_ok(digits: str) -> bool:
-    total, alt = 0, False
-    for ch in reversed(digits):
-        d = ord(ch) - 48
-        if alt:
-            d *= 2
-            if d > 9:
-                d -= 9
-        total += d
-        alt = not alt
-    return total % 10 == 0
-
-
-def iban_ok(raw: str) -> bool:
-    s = raw.replace(" ", "")
-    if not 15 <= len(s) <= 34:
-        return False
-    s = s[4:] + s[:4]
-    num = "".join(str(int(c, 36)) for c in s)
-    return int(num) % 97 == 1
-
 
 @dataclass
 class Span:
@@ -100,32 +59,8 @@ class Span:
 
 def detect(text: str, terms=()) -> list[Span]:
     """Every sensitive span found by the regular-expression detectors (may overlap)."""
-    out: list[Span] = []
-    for m in _PRIVATE_KEY.finditer(text):
-        out.append(Span(m.start(), m.end(), "private_key"))
-    for rx in _API_KEYS:
-        for m in rx.finditer(text):
-            out.append(Span(m.start(), m.end(), "api_key"))
-    for m in _ASSIGN.finditer(text):
-        out.append(Span(m.start(1), m.end(1), "api_key"))
-    for m in _CARD.finditer(text):
-        digits = re.sub(r"\D", "", m.group())
-        if 13 <= len(digits) <= 19 and digits[0] in "23456" and luhn_ok(digits):
-            out.append(Span(m.start(), m.end(), "card"))
-    for m in _IBAN.finditer(text):
-        if iban_ok(m.group()):
-            out.append(Span(m.start(), m.end(), "iban"))
-    for m in _EMAIL.finditer(text):
-        out.append(Span(m.start(), m.end(), "email"))
-    for m in _PHONE.finditer(text):
-        if 9 <= len(re.sub(r"\D", "", m.group())) <= 15:
-            out.append(Span(m.start(), m.end(), "phone"))
-    for m in _PATH.finditer(text):
-        out.append(Span(m.start(1), m.end(1), "path"))
-    for m in _NAME.finditer(text):
-        name = m.group(1)
-        if name.split()[0] not in _NOT_NAMES:
-            out.append(Span(m.start(1), m.end(1), "name"))
+    out = [Span(s["start"], s["end"], s.get("guard_type", privacy_rules.GUARD_TYPES[s["type"]]))
+           for s in privacy_rules.matches(text)]
     for term in terms:
         if not term:
             continue
@@ -158,12 +93,15 @@ def plugin_scan(text: str) -> tuple[list[Span], str]:
     if mod is None:
         return [], "send"
     try:
-        r = mod.scan(text)
-        decision = r.get("decision", "ask")
+        r = mod.scan(text, include_rules=False) if getattr(mod, "SHARED_RULES", False) else mod.scan(text)
+        # Canonical rule hits already follow the guard's settings; only the model adds a decision.
+        decision = r.get("model_decision", r.get("decision", "ask"))
         if decision not in DECISIONS:
             decision = "ask"
         spans = []
         for s in r.get("spans") or []:
+            if s.get("source") == "rules":
+                continue
             a, b = int(s["start"]), int(s["end"])
             if 0 <= a < b <= len(text):
                 spans.append(Span(a, b, _PLUGIN_TYPES.get(str(s.get("type", "")).lower(), "other"), "model"))

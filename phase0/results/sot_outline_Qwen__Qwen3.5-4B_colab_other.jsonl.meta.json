@@ -1,0 +1,31 @@
+{
+  "model": "Qwen/Qwen3.5-4B",
+  "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.5-4B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.5-4B-Q8_0.gguf",
+    "size": 4482403488,
+    "sha256": "10cc391b403021dd11c614679d2fd92f611c3681d29e29651b717316965d61e1"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/mt_bench_prompts",
+    "revision": "e3a795c5e9a82ee40611c416b8a7786c73198991",
+    "sha256": "0befb77217cc999fba04e431486bf66b86273b901605d021ee96f4bf7fab57a9"
+  },
+  "split": "other",
+  "n": 40,
+  "prompt": "sot-v1",
+  "temperature": 0.0,
+  "seed": 7,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "stage": "outline",
+  "max_tokens": 256,
+  "points": [
+    3,
+    8
+  ],
+  "max_point_words": 12
+}

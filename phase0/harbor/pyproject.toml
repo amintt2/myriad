@@ -1,0 +1,11 @@
+[project]
+name = "essaim-terminal-bench"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["harbor", "numpy>=1.26"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+harbor = { git = "https://github.com/harbor-framework/harbor", rev = "d5ac1be17f575852eaf4fffc4072fd18481c209b" }

@@ -1,0 +1,38 @@
+{
+  "model": "microsoft/Phi-4-mini-instruct",
+  "revision": "cfbefacb99257ffa30c83adab238a50856ac3083",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+  "weights": {
+    "name": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+    "size": 4084611456,
+    "sha256": "a12f242c4ee379b9da91673e5d78b30bfacfe4fd86a0b2259d2ecad5d93cb6c7"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/mt_bench_prompts",
+    "revision": "e3a795c5e9a82ee40611c416b8a7786c73198991",
+    "sha256": "0befb77217cc999fba04e431486bf66b86273b901605d021ee96f4bf7fab57a9"
+  },
+  "split": "test",
+  "n": 24,
+  "prompt": "sot-v1",
+  "temperature": 0.0,
+  "seed": 7,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "stage": "expand",
+  "max_tokens": 256,
+  "tag": "sot1",
+  "outline_model": "Qwen/Qwen3.5-4B",
+  "peers": [
+    "Qwen/Qwen3.5-4B",
+    "google/gemma-4-E4B-it",
+    "ibm-granite/granite-4.2-3b",
+    "mistralai/Ministral-3-3B-Instruct-2512",
+    "microsoft/Phi-4-mini-instruct",
+    "HuggingFaceTB/SmolLM3-3B"
+  ],
+  "outline_sha256": "5ec9f348144c7b81b201963a429d58983a2f34d06113a2e7bf722800722f3740",
+  "assignment": "round-robin: point i -> peers[i mod P]"
+}

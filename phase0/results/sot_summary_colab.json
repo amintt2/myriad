@@ -1,0 +1,1547 @@
+{
+ "protocol": {
+  "tag": "sot1",
+  "outline_model": "Qwen/Qwen3.5-4B",
+  "judge": "Qwen/Qwen3.8-27B",
+  "peers": [
+   "Qwen/Qwen3.5-4B",
+   "google/gemma-4-E4B-it",
+   "ibm-granite/granite-4.2-3b",
+   "mistralai/Ministral-3-3B-Instruct-2512",
+   "microsoft/Phi-4-mini-instruct",
+   "HuggingFaceTB/SmolLM3-3B"
+  ],
+  "baselines": [
+   "Qwen/Qwen3.5-4B",
+   "google/gemma-4-E4B-it",
+   "ibm-granite/granite-4.2-3b",
+   "mistralai/Ministral-3-3B-Instruct-2512",
+   "microsoft/Phi-4-mini-instruct",
+   "HuggingFaceTB/SmolLM3-3B"
+  ],
+  "suffix": "_colab",
+  "select_split": "dev",
+  "forced_best": null,
+  "n": null,
+  "boot": 10000,
+  "rtt_ms": [
+   50,
+   100,
+   150
+  ],
+  "uniform_speed": 50.0,
+  "default_speed": 40.0,
+  "pp_speed": null,
+  "budgets": {
+   "baseline": 1024,
+   "outline": 256,
+   "expand": 256
+  }
+ },
+ "complete": true,
+ "sources_sha256": {
+  "sot_outline_Qwen__Qwen3.5-4B_colab_dev.jsonl": "a008fe16cb5501ee4656166b2e1c6ae641f165c5363a71a6d07b5e0baa3462ea",
+  "sot_outline_Qwen__Qwen3.5-4B_colab_dev.jsonl.meta.json": "b7f867caf45d1dd1ce882d72e6074cb5ad48f5d347a63d612a5ae0fa976236f4",
+  "sot_base_Qwen__Qwen3.5-4B_colab_dev.jsonl": "61b1140c39ba019156359547dd40fdd07381ef01cee8694b6a6c86c28967dac5",
+  "sot_base_Qwen__Qwen3.5-4B_colab_dev.jsonl.meta.json": "3e518693ec21b6fd6b0c64a09b03eb973fd729e1fb472acfa9009dd58961aa84",
+  "sot_base_google__gemma-4-E4B-it_colab_dev.jsonl": "1d2510d6cd393aa60076eeab5e67b2e387fafe7b4688dd2a9501b527af2aefd5",
+  "sot_base_google__gemma-4-E4B-it_colab_dev.jsonl.meta.json": "98adaaa101e9a34d6875b85457f10764bdc6116fb5cba33ec37cd6f289c11b6e",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_dev.jsonl": "7e9da677c79e9ac529a8538e8203ec559218f7b1d5911ebd63c410ec7fb58759",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_dev.jsonl.meta.json": "8b5e8c7f99219280f37f9de3b9925355e2abd28c79ef18fa343bad7a303dbc54",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_dev.jsonl": "0e1833f4b2ce72214e26fa0a05adc7deeee11f34f9154a59342035837d7d561a",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_dev.jsonl.meta.json": "84b108fa83614c7e318f2659f0c249cdcf4c8af8c38254e8be807c0edfbed57b",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_dev.jsonl": "19e1cb12e3edcbf42736119d7ed8fb06b9d433f85a19e225a140d918b638a747",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_dev.jsonl.meta.json": "13e2b9d4c2baf240fd4b65125dcb048413d613af2d217e281d8ccd2432d35ff9",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_dev.jsonl": "c7eb34211583031d655059af425f5ce19d0d08726a41f2bbf180d8c59594f56e",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_dev.jsonl.meta.json": "3125e3a85d6da01250cd125723bdae6d1fad39ca3fae17dab27f6c9b2edbd182",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_dev.jsonl": "f82594d8ae9c16e9480021e93f946c5f25b4d5424333b7dca821242abef5396e",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_dev.jsonl.meta.json": "03f2de84727361054f71ec0e84fe15f5d322d6d2e455fa642b5c15b6e74b2c23",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_dev.jsonl": "e9a728cc793e1fde235de854072439fda2e5fb56f0573963356ef82c563a0bd6",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_dev.jsonl.meta.json": "b60b7490310697f894264f623bf68e8030f50c59cce63b832edfbfd0ee5d295f",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_dev.jsonl": "cc5ac86958aa9b3dfcaa7ff6f3bf954e94c6c50b67800e09592735268e8e24e1",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_dev.jsonl.meta.json": "78850fc80f8b7214da13e96107bb501a8dbbbbac3c5d2224106b369662e920c6",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_dev.jsonl": "9dc49eb8c1ae9b5de0c73749041b0432c2afa11d8cd6852d591f18217c397756",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_dev.jsonl.meta.json": "b4d5bf83eb5e7f52ce5f6bd2f94b064de56f54655067fec5a8386bf8937e5e38",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_dev.jsonl": "dd7fdc0c5c68e90e884260cd83645be3090784c33efc541f73b40e588b2d02e7",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_dev.jsonl.meta.json": "bc486ae128de0f79cbf97aca0828caa255ed606a3dd943a750877926a6e90051",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_dev.jsonl": "6c6a9542b0e790898e6b661248d905e54cd92fb4d46877ba18f4bad89bd8992f",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_dev.jsonl.meta.json": "8c8a952f6d7510802430c45bc1da50eb69c9b387332b10f4f25990be71a7b989",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_dev.jsonl": "9c77b971bf61ae959a1655eccee5e355ebe3bb87ae18f446cdeb5c568b8caf0d",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_dev.jsonl.meta.json": "84ad5ea3f1058ddd71891fc5d3b3f37e7676012740b364e111856a3d6637c2f3",
+  "sot_outline_Qwen__Qwen3.5-4B_colab_test.jsonl": "11151ffa48731e9fc60f16a182484d7b8b3dcf5359c30a8893eddc0d5679c1f1",
+  "sot_outline_Qwen__Qwen3.5-4B_colab_test.jsonl.meta.json": "deaea0b335e24d43cb028970e64d5e5e921a8f420052573e4f77fe14ce299768",
+  "sot_base_Qwen__Qwen3.5-4B_colab_test.jsonl": "fe4c2b7c05504c2ab10058a05254efba02bb732ec1f9976c85df57e48ebe425c",
+  "sot_base_Qwen__Qwen3.5-4B_colab_test.jsonl.meta.json": "9c8bd197ca5ca629cfd5d0302265a72488c24096cd97152de359a415cd8a68da",
+  "sot_base_google__gemma-4-E4B-it_colab_test.jsonl": "1f1ba70339e81f0afa68fa285c90f2789a00badbf7ebe94f12e9f5047a6c198e",
+  "sot_base_google__gemma-4-E4B-it_colab_test.jsonl.meta.json": "e2133420fbb99522e7932ee1739f44d6b1501635931b250dfbac355f617f72f2",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_test.jsonl": "b58a8ba9526399fad91e264e6c88699cec92f7b9e10142c4d1d3217b26578c0c",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_test.jsonl.meta.json": "fe54fee11fe6ea0fc24bbf98ac9042ad62ccb3aa472f3ae3b0085ce588b42313",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_test.jsonl": "b835de36f90063871fd50fb6868aace6bab6eb45dd79caaedbd5706cd5671b5a",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_test.jsonl.meta.json": "3e1ff871325df1bac3537cf86e0e0ca7de0b5f0d0aa344d55aceea00e83b5aaf",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_test.jsonl": "754a05f2d7c8fd261d5427f56b1918dcb1ef91172e3426e97ef95fa53341ce08",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_test.jsonl.meta.json": "79948ce98c0f0d0ac767531f4533e069f82936443659672d63ae7fb7800a46dd",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_test.jsonl": "7dacee582ee0eea101f5e110393c2abe1419012af139cd3b1812e5ede648d7d9",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_test.jsonl.meta.json": "a6d029be4f71d417518b59187a09df5e94f52d9ee9310f7e896b2fbf954c725f",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_test.jsonl": "d1770a2ee40e1d8a5a246a2181cdea59c8554fd5bd17b9f199fbe5e91ea7ad92",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_test.jsonl.meta.json": "b8551bd14fc68af5814139e1d76f120e775196f39e4cddfe4d5e4de77fbaf65e",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_test.jsonl": "77ad2e6ce23c19c7577a10e2395559ba3789499af4043b114c46e260cdb3feea",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_test.jsonl.meta.json": "f16c5f1cfdad06120eec99916a4c7a86dfefa616cc27ecc01b20802a7d5dcfeb",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_test.jsonl": "273e4889c99159db4f9118c783f2dbe46da32191e4daedebd85db7789578178a",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_test.jsonl.meta.json": "8b751d918efb340d99610799c144c918c4b8253b199d1b99bf9af8f3bf490f37",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_test.jsonl": "35122669b5a1bbc9181104cfb9b009faf5e347dac7eaf81eaffa503c270734c0",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_test.jsonl.meta.json": "b28f5ccb8441c12a4c0376059aef414845bfa9566035154fa2f88a3ae7e5e5f0",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_test.jsonl": "bd48c2670ad386aa242875b933fb5e48cc759aea0a8432d5baea3be04062cfc2",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_test.jsonl.meta.json": "85f024949f240de68842cc4e9b2c00a9015529f5cafbd426469772052dad6699",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_test.jsonl": "811c1b56a6fa117f723c8452d738a0dc68c823d74a67c04971c26c4c283c3e1b",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_test.jsonl.meta.json": "1956dce166a823082c0c068962d73e16803f6fdf20db42e2646cb33144cbd573",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_test.jsonl": "cf86d3accad5f004faf2db5deca08253956845e073ea60fdffdaf5d6c7fdca99",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_test.jsonl.meta.json": "8f2b30a31d0067b30d941b4a0c38ced0d938bd12c4d2d679f287e31cd623508a",
+  "sot_outline_Qwen__Qwen3.5-4B_colab_other.jsonl": "8ba5650a14e9a8d186455b0994705afe00d6ad2fb80f9a91302cec3eb37469f3",
+  "sot_outline_Qwen__Qwen3.5-4B_colab_other.jsonl.meta.json": "0bb0292268f9b42b2332958c61af44be1b2047abdf7f8ae96097c8c659e8dc89",
+  "sot_base_Qwen__Qwen3.5-4B_colab_other.jsonl": "b65a06d32feb512349f3bf1d12c15f0c1dae054725d83314e98545c9558ea258",
+  "sot_base_Qwen__Qwen3.5-4B_colab_other.jsonl.meta.json": "34a41f677a8513892fd4c1a91eb5bdeca8781688a3df4c4852d20a6d800493a9",
+  "sot_base_google__gemma-4-E4B-it_colab_other.jsonl": "11dcee3a3601708f32ad8ab3bf4561c7841b9c4742080e1f088671dea2dfa958",
+  "sot_base_google__gemma-4-E4B-it_colab_other.jsonl.meta.json": "55f44ea776b260469031b7660ec5c0a391b73973e6b391ea6bbb4e6f040c8770",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_other.jsonl": "08125ca6c0936b32b92010244eef81951865c6f6bbc67e34a86e4a3177076293",
+  "sot_base_ibm-granite__granite-4.2-3b_colab_other.jsonl.meta.json": "0c918a53e74487d0b029187d964998cf18247ff01babdd9ecde9801c946ced5c",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_other.jsonl": "d2aab5e1d1b6b7b2fda90df2b9e4e01c8893323398438b836df7488df0b2af5e",
+  "sot_base_mistralai__Ministral-3-3B-Instruct-2512_colab_other.jsonl.meta.json": "819286932029b669f8c8896f7cccd702efa5081606811b36cd465b75d00039e7",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_other.jsonl": "546cb8b291bc826f680c8438bbf0425b6bd2ad8c36dee47e1ab5595793e044bc",
+  "sot_base_microsoft__Phi-4-mini-instruct_colab_other.jsonl.meta.json": "3b9a79377332baf5fbe1e0ee125bb1ca0cf50070323b676179b29bf092891faa",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_other.jsonl": "3ec089a9cb2553b878b84dc858eb776b9e13ac8ec0221d993f081a2da8a9e750",
+  "sot_base_HuggingFaceTB__SmolLM3-3B_colab_other.jsonl.meta.json": "0766afa91529f2b896cdfe498cf9fa606219cc094b2db743a61fbc9abd95b5a9",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_other.jsonl": "9a37401555ef3a32cd261f40c78d40a41625b5d6115f1fe3ee2d32e4ac7af19c",
+  "sot_expand_sot1_Qwen__Qwen3.5-4B_colab_other.jsonl.meta.json": "576d1bf2fccffd84ea6f88ad92e082b868657299d87ae85dbf1b8e301072e2a5",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_other.jsonl": "3e6d116fb23310379b55c888dcfa5b6a7a87e849c26ced5c503c6e961e60dc10",
+  "sot_expand_sot1_google__gemma-4-E4B-it_colab_other.jsonl.meta.json": "c9b4c93e0fa5df64db6c0ae8fae11fcfa89c522f58ee5c08227be28887ee0a1e",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_other.jsonl": "9abc74f65850a74ef7040aca49f3631a021a5d5b873ff20ac4ff008d5ff6996f",
+  "sot_expand_sot1_ibm-granite__granite-4.2-3b_colab_other.jsonl.meta.json": "a6a2a641842d6bf5843f765c50ccbf961be05858e16d1275abae9c3ffd4040bf",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_other.jsonl": "51bb55ef4dfc0f0e3c3b45cb367656bd38a17710b25f64be979e501b3f6f11d6",
+  "sot_expand_sot1_mistralai__Ministral-3-3B-Instruct-2512_colab_other.jsonl.meta.json": "584ec259cc5c57e9364c85140a6691794ba3d85a3eb4dd8817be9b455a8d3bf5",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_other.jsonl": "ce152042262b96129afca1b011bff1ccc7f28e8cd4de81fd35f324228af2069a",
+  "sot_expand_sot1_microsoft__Phi-4-mini-instruct_colab_other.jsonl.meta.json": "b023b6d7fffad698c64071322c43f737dfc39b92d89b9fdfd794ccfea64f9aad",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_other.jsonl": "e3dd396e54765f9b4da149eb48f0db6722bc777a385ce73ec4c663888d49c883",
+  "sot_expand_sot1_HuggingFaceTB__SmolLM3-3B_colab_other.jsonl.meta.json": "f6cc10273002db02b3389f0790645b0e77a0e9e6da336f3bbd7bbd87c018aef5",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_other.jsonl": "060e413864cb16bb9c6fe6de47e17233e6f5f013a11ff479e9b7c6650aaaa9d7",
+  "sot_judge_sot1_Qwen__Qwen3.8-27B_colab_other.jsonl.meta.json": "10289c699a64f96e433a62a0ddaad498f43379b350dfe367b48bf8e639a35f9d"
+ },
+ "speeds": {
+  "Qwen/Qwen3.5-4B": 40.0,
+  "google/gemma-4-E4B-it": 40.0,
+  "ibm-granite/granite-4.2-3b": 56.0,
+  "mistralai/Ministral-3-3B-Instruct-2512": 40.0,
+  "microsoft/Phi-4-mini-instruct": 40.0,
+  "HuggingFaceTB/SmolLM3-3B": 37.0
+ },
+ "defaulted": [
+  "Qwen/Qwen3.5-4B",
+  "google/gemma-4-E4B-it",
+  "mistralai/Ministral-3-3B-Instruct-2512",
+  "microsoft/Phi-4-mini-instruct"
+ ],
+ "splits": {
+  "dev": {
+   "structure": {
+    "n": 16,
+    "fallback": 0,
+    "status": {
+     "ok": 16
+    },
+    "long_points": 0,
+    "mean_points": 7.25,
+    "mean_peers_used": 6.0,
+    "expansions_cut": 22,
+    "expansions": 116,
+    "mean_tokens_parallel": 1262.875,
+    "mean_tokens_single": {
+     "Qwen/Qwen3.5-4B": 607.9375,
+     "google/gemma-4-E4B-it": 692.3125,
+     "ibm-granite/granite-4.2-3b": 663.25,
+     "mistralai/Ministral-3-3B-Instruct-2512": 691.9375,
+     "microsoft/Phi-4-mini-instruct": 322.6875,
+     "HuggingFaceTB/SmolLM3-3B": 441.0625
+    },
+    "single_cut": {
+     "Qwen/Qwen3.5-4B": 5,
+     "google/gemma-4-E4B-it": 6,
+     "ibm-granite/granite-4.2-3b": 5,
+     "mistralai/Ministral-3-3B-Instruct-2512": 5,
+     "microsoft/Phi-4-mini-instruct": 0,
+     "HuggingFaceTB/SmolLM3-3B": 1
+    }
+   },
+   "quality": {
+    "Qwen/Qwen3.5-4B": {
+     "n": 16,
+     "win": 0,
+     "tie": 3,
+     "loss": 13,
+     "score": 0.140625,
+     "score_ci": [
+      0.046875,
+      0.25
+     ],
+     "net": -0.8125,
+     "net_ci": [
+      -1.0,
+      -0.625
+     ],
+     "soft": 0.2036800501727683,
+     "soft_ci": [
+      0.14981015211721457,
+      0.25697084102194423
+     ],
+     "consistency": 0.8125,
+     "share_A": 0.375,
+     "share_C": 0.28125
+    },
+    "google/gemma-4-E4B-it": {
+     "n": 16,
+     "win": 0,
+     "tie": 3,
+     "loss": 13,
+     "score": 0.15625,
+     "score_ci": [
+      0.0625,
+      0.25
+     ],
+     "net": -0.8125,
+     "net_ci": [
+      -1.0,
+      -0.625
+     ],
+     "soft": 0.22623385276435903,
+     "soft_ci": [
+      0.17283371263005445,
+      0.2883701791449806
+     ],
+     "consistency": 0.6875,
+     "share_A": 0.46875,
+     "share_C": 0.25
+    },
+    "ibm-granite/granite-4.2-3b": {
+     "n": 16,
+     "win": 1,
+     "tie": 4,
+     "loss": 11,
+     "score": 0.3125,
+     "score_ci": [
+      0.203125,
+      0.4375
+     ],
+     "net": -0.625,
+     "net_ci": [
+      -0.875,
+      -0.3125
+     ],
+     "soft": 0.27344565539900695,
+     "soft_ci": [
+      0.20987477830363374,
+      0.34311825922367545
+     ],
+     "consistency": 0.5,
+     "share_A": 0.28125,
+     "share_C": 0.5
+    },
+    "mistralai/Ministral-3-3B-Instruct-2512": {
+     "n": 16,
+     "win": 0,
+     "tie": 7,
+     "loss": 9,
+     "score": 0.265625,
+     "score_ci": [
+      0.15625,
+      0.375
+     ],
+     "net": -0.5625,
+     "net_ci": [
+      -0.8125,
+      -0.3125
+     ],
+     "soft": 0.2921752918263121,
+     "soft_ci": [
+      0.22614535370839808,
+      0.35463004890364375
+     ],
+     "consistency": 0.8125,
+     "share_A": 0.21875,
+     "share_C": 0.53125
+    },
+    "microsoft/Phi-4-mini-instruct": {
+     "n": 16,
+     "win": 4,
+     "tie": 9,
+     "loss": 3,
+     "score": 0.484375,
+     "score_ci": [
+      0.375,
+      0.59375
+     ],
+     "net": 0.0625,
+     "net_ci": [
+      -0.25,
+      0.375
+     ],
+     "soft": 0.525811717832937,
+     "soft_ci": [
+      0.4272240157067137,
+      0.615920990024726
+     ],
+     "consistency": 0.625,
+     "share_A": 0.21875,
+     "share_C": 0.65625
+    },
+    "HuggingFaceTB/SmolLM3-3B": {
+     "n": 16,
+     "win": 5,
+     "tie": 10,
+     "loss": 1,
+     "score": 0.59375,
+     "score_ci": [
+      0.46875,
+      0.71875
+     ],
+     "net": 0.25,
+     "net_ci": [
+      0.0,
+      0.5
+     ],
+     "soft": 0.5644472375607826,
+     "soft_ci": [
+      0.4583235559261319,
+      0.6680167434010624
+     ],
+     "consistency": 0.8125,
+     "share_A": 0.21875,
+     "share_C": 0.625
+    }
+   },
+   "speed": {
+    "mono-flux + défauts|50": {
+     "parallel": {
+      "mean_s": 9.941807432432432,
+      "eff_tok_s": 127.02670098801302
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 15.248437500000001,
+      "eff_tok_s": 39.86883902039143,
+      "speedup_latency": 1.5337691464688943,
+      "speedup_median": 1.4023706789664239,
+      "speedup_eff": 3.1861148733988363
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 17.3578125,
+      "eff_tok_s": 39.88477810784049,
+      "speedup_latency": 1.7459413308866634,
+      "speedup_median": 1.8516039539957445,
+      "speedup_eff": 3.1848416116183005
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 11.89375,
+      "eff_tok_s": 55.764582238570675,
+      "speedup_latency": 1.1963367909541165,
+      "speedup_median": 1.2421166798334293,
+      "speedup_eff": 2.2779100261985374
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 17.348437500000003,
+      "eff_tok_s": 39.88471584256507,
+      "speedup_latency": 1.7449983434003622,
+      "speedup_median": 1.655598636088654,
+      "speedup_eff": 3.1848465835739965
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.1171875,
+      "eff_tok_s": 39.753609239653514,
+      "speedup_latency": 0.816469998555785,
+      "speedup_median": 0.6090605880465261,
+      "speedup_eff": 3.1953501434859946
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 11.97060810810811,
+      "eff_tok_s": 36.84545480202072,
+      "speedup_latency": 1.2040675892652346,
+      "speedup_median": 1.0841315390840174,
+      "speedup_eff": 3.447554160222945
+     }
+    },
+    "mono-flux + défauts|100": {
+     "parallel": {
+      "mean_s": 10.041807432432432,
+      "eff_tok_s": 125.76172252828124
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 15.298437500000002,
+      "eff_tok_s": 39.73853538964355,
+      "speedup_latency": 1.5234744943016951,
+      "speedup_median": 1.3939672563834908,
+      "speedup_eff": 3.1647296835468324
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 17.4078125,
+      "eff_tok_s": 39.770218113275284,
+      "speedup_latency": 1.7335337903191892,
+      "speedup_median": 1.8401871221148332,
+      "speedup_eff": 3.1622085192010054
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 11.94375,
+      "eff_tok_s": 55.53113553113553,
+      "speedup_latency": 1.1894024138946129,
+      "speedup_median": 1.232002189847623,
+      "speedup_eff": 2.2647064808852755
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 17.3984375,
+      "eff_tok_s": 39.77009429726089,
+      "speedup_latency": 1.7326001934480004,
+      "speedup_median": 1.6433907659173508,
+      "speedup_eff": 3.162218364087281
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.167187499999999,
+      "eff_tok_s": 39.51023531662521,
+      "speedup_latency": 0.8133184742840321,
+      "speedup_median": 0.6080680403531156,
+      "speedup_eff": 3.183016287310314
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 12.02060810810811,
+      "eff_tok_s": 36.69219527275793,
+      "speedup_latency": 1.1970562260818371,
+      "speedup_median": 1.0780823804047113,
+      "speedup_eff": 3.427478830127476
+     }
+    },
+    "mono-flux + défauts|150": {
+     "parallel": {
+      "mean_s": 10.141807432432433,
+      "eff_tok_s": 124.52168988749072
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 15.3484375,
+      "eff_tok_s": 39.60908072890156,
+      "speedup_latency": 1.513382856286278,
+      "speedup_median": 1.3857189124329032,
+      "speedup_eff": 3.1437662171399747
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 17.457812500000003,
+      "eff_tok_s": 39.656314329186436,
+      "speedup_latency": 1.7213709308038876,
+      "speedup_median": 1.828965068344543,
+      "speedup_eff": 3.1400217593051676
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 11.993749999999999,
+      "eff_tok_s": 55.29963522668057,
+      "speedup_latency": 1.1826047851830876,
+      "speedup_median": 1.222182102835704,
+      "speedup_eff": 2.251763314116987
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 17.4484375,
+      "eff_tok_s": 39.65612966777111,
+      "speedup_latency": 1.7204465393615869,
+      "speedup_median": 1.6314457450173996,
+      "speedup_eff": 3.1400363810261243
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.2171875,
+      "eff_tok_s": 39.26982316029664,
+      "speedup_latency": 0.8102290991763754,
+      "speedup_median": 0.6070933966427736,
+      "speedup_eff": 3.1709256591047534
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 12.070608108108107,
+      "eff_tok_s": 36.54020543536063,
+      "speedup_latency": 1.1901831294397853,
+      "speedup_median": 1.0721602706086422,
+      "speedup_eff": 3.4077993925832932
+     }
+    },
+    "toutes à 50 tok/s|50": {
+     "parallel": {
+      "mean_s": 7.991250000000001,
+      "eff_tok_s": 158.03222274362585
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 12.208749999999998,
+      "eff_tok_s": 49.795228831780484,
+      "speedup_latency": 1.527764742687314,
+      "speedup_median": 1.400255046072839,
+      "speedup_eff": 3.173641861903966
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 13.89625,
+      "eff_tok_s": 49.820095349464786,
+      "speedup_latency": 1.7389332081964648,
+      "speedup_median": 1.8487312038477355,
+      "speedup_eff": 3.1720578139223408
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 13.315000000000001,
+      "eff_tok_s": 49.81224183251971,
+      "speedup_latency": 1.6661974034099796,
+      "speedup_median": 1.6874859613656783,
+      "speedup_eff": 3.1725579281287275
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.88875,
+      "eff_tok_s": 49.819998199982,
+      "speedup_latency": 1.7379946816830907,
+      "speedup_median": 1.6525215399343545,
+      "speedup_eff": 3.1720639994660407
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.50375,
+      "eff_tok_s": 49.615606380934075,
+      "speedup_latency": 0.8138589081808227,
+      "speedup_median": 0.608810745705907,
+      "speedup_eff": 3.185131338117704
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.87125,
+      "eff_tok_s": 49.71819078483866,
+      "speedup_latency": 1.110120444235883,
+      "speedup_median": 1.0019176136363637,
+      "speedup_eff": 3.1785594014780014
+     }
+    },
+    "toutes à 50 tok/s|100": {
+     "parallel": {
+      "mean_s": 8.091249999999999,
+      "eff_tok_s": 156.0790977908234
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 12.25875,
+      "eff_tok_s": 49.59212807178545,
+      "speedup_latency": 1.5150625675884444,
+      "speedup_median": 1.389823969134314,
+      "speedup_eff": 3.1472554991972967
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 13.946250000000001,
+      "eff_tok_s": 49.64148068477189,
+      "speedup_latency": 1.7236211957361351,
+      "speedup_median": 1.8345520663760961,
+      "speedup_eff": 3.1441265578265174
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 13.365000000000002,
+      "eff_tok_s": 49.6258885147774,
+      "speedup_latency": 1.6517843349297086,
+      "speedup_median": 1.671817429881946,
+      "speedup_eff": 3.145114424386513
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.93875,
+      "eff_tok_s": 49.64128777688099,
+      "speedup_latency": 1.7226942684999231,
+      "speedup_median": 1.6373859473859471,
+      "speedup_eff": 3.144138776019279
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.553749999999999,
+      "eff_tok_s": 49.2370780087736,
+      "speedup_latency": 0.8099799165765488,
+      "speedup_median": 0.6075785109160246,
+      "speedup_eff": 3.169950454066578
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.92125,
+      "eff_tok_s": 49.43954042314698,
+      "speedup_latency": 1.1025799474741236,
+      "speedup_median": 0.9954710458081244,
+      "speedup_eff": 3.156969026308932
+     }
+    },
+    "toutes à 50 tok/s|150": {
+     "parallel": {
+      "mean_s": 8.19125,
+      "eff_tok_s": 154.17366091866322
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 12.30875,
+      "eff_tok_s": 49.39067736366406,
+      "speedup_latency": 1.5026705325804974,
+      "speedup_median": 1.3796318600754085,
+      "speedup_eff": 3.121513393782413
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 13.99625,
+      "eff_tok_s": 49.46414218094132,
+      "speedup_latency": 1.7086830459331603,
+      "speedup_median": 1.8206733200209115,
+      "speedup_eff": 3.1168772795996604
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 13.415,
+      "eff_tok_s": 49.44092433842714,
+      "speedup_latency": 1.6377231802227985,
+      "speedup_median": 1.656562158706481,
+      "speedup_eff": 3.1183409894065086
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.98875,
+      "eff_tok_s": 49.463854883388436,
+      "speedup_latency": 1.707767434762704,
+      "speedup_median": 1.6226542729219389,
+      "speedup_eff": 3.1168953831465274
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.60375,
+      "eff_tok_s": 48.86428165814878,
+      "speedup_latency": 0.8061956355867541,
+      "speedup_median": 0.606373873873874,
+      "speedup_eff": 3.155140231002509
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.971250000000001,
+      "eff_tok_s": 49.16399609864846,
+      "speedup_latency": 1.0952235617274533,
+      "speedup_median": 0.9891919191919192,
+      "speedup_eff": 3.135905808171308
+     }
+    }
+   }
+  },
+  "test": {
+   "structure": {
+    "n": 24,
+    "fallback": 0,
+    "status": {
+     "ok": 24
+    },
+    "long_points": 1,
+    "mean_points": 7.125,
+    "mean_peers_used": 5.833333333333333,
+    "expansions_cut": 30,
+    "expansions": 171,
+    "mean_tokens_parallel": 1252.4583333333333,
+    "mean_tokens_single": {
+     "Qwen/Qwen3.5-4B": 676.625,
+     "google/gemma-4-E4B-it": 750.1666666666666,
+     "ibm-granite/granite-4.2-3b": 703.875,
+     "mistralai/Ministral-3-3B-Instruct-2512": 667.125,
+     "microsoft/Phi-4-mini-instruct": 341.0416666666667,
+     "HuggingFaceTB/SmolLM3-3B": 459.5
+    },
+    "single_cut": {
+     "Qwen/Qwen3.5-4B": 8,
+     "google/gemma-4-E4B-it": 10,
+     "ibm-granite/granite-4.2-3b": 7,
+     "mistralai/Ministral-3-3B-Instruct-2512": 7,
+     "microsoft/Phi-4-mini-instruct": 0,
+     "HuggingFaceTB/SmolLM3-3B": 0
+    }
+   },
+   "quality": {
+    "Qwen/Qwen3.5-4B": {
+     "n": 24,
+     "win": 0,
+     "tie": 4,
+     "loss": 20,
+     "score": 0.11458333333333333,
+     "score_ci": [
+      0.041666666666666664,
+      0.19791666666666666
+     ],
+     "net": -0.8333333333333334,
+     "net_ci": [
+      -0.9583333333333334,
+      -0.6666666666666666
+     ],
+     "soft": 0.17296551990805162,
+     "soft_ci": [
+      0.12752432658812327,
+      0.22267333250307797
+     ],
+     "consistency": 0.875,
+     "share_A": 0.3958333333333333,
+     "share_C": 0.22916666666666666
+    },
+    "google/gemma-4-E4B-it": {
+     "n": 24,
+     "win": 0,
+     "tie": 4,
+     "loss": 20,
+     "score": 0.11458333333333333,
+     "score_ci": [
+      0.041666666666666664,
+      0.19791666666666666
+     ],
+     "net": -0.8333333333333334,
+     "net_ci": [
+      -0.9583333333333334,
+      -0.6666666666666666
+     ],
+     "soft": 0.1778165845727168,
+     "soft_ci": [
+      0.12527988724112873,
+      0.23772089041081973
+     ],
+     "consistency": 0.875,
+     "share_A": 0.3541666666666667,
+     "share_C": 0.22916666666666666
+    },
+    "ibm-granite/granite-4.2-3b": {
+     "n": 24,
+     "win": 1,
+     "tie": 4,
+     "loss": 19,
+     "score": 0.16666666666666666,
+     "score_ci": [
+      0.08333333333333333,
+      0.2604166666666667
+     ],
+     "net": -0.75,
+     "net_ci": [
+      -0.9166666666666666,
+      -0.5416666666666666
+     ],
+     "soft": 0.220298634996009,
+     "soft_ci": [
+      0.1625384233362081,
+      0.2866695851488825
+     ],
+     "consistency": 0.75,
+     "share_A": 0.3333333333333333,
+     "share_C": 0.2916666666666667
+    },
+    "mistralai/Ministral-3-3B-Instruct-2512": {
+     "n": 24,
+     "win": 2,
+     "tie": 6,
+     "loss": 16,
+     "score": 0.2604166666666667,
+     "score_ci": [
+      0.15625,
+      0.375
+     ],
+     "net": -0.5833333333333334,
+     "net_ci": [
+      -0.8333333333333334,
+      -0.3333333333333333
+     ],
+     "soft": 0.294304253647387,
+     "soft_ci": [
+      0.21208830424180297,
+      0.383035947467054
+     ],
+     "consistency": 0.7083333333333334,
+     "share_A": 0.2916666666666667,
+     "share_C": 0.3958333333333333
+    },
+    "microsoft/Phi-4-mini-instruct": {
+     "n": 24,
+     "win": 8,
+     "tie": 13,
+     "loss": 3,
+     "score": 0.5625,
+     "score_ci": [
+      0.4479166666666667,
+      0.6770833333333334
+     ],
+     "net": 0.20833333333333334,
+     "net_ci": [
+      -0.041666666666666664,
+      0.4583333333333333
+     ],
+     "soft": 0.5753178898790482,
+     "soft_ci": [
+      0.4778394059312773,
+      0.6685374591083447
+     ],
+     "consistency": 0.7916666666666666,
+     "share_A": 0.2708333333333333,
+     "share_C": 0.5833333333333334
+    },
+    "HuggingFaceTB/SmolLM3-3B": {
+     "n": 24,
+     "win": 8,
+     "tie": 11,
+     "loss": 5,
+     "score": 0.5625,
+     "score_ci": [
+      0.4270833333333333,
+      0.6979166666666666
+     ],
+     "net": 0.125,
+     "net_ci": [
+      -0.16666666666666666,
+      0.4166666666666667
+     ],
+     "soft": 0.5506764372783489,
+     "soft_ci": [
+      0.4377291088915741,
+      0.666049570065583
+     ],
+     "consistency": 0.9166666666666666,
+     "share_A": 0.2708333333333333,
+     "share_C": 0.5
+    }
+   },
+   "speed": {
+    "mono-flux + défauts|50": {
+     "parallel": {
+      "mean_s": 10.011036036036037,
+      "eff_tok_s": 125.1077639541947
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 16.965625000000003,
+      "eff_tok_s": 39.88211456990238,
+      "speedup_latency": 1.6946922315462667,
+      "speedup_median": 1.8975610464230783,
+      "speedup_eff": 3.1369390841830915
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 18.804166666666667,
+      "eff_tok_s": 39.89364059384002,
+      "speedup_latency": 1.8783437197687236,
+      "speedup_median": 2.089425080214159,
+      "speedup_eff": 3.1360327634152445
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 12.619196428571428,
+      "eff_tok_s": 55.77811582410585,
+      "speedup_latency": 1.2605285190410838,
+      "speedup_median": 1.3937956917171404,
+      "speedup_eff": 2.2429542860271083
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 16.728125000000002,
+      "eff_tok_s": 39.880440874276104,
+      "speedup_latency": 1.6709684132376432,
+      "speedup_median": 1.6230846399946621,
+      "speedup_eff": 3.1370707347142788
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.576041666666667,
+      "eff_tok_s": 39.76679217782096,
+      "speedup_latency": 0.8566587549776147,
+      "speedup_median": 0.8763202375113852,
+      "speedup_eff": 3.1460361045659284
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 12.468918918918918,
+      "eff_tok_s": 36.8516310826921,
+      "speedup_latency": 1.2455173344732162,
+      "speedup_median": 1.1453045959642265,
+      "speedup_eff": 3.394904384922961
+     }
+    },
+    "mono-flux + défauts|100": {
+     "parallel": {
+      "mean_s": 10.111036036036037,
+      "eff_tok_s": 123.87042523333258
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 17.015625000000004,
+      "eff_tok_s": 39.76492194674013,
+      "speedup_latency": 1.6828765063595663,
+      "speedup_median": 1.882894720753168,
+      "speedup_eff": 3.1150677322903007
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 18.854166666666668,
+      "eff_tok_s": 39.7878453038674,
+      "speedup_latency": 1.8647116476956318,
+      "speedup_median": 2.0755644258293633,
+      "speedup_eff": 3.1132730181116974
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 12.66919642857143,
+      "eff_tok_s": 55.55798301561014,
+      "speedup_latency": 1.2530067525640334,
+      "speedup_median": 1.3864820696247415,
+      "speedup_eff": 2.2295702347316797
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 16.778125000000003,
+      "eff_tok_s": 39.761594337865525,
+      "speedup_latency": 1.6593873209631793,
+      "speedup_median": 1.6116870134982502,
+      "speedup_eff": 3.1153284292568983
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.626041666666666,
+      "eff_tok_s": 39.53628788793624,
+      "speedup_latency": 0.853131334506493,
+      "speedup_median": 0.8727168098636882,
+      "speedup_eff": 3.1330818306573827
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 12.518918918918919,
+      "eff_tok_s": 36.704447322970644,
+      "speedup_latency": 1.2381440313634642,
+      "speedup_median": 1.1388132238748399,
+      "speedup_eff": 3.374806985741237
+     }
+    },
+    "mono-flux + défauts|150": {
+     "parallel": {
+      "mean_s": 10.211036036036036,
+      "eff_tok_s": 122.65732183426341
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 17.065625,
+      "eff_tok_s": 39.64841604101813,
+      "speedup_latency": 1.6712922116593512,
+      "speedup_median": 1.8685331701625065,
+      "speedup_eff": 3.0936247669356756
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 18.904166666666665,
+      "eff_tok_s": 39.68260965395636,
+      "speedup_latency": 1.8513465822617285,
+      "speedup_median": 2.0619454357085303,
+      "speedup_eff": 3.090959059998073
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 12.719196428571427,
+      "eff_tok_s": 55.33958092029063,
+      "speedup_latency": 1.245632312302471,
+      "speedup_median": 1.3792879545231793,
+      "speedup_eff": 2.216448332179008
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 16.828125,
+      "eff_tok_s": 39.64345403899721,
+      "speedup_latency": 1.6480330635022167,
+      "speedup_median": 1.6005191063158364,
+      "speedup_eff": 3.0940119827501804
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 8.676041666666668,
+      "eff_tok_s": 39.308440389002286,
+      "speedup_latency": 0.849673004389351,
+      "speedup_median": 0.8691821013856627,
+      "speedup_eff": 3.120381287591875
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 12.568918918918918,
+      "eff_tok_s": 36.55843457692721,
+      "speedup_latency": 1.2309151465690273,
+      "speedup_median": 1.1324516755858016,
+      "speedup_eff": 3.355103227304897
+     }
+    },
+    "toutes à 50 tok/s|50": {
+     "parallel": {
+      "mean_s": 7.965,
+      "eff_tok_s": 157.24523958987237
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 13.582500000000001,
+      "eff_tok_s": 49.815939628198045,
+      "speedup_latency": 1.7052730696798495,
+      "speedup_median": 1.9145815125186365,
+      "speedup_eff": 3.156524613677357
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 15.053333333333333,
+      "eff_tok_s": 49.833923826395036,
+      "speedup_latency": 1.8899351328729859,
+      "speedup_median": 2.134372947743691,
+      "speedup_eff": 3.1553854787285656
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 14.1275,
+      "eff_tok_s": 49.82304016988144,
+      "speedup_latency": 1.773697426239799,
+      "speedup_median": 1.9466813043660967,
+      "speedup_eff": 3.156074760867941
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.3925,
+      "eff_tok_s": 49.81332835542281,
+      "speedup_latency": 1.6814187068424358,
+      "speedup_median": 1.6262011478366174,
+      "speedup_eff": 3.156690082379413
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.8708333333333345,
+      "eff_tok_s": 49.63614311704063,
+      "speedup_latency": 0.862628164888052,
+      "speedup_median": 0.8829081744056196,
+      "speedup_eff": 3.167958461621253
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 9.24,
+      "eff_tok_s": 49.729437229437224,
+      "speedup_latency": 1.160075329566855,
+      "speedup_median": 1.0622657873106072,
+      "speedup_eff": 3.1620152640052686
+     }
+    },
+    "toutes à 50 tok/s|100": {
+     "parallel": {
+      "mean_s": 8.065,
+      "eff_tok_s": 155.2955156023972
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 13.632500000000002,
+      "eff_tok_s": 49.63322941500092,
+      "speedup_latency": 1.6903285802851833,
+      "speedup_median": 1.8985101999799014,
+      "speedup_eff": 3.128861801514398
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 15.103333333333333,
+      "eff_tok_s": 49.66894725226219,
+      "speedup_latency": 1.8727009712750569,
+      "speedup_median": 2.1148203481416608,
+      "speedup_eff": 3.126611780468614
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 14.177500000000002,
+      "eff_tok_s": 49.64732851348968,
+      "speedup_latency": 1.7579045257284567,
+      "speedup_median": 1.931946560171271,
+      "speedup_eff": 3.1279732515758996
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.4425,
+      "eff_tok_s": 49.628045378463824,
+      "speedup_latency": 1.6667699938003722,
+      "speedup_median": 1.6119280416762902,
+      "speedup_eff": 3.129188635540902
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.920833333333334,
+      "eff_tok_s": 49.277543648404574,
+      "speedup_latency": 0.8581318454226081,
+      "speedup_median": 0.8781305522428018,
+      "speedup_eff": 3.1514459549857268
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 9.290000000000001,
+      "eff_tok_s": 49.46178686759957,
+      "speedup_latency": 1.1518908865468074,
+      "speedup_median": 1.0552021808268968,
+      "speedup_eff": 3.1397069422116863
+     }
+    },
+    "toutes à 50 tok/s|150": {
+     "parallel": {
+      "mean_s": 8.165,
+      "eff_tok_s": 153.3935497040212
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 13.6825,
+      "eff_tok_s": 49.45185455874292,
+      "speedup_latency": 1.6757501530924679,
+      "speedup_median": 1.882811425483839,
+      "speedup_eff": 3.1018765842605136
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 15.153333333333334,
+      "eff_tok_s": 49.50505939287285,
+      "speedup_latency": 1.8558889569299861,
+      "speedup_median": 2.095730112238966,
+      "speedup_eff": 3.098542888044792
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 14.2275,
+      "eff_tok_s": 49.47285187137586,
+      "speedup_latency": 1.7424984690753216,
+      "speedup_median": 1.9175108932461873,
+      "speedup_eff": 3.1005600829891127
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 13.4925,
+      "eff_tok_s": 49.44413563090606,
+      "speedup_latency": 1.6524800979791796,
+      "speedup_median": 1.5980134252539913,
+      "speedup_eff": 3.102360831000946
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 6.970833333333334,
+      "eff_tok_s": 48.924088463837414,
+      "speedup_latency": 0.8537456623800778,
+      "speedup_median": 0.8734721257561457,
+      "speedup_eff": 3.1353379188127977
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 9.34,
+      "eff_tok_s": 49.19700214132762,
+      "speedup_latency": 1.1439069197795468,
+      "speedup_median": 1.048314634401521,
+      "speedup_eff": 3.1179450581840222
+     }
+    }
+   }
+  },
+  "other": {
+   "structure": {
+    "n": 40,
+    "fallback": 1,
+    "status": {
+     "fallback": 1,
+     "ok": 39
+    },
+    "long_points": 7,
+    "mean_points": 5.666666666666667,
+    "mean_peers_used": 5.102564102564102,
+    "expansions_cut": 13,
+    "expansions": 221,
+    "mean_tokens_parallel": 793.15,
+    "mean_tokens_single": {
+     "Qwen/Qwen3.5-4B": 412.3,
+     "google/gemma-4-E4B-it": 442.6,
+     "ibm-granite/granite-4.2-3b": 543.3,
+     "mistralai/Ministral-3-3B-Instruct-2512": 377.2,
+     "microsoft/Phi-4-mini-instruct": 223.4,
+     "HuggingFaceTB/SmolLM3-3B": 305.325
+    },
+    "single_cut": {
+     "Qwen/Qwen3.5-4B": 4,
+     "google/gemma-4-E4B-it": 10,
+     "ibm-granite/granite-4.2-3b": 11,
+     "mistralai/Ministral-3-3B-Instruct-2512": 3,
+     "microsoft/Phi-4-mini-instruct": 0,
+     "HuggingFaceTB/SmolLM3-3B": 2
+    }
+   },
+   "quality": {
+    "Qwen/Qwen3.5-4B": {
+     "n": 40,
+     "win": 1,
+     "tie": 1,
+     "loss": 38,
+     "score": 0.05,
+     "score_ci": [
+      0.00625,
+      0.11265624999999772
+     ],
+     "net": -0.925,
+     "net_ci": [
+      -1.0,
+      -0.8
+     ],
+     "soft": 0.08806946477251261,
+     "soft_ci": [
+      0.04631386504948312,
+      0.14094749009391616
+     ],
+     "consistency": 0.95,
+     "share_A": 0.475,
+     "share_C": 0.05
+    },
+    "google/gemma-4-E4B-it": {
+     "n": 40,
+     "win": 1,
+     "tie": 1,
+     "loss": 38,
+     "score": 0.0375,
+     "score_ci": [
+      0.0,
+      0.0875
+     ],
+     "net": -0.925,
+     "net_ci": [
+      -1.0,
+      -0.8
+     ],
+     "soft": 0.08239743078551129,
+     "soft_ci": [
+      0.04310712408055369,
+      0.1321887251821977
+     ],
+     "consistency": 0.95,
+     "share_A": 0.4875,
+     "share_C": 0.05
+    },
+    "ibm-granite/granite-4.2-3b": {
+     "n": 40,
+     "win": 2,
+     "tie": 7,
+     "loss": 31,
+     "score": 0.15,
+     "score_ci": [
+      0.075,
+      0.2375
+     ],
+     "net": -0.725,
+     "net_ci": [
+      -0.875,
+      -0.55
+     ],
+     "soft": 0.17371898651407697,
+     "soft_ci": [
+      0.10729626263008717,
+      0.2478437423953528
+     ],
+     "consistency": 0.8,
+     "share_A": 0.425,
+     "share_C": 0.125
+    },
+    "mistralai/Ministral-3-3B-Instruct-2512": {
+     "n": 40,
+     "win": 2,
+     "tie": 5,
+     "loss": 33,
+     "score": 0.13125,
+     "score_ci": [
+      0.0625,
+      0.2125
+     ],
+     "net": -0.775,
+     "net_ci": [
+      -0.925,
+      -0.6
+     ],
+     "soft": 0.16048288791382337,
+     "soft_ci": [
+      0.09781507857642228,
+      0.22991884751159064
+     ],
+     "consistency": 0.825,
+     "share_A": 0.4125,
+     "share_C": 0.1375
+    },
+    "microsoft/Phi-4-mini-instruct": {
+     "n": 40,
+     "win": 5,
+     "tie": 7,
+     "loss": 28,
+     "score": 0.23125,
+     "score_ci": [
+      0.1375,
+      0.3375
+     ],
+     "net": -0.575,
+     "net_ci": [
+      -0.775,
+      -0.35
+     ],
+     "soft": 0.22605843715810217,
+     "soft_ci": [
+      0.14918546186112963,
+      0.3083546130794719
+     ],
+     "consistency": 0.775,
+     "share_A": 0.4,
+     "share_C": 0.2125
+    },
+    "HuggingFaceTB/SmolLM3-3B": {
+     "n": 40,
+     "win": 6,
+     "tie": 6,
+     "loss": 28,
+     "score": 0.25,
+     "score_ci": [
+      0.15,
+      0.35640624999999776
+     ],
+     "net": -0.55,
+     "net_ci": [
+      -0.775,
+      -0.3
+     ],
+     "soft": 0.2609920439314662,
+     "soft_ci": [
+      0.17096900924863837,
+      0.35884125879284967
+     ],
+     "consistency": 0.775,
+     "share_A": 0.3875,
+     "share_C": 0.225
+    }
+   },
+   "speed": {
+    "mono-flux + défauts|50": {
+     "parallel": {
+      "mean_s": 7.573004343629345,
+      "eff_tok_s": 104.73386307604899
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 10.3575,
+      "eff_tok_s": 39.806903210234125,
+      "speedup_latency": 1.3676870539118418,
+      "speedup_median": 1.233652712942635,
+      "speedup_eff": 2.63104774875134
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 11.115,
+      "eff_tok_s": 39.82006297795771,
+      "speedup_latency": 1.467713406153041,
+      "speedup_median": 1.3679775835191506,
+      "speedup_eff": 2.6301782378903855
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 9.751785714285713,
+      "eff_tok_s": 55.712873100164806,
+      "speedup_latency": 1.287703700115956,
+      "speedup_median": 1.2520712764731334,
+      "speedup_eff": 1.8798862318184624
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 9.48,
+      "eff_tok_s": 39.78902953586498,
+      "speedup_latency": 1.2518149428997598,
+      "speedup_median": 0.9967741935483871,
+      "speedup_eff": 2.632229644647255
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 5.635,
+      "eff_tok_s": 39.64507542147294,
+      "speedup_latency": 0.7440904222827158,
+      "speedup_median": 0.6556737588652481,
+      "speedup_eff": 2.6417874594160073
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.302027027027027,
+      "eff_tok_s": 36.77716285505005,
+      "speedup_latency": 1.0962659798301793,
+      "speedup_median": 1.0123099646971974,
+      "speedup_eff": 2.847796157872126
+     }
+    },
+    "mono-flux + défauts|100": {
+     "parallel": {
+      "mean_s": 7.673004343629344,
+      "eff_tok_s": 103.36889756338111
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 10.407500000000002,
+      "eff_tok_s": 39.615661782368484,
+      "speedup_latency": 1.3563787447404516,
+      "speedup_median": 1.2144137923353642,
+      "speedup_eff": 2.609293721539871
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 11.165000000000001,
+      "eff_tok_s": 39.64173757277205,
+      "speedup_latency": 1.455101483067705,
+      "speedup_median": 1.352555925749643,
+      "speedup_eff": 2.6075773639745825
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 9.801785714285714,
+      "eff_tok_s": 55.42867553288395,
+      "speedup_latency": 1.277437790377876,
+      "speedup_median": 1.2412775916662842,
+      "speedup_eff": 1.8648992884929363
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 9.530000000000001,
+      "eff_tok_s": 39.58027282266527,
+      "speedup_latency": 1.2420167607375934,
+      "speedup_median": 0.9910723872927245,
+      "speedup_eff": 2.611626706731235
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 5.685,
+      "eff_tok_s": 39.296394019349165,
+      "speedup_latency": 0.7409092638817646,
+      "speedup_median": 0.6431585292344786,
+      "speedup_eff": 2.630493207913257
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.352027027027026,
+      "eff_tok_s": 36.55699377073052,
+      "speedup_latency": 1.0884950213747047,
+      "speedup_median": 1.0046425483074697,
+      "speedup_eff": 2.827609354633087
+     }
+    },
+    "mono-flux + défauts|150": {
+     "parallel": {
+      "mean_s": 7.773004343629344,
+      "eff_tok_s": 102.03905271840684
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 10.4575,
+      "eff_tok_s": 39.42624910351422,
+      "speedup_latency": 1.3453613992343687,
+      "speedup_median": 1.1963591359783563,
+      "speedup_eff": 2.588099427122822
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 11.215,
+      "eff_tok_s": 39.46500222915738,
+      "speedup_latency": 1.4428140657340134,
+      "speedup_median": 1.3376895505927766,
+      "speedup_eff": 2.5855580122840776
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 9.851785714285715,
+      "eff_tok_s": 55.147362697118,
+      "speedup_latency": 1.2674360232874582,
+      "speedup_median": 1.2307894046682404,
+      "speedup_eff": 1.8502979603726253
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 9.58,
+      "eff_tok_s": 39.373695198329855,
+      "speedup_latency": 1.2324706865565624,
+      "speedup_median": 0.9855082242514208,
+      "speedup_eff": 2.5915538839934715
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 5.735,
+      "eff_tok_s": 38.953792502179596,
+      "speedup_latency": 0.7378099569313034,
+      "speedup_median": 0.6336297071129708,
+      "speedup_eff": 2.6194895583709186
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 8.402027027027028,
+      "eff_tok_s": 36.3394451145959,
+      "speedup_latency": 1.080924010278371,
+      "speedup_median": 0.9972368505408153,
+      "speedup_eff": 2.8079419593950377
+     }
+    },
+    "toutes à 50 tok/s|50": {
+     "parallel": {
+      "mean_s": 6.0969999999999995,
+      "eff_tok_s": 130.08856814826964
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 8.296000000000001,
+      "eff_tok_s": 49.698649951783985,
+      "speedup_latency": 1.3606691815647043,
+      "speedup_median": 1.263557439104674,
+      "speedup_eff": 2.6175473232065127
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 8.902,
+      "eff_tok_s": 49.71916423275669,
+      "speedup_latency": 1.4600623257339675,
+      "speedup_median": 1.3640683667083855,
+      "speedup_eff": 2.6164673150833626
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 10.916,
+      "eff_tok_s": 49.770978380359104,
+      "speedup_latency": 1.7903887157618503,
+      "speedup_median": 1.7454569327731093,
+      "speedup_eff": 2.61374343807567
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 7.593999999999999,
+      "eff_tok_s": 49.670792731103504,
+      "speedup_latency": 1.245530588814171,
+      "speedup_median": 0.9953355442840421,
+      "speedup_eff": 2.6190153407156935
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 4.518,
+      "eff_tok_s": 49.44665781319168,
+      "speedup_latency": 0.7410201738559947,
+      "speedup_median": 0.6361678791720751,
+      "speedup_eff": 2.630886978038864
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 6.156499999999999,
+      "eff_tok_s": 49.59392511979208,
+      "speedup_latency": 1.0097588978185994,
+      "speedup_median": 0.9352985625208243,
+      "speedup_eff": 2.6230746575119044
+     }
+    },
+    "toutes à 50 tok/s|100": {
+     "parallel": {
+      "mean_s": 6.197,
+      "eff_tok_s": 127.98934968533162
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 8.346,
+      "eff_tok_s": 49.40091061586388,
+      "speedup_latency": 1.3467807003388736,
+      "speedup_median": 1.238996124179746,
+      "speedup_eff": 2.590829765883526
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 8.952000000000002,
+      "eff_tok_s": 49.4414655942806,
+      "speedup_latency": 1.444569953203163,
+      "speedup_median": 1.3450552739380108,
+      "speedup_eff": 2.58870460547467
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 10.966,
+      "eff_tok_s": 49.54404523071311,
+      "speedup_latency": 1.769565918993061,
+      "speedup_median": 1.723275698270948,
+      "speedup_eff": 2.5833447609964044
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 7.644,
+      "eff_tok_s": 49.34589220303506,
+      "speedup_latency": 1.233500080684202,
+      "speedup_median": 0.9882734303912647,
+      "speedup_eff": 2.593718422573369
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 4.568,
+      "eff_tok_s": 48.90542907180385,
+      "speedup_latency": 0.7371308697756979,
+      "speedup_median": 0.6291666666666667,
+      "speedup_eff": 2.617078555786011
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 6.2065,
+      "eff_tok_s": 49.194392975106744,
+      "speedup_latency": 1.0015329998386315,
+      "speedup_median": 0.9272261451694255,
+      "speedup_eff": 2.601706047071189
+     }
+    },
+    "toutes à 50 tok/s|150": {
+     "parallel": {
+      "mean_s": 6.297,
+      "eff_tok_s": 125.95680482769573
+     },
+     "Qwen/Qwen3.5-4B": {
+      "mean_s": 8.396,
+      "eff_tok_s": 49.10671748451644,
+      "speedup_latency": 1.3333333333333335,
+      "speedup_median": 1.21624677002584,
+      "speedup_eff": 2.5649607890694477
+     },
+     "google/gemma-4-E4B-it": {
+      "mean_s": 9.001999999999999,
+      "eff_tok_s": 49.166851810708735,
+      "speedup_latency": 1.4295696363347625,
+      "speedup_median": 1.3268858800773695,
+      "speedup_eff": 2.561823671619785
+     },
+     "ibm-granite/granite-4.2-3b": {
+      "mean_s": 11.016,
+      "eff_tok_s": 49.31917211328976,
+      "speedup_latency": 1.749404478323011,
+      "speedup_median": 1.7018708730741012,
+      "speedup_eff": 2.5539115810452717
+     },
+     "mistralai/Ministral-3-3B-Instruct-2512": {
+      "mean_s": 7.694,
+      "eff_tok_s": 49.02521445282038,
+      "speedup_latency": 1.2218516754009847,
+      "speedup_median": 0.981422305764411,
+      "speedup_eff": 2.569224963797166
+     },
+     "microsoft/Phi-4-mini-instruct": {
+      "mean_s": 4.617999999999999,
+      "eff_tok_s": 48.3759203118233,
+      "speedup_latency": 0.7333650944894393,
+      "speedup_median": 0.6182288299935359,
+      "speedup_eff": 2.603708704987909
+     },
+     "HuggingFaceTB/SmolLM3-3B": {
+      "mean_s": 6.2565,
+      "eff_tok_s": 48.80124670342843,
+      "speedup_latency": 0.9935683658885184,
+      "speedup_median": 0.9194930707512764,
+      "speedup_eff": 2.5810161284024513
+     }
+    }
+   }
+  }
+ },
+ "best_single": "Qwen/Qwen3.5-4B"
+}

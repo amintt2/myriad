@@ -180,6 +180,47 @@ ignorés par git) : `run_code.py ... --suffix _smoke --benches humanevalplus --s
 `exec_code.py --suffix _smoke ...` et `analyze_code.py --suffix _smoke --swarm <les deux modèles> --refs
 --fit-split test`. `exec_code.py --reference-only` vérifie le banc seul (aucun modèle).
 
+## E12 : des bancs plus réels (GPQA Diamond, SciCode ; essai Terminal-Bench préparé, DeepSWE en conception)
+
+La question du propriétaire : l'essaim d'E4 (7 petits modèles de 7 familles) obtient-il un score supérieur à 0 sur les
+bancs qu'utilise Artificial Analysis, face aux mêmes références seules ? Une section par banc (source et version,
+licence, harnais, infrastructure, Colab, rôle de l'essaim, coût, attentes réalistes) est dans le rapport de
+faisabilité du dépôt privé.
+
+- **GPQA Diamond** (198 QCM, protégé sur Hugging Face) : `essaim/gpqa.py`, `run_aa.py`. Aucune question dans le
+  dépôt, aucun fichier `*gpqa*` dans l'export public ; rien n'est ajusté sur GPQA (poids et meilleur pair viennent
+  du dev de MMLU-Pro d'E4).
+- **SciCode** (65 problèmes de test, 288 sous-problèmes, chaînes de code, tests officiels) : `essaim/scicode.py`,
+  `run_aa.py`, `exec_scicode.py` (bac à sable E11 ; le code du modèle et les cibles vivent dans un seul processus :
+  VM jetable). `exec_scicode.py --oracle` vérifie uniquement les références de dev et arrête le plan si
+  le banc est cassé. Pas de décision d'essaim sur du code : chaque pair seul, meilleur pair de dev, plafond
+  « au moins un pair juste ».
+- **Analyse** : `analyze_e12.py` (Wilson, test exact contre le hasard, tests appariés exacts comme E4).
+- **Terminal-Bench 4.0** : adaptateur Harbor réel et lanceur sur trois tâches publiques épinglées,
+  puis comparaison single/vote/référence aux mêmes plafonds. Aucun score mesuré : Docker WSL et tunnel
+  authentifié d'inférence indisponibles. Commandes, provenance et limites : [guide](../docs/11_terminal_bench.md).
+  **DeepSWE** reste en conception.
+
+Deux fichiers viennent du propriétaire et ne sont jamais commités (`phase0/data/` est ignoré) : `gpqa_diamond.csv`
+(accepter les conditions de GPQA sur Hugging Face) et `scicode_test_data.h5` (dossier Drive du README de SciCode ;
+`uv run python -m essaim.scicode` affiche son SHA-256, à reporter dans `H5_SHA256`).
+
+Dans `aa-1`, seul le HDF5 est obligatoire : sans CSV GPQA, l'archive WSL et les commandes de génération
+exécutent SciCode seul. Un CSV présent mais invalide reste une erreur, même si un cache GPQA existe.
+L'analyse choisit également SciCode seul par défaut si le CSV manque (`--benches` permet un choix explicite).
+Le split test SciCode n'a aucune référence : ses 288 étapes notées (291 brutes moins 3 ignorées) passent les tests officiels,
+sans exclusion par oracle. Les échecs de référence peuvent être exclus de dev pour choisir le meilleur pair.
+Les trois étapes ignorées utilisent les fichiers officiels épinglés de `essaim/scicode_skipped/`.
+Le cache SciCode, le prompt (`scicode-ours-v2`) et le harnais (`scicode-exec-v2`) changent de version :
+les anciens résultats ne sont pas repris silencieusement et doivent être régénérés sous ce protocole.
+
+```
+bash colab/colab_phase0.sh up aa-1 A100       # oracle SciCode (CPU), 13 modèles (GPU), tests de SciCode (CPU)
+bash colab/colab_phase0.sh pull
+uv run python analyze_e12.py --suffix _colab
+uv run python -m unittest tests.test_aa tests.test_agent   # tests sans modèle ni données protégées
+```
+
 ## Sur le Mac
 
 Avec llama.cpp de Homebrew : `LLAMA_SERVER=/opt/homebrew/bin/llama-server uv run python run_mc.py --model

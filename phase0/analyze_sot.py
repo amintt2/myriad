@@ -28,6 +28,7 @@ measured under batched serving and are not used.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 from collections import Counter, defaultdict
@@ -39,6 +40,84 @@ from essaim import data, sot
 from essaim.results import read_manifest, read_rows
 
 HERE = Path(__file__).resolve().parent
+
+
+def validate_split(a, items: list[dict]) -> dict[str, str]:
+    """Refuse truncated, foreign or incomplete stage files before analysing any answers."""
+    ids = [it["id"] for it in items]
+    fingerprints = {}
+    outlines = {}
+    judge_path = sot.judge_path(a.tag, a.judge, a.suffix, a.split)
+    judge_manifest = read_manifest(judge_path)
+    if judge_manifest is None:
+        raise SystemExit(f"{judge_path.name} absent ou sans manifeste")
+    baselines = judge_manifest.get("baselines", [])
+    if not baselines or len(baselines) != len(set(baselines)) or not set(a.baselines) <= set(baselines):
+        raise SystemExit(f"{judge_path.name} : baselines demandées non jugées ou manifeste invalide")
+    paths = [(sot.outline_path(a.outline_model, a.suffix, a.split), "outline", a.outline_model)]
+    # Every answer the judge saw is loaded for its input fingerprint, even for a subset analysis.
+    used_baselines = list(dict.fromkeys([*baselines, a.outline_model]))
+    paths += [(sot.base_path(m, a.suffix, a.split), "baseline", m) for m in used_baselines]
+    paths += [(sot.expand_path(a.tag, m, a.suffix, a.split), "expand", m) for m in a.peers]
+    paths += [(judge_path, "judge", a.judge)]
+    identities = {}
+    for path, stage, model in paths:
+        man = read_manifest(path)
+        if man is None or not path.exists():
+            raise SystemExit(f"{path.name} absent ou sans manifeste")
+        expected = {"split": a.split, "n": len(ids), "data": data.dataset_identity("mtbench"),
+                    "prompt": sot.PROMPT_VERSION, "temperature": 0.0, "thinking": False,
+                    "judge" if stage == "judge" else "model": model}
+        if stage == "judge":
+            expected.update(judge_prompt=sot.JUDGE_VERSION)
+        else:
+            expected.update(stage=stage, seed=sot.SEED,
+                            max_tokens={"baseline": sot.BASE_MAX_TOKENS, "outline": sot.OUTLINE_MAX_TOKENS,
+                                        "expand": sot.EXPAND_MAX_TOKENS}[stage])
+        if stage in ("expand", "judge"):
+            expected.update(tag=a.tag, outline_model=a.outline_model, peers=a.peers)
+        if any(man.get(k) != v for k, v in expected.items()):
+            bad = [k for k, v in expected.items() if man.get(k) != v]
+            raise SystemExit(f"{path.name} : manifeste incohérent ({', '.join(bad)})")
+        identity = {k: man.get(k) for k in ("revision", "weights", "engine", "gguf")}
+        if model in identities and identities[model] != identity:
+            raise SystemExit(f"{path.name} : provenance du modèle incohérente")
+        identities[model] = identity
+        raw = path.read_bytes()
+        try:
+            rows = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
+        except (ValueError, UnicodeError) as exc:
+            raise SystemExit(f"{path.name} : JSONL corrompu ou tronqué") from exc
+        key = ("id", "point") if stage == "expand" else ("id", "vs", "order") if stage == "judge" else ("id",)
+        keys = [tuple(r[k] for k in key) for r in rows]
+        if stage == "expand":
+            wanted = {(i, k) for i, o in outlines.items() for k, m in enumerate(sot.assign(len(o["points"]), a.peers))
+                      if m == model}
+        elif stage == "judge":
+            wanted = {(i, m, order) for i in ids for m in baselines for order in ("sot_first", "sot_second")}
+        else:
+            wanted = {(i,) for i in ids}
+        if len(keys) != len(set(keys)) or set(keys) != wanted:
+            raise SystemExit(f"{path.name} : clés incomplètes, surnuméraires ou dupliquées "
+                             f"({len(wanted - set(keys))} manquantes, {len(set(keys) - wanted)} inattendues)")
+        for r in rows:
+            if stage == "judge":
+                if r["verdict"] not in ("A", "B", "C") or r["sot_is"] != ("A" if r["order"] == "sot_first" else "B"):
+                    raise SystemExit(f"{path.name} : verdict ou ordre invalide")
+                if (not r.get("probs") and not r.get("identical")) or (r.get("identical") and r["verdict"] != "C"):
+                    raise SystemExit(f"{path.name} : probabilités absentes ou égalité identique incohérente")
+            elif r["model"] != model or not isinstance(r["n_tokens"], int) or not 0 <= r["n_tokens"] <= man["max_tokens"]:
+                raise SystemExit(f"{path.name} : modèle ou nombre de jetons invalide")
+            if stage == "outline" and any(r.get(k) != v for k, v in sot.parse_skeleton(r["text"]).items()):
+                raise SystemExit(f"{path.name} : squelette enregistré différent du texte")
+            if stage == "expand" and (r["point_text"] != outlines[r["id"]]["points"][r["point"]]
+                                      or r["n_points"] != len(outlines[r["id"]]["points"])):
+                raise SystemExit(f"{path.name} : point développé incohérent")
+        if stage == "outline":
+            outlines = {r["id"]: r for r in rows}
+        for f in (path, path.with_name(path.name + ".meta.json")):
+            fingerprints[f.name] = hashlib.sha256(f.read_bytes()).hexdigest()
+    return fingerprints
 
 
 # ---------- quality ----------
@@ -181,12 +260,23 @@ def main():
     uniform = lambda m: a.uniform_speed  # noqa: E731
     print("vitesses (tok/s) : " + ", ".join(f"{m.split('/')[-1]} {measured(m):g}" for m in models)
           + (f" ; par défaut ({a.default_speed:g}) : {', '.join(m.split('/')[-1] for m in defaulted)}" if defaulted else ""))
-    print("Vitesse MODÉLISÉE : nombres de jetons mesurés, vitesses mono-flux mesurées sur GPU grand public, RTT en paramètre.\n")
+    print("Vitesse MODÉLISÉE : nombres de jetons mesurés, débits mono-flux mesurés ou supposés, RTT en paramètre.\n")
 
-    report = {"speeds": {m: measured(m) for m in models}, "defaulted": defaulted, "splits": {}}
+    report = {"protocol": {"tag": a.tag, "outline_model": a.outline_model, "judge": a.judge,
+                           "peers": a.peers, "baselines": a.baselines, "suffix": a.suffix,
+                           "select_split": a.select_split, "forced_best": a.best, "n": a.n,
+                           "boot": a.boot, "rtt_ms": a.rtt, "uniform_speed": a.uniform_speed,
+                           "default_speed": a.default_speed, "pp_speed": a.pp_speed,
+                           "budgets": {"baseline": sot.BASE_MAX_TOKENS, "outline": sot.OUTLINE_MAX_TOKENS,
+                                       "expand": sot.EXPAND_MAX_TOKENS}},
+              "complete": a.n is None and set(a.splits) == set(data.MT_SPLITS), "sources_sha256": {},
+              "speeds": {m: measured(m) for m in models}, "defaulted": defaulted, "splits": {}}
     quality_by_split, loaded = {}, {}
     for split in a.splits:
-        ids = [it["id"] for it in data.mt_bench(a.n, split=split)]
+        items = data.mt_bench(a.n, split=split)
+        a.split = split
+        report["sources_sha256"].update(validate_split(a, items))
+        ids = [it["id"] for it in items]
         par = sot.load_sot(a.tag, a.outline_model, a.peers, a.suffix, split, ids)
         singles = {x: {r["id"]: r for r in sot.complete(sot.base_path(x, a.suffix, split), ids, what="baseline")}
                    for x in a.baselines}
@@ -215,7 +305,7 @@ def main():
         raise SystemExit(f"--select-split {a.select_split} non analysé : ajoute-le à --splits ou donne --best")
     print(f"meilleur modèle seul (choisi sur {a.best and 'la ligne de commande' or a.select_split}) : {best}\n")
     report["best_single"] = best
-    focus = list(dict.fromkeys([a.outline_model, best]))
+    focus = [x for x in dict.fromkeys([a.outline_model, best]) if x in a.baselines]
 
     for split in a.splits:
         par, singles, outline_rows = loaded[split]
@@ -237,7 +327,7 @@ def main():
                   f"  net {fmt_ci(s['net'], s['net_ci'], True)} %  souple {fmt_ci(s['soft'], s['soft_ci'])}"
                   f"  cohérence {100 * s['consistency']:.0f} %  A {100 * s['share_A']:.0f} %{mark}")
         sp = {}
-        for label, fn in (("mesurées", measured), (f"toutes à {a.uniform_speed:g} tok/s", uniform)):
+        for label, fn in (("mono-flux + défauts", measured), (f"toutes à {a.uniform_speed:g} tok/s", uniform)):
             for rtt in a.rtt:
                 t = speed_table(par, singles, a.baselines, fn, a.outline_model, rtt / 1000, a.pp_speed)
                 sp[f"{label}|{rtt:g}"] = t

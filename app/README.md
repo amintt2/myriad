@@ -407,6 +407,36 @@ vérification de syntaxe Python et une escalade.
 - L'API n'écoute que sur 127.0.0.1 et refuse les requêtes d'un autre site (en-têtes `Host` et
   `Origin`) ; dans l'interface, le lancement demande le jeton de la page.
 
+### Détection locale des données personnelles (facultative, expérimentale)
+
+`myriad/privacy_model.py` dit, avant l'envoi, si une question contient des données personnelles ou des
+secrets : `scan(texte)` renvoie `p_sensitive`, une décision (`send`, `mask`, `local`, `ask`) et les
+passages trouvés. Deux couches, toutes deux locales :
+
+- des **règles** (`myriad/privacy_rules.py`) : courriels, téléphones, IBAN et cartes vérifiés (mod 97,
+  Luhn), NIR avec sa clé, clés d'API (AWS, GitHub, OpenAI, Anthropic, Stripe, Slack, Google, HF), clés
+  privées, JWT, mots de passe en clair, chemins `C:\Users\<nom>` et `/home/<nom>`, adresses, IP ;
+- un **petit modèle** facultatif, `Wismut/nym-pii-multilingual-small` (MIT, ONNX int8 de 108 Mo,
+  22 langues dont le français), téléchargé par le téléchargeur vérifié (révision et SHA-256 épinglées)
+  et exécuté par onnxruntime, sans PyTorch ni code du dépôt du modèle : `uv sync --extra pii`
+  (onnxruntime, tokenizers, numpy : environ 31 Mo de roues, 100 Mo installés). Sans l'extra ou sans le
+  modèle, seules les règles s'appliquent (`"guarantee": False`).
+
+Le garde de la passerelle partage ces règles et conserve ses types fins, préférences, confirmations,
+marqueurs et restauration locale. Le module facultatif apporte une décision supplémentaire du modèle ;
+sa décision sur les règles seules ne remplace pas les préférences du garde. Aucun téléchargement
+n'est déclenché par un scan. Pour installer volontairement les fichiers Wismut après l'extra :
+`uv run --extra pii python -c "import asyncio; from myriad.privacy_model import ensure_model; asyncio.run(ensure_model())"`.
+
+**La calibration de l'intégration n'est pas validée.** Quand le modèle est chargé, tout message non vide
+demande donc une confirmation avant envoi automatique. Les modes `local` restent prioritaires. Une erreur
+réelle (fichiers incomplets, taille ou empreinte incorrecte, chargement ou inférence) demande aussi
+confirmation, même si des règles ont déjà masqué une partie du texte. L'absence normale du modèle ou
+du runtime laisse agir le garde habituel. Aucune garantie statistique n'est revendiquée ; les mesures
+de la branche source sont historiques. Rampart est rejeté et absent des catalogues exécutables.
+Détails, provenance des chiffres et limites dans
+[`docs/09_detection_pii.md`](../docs/09_detection_pii.md).
+
 ### Mesure : le parallélisme sur l'essaim de démonstration
 
 `uv run python -m bench.bench_agents` : les 16 pairs simulés de `scripts/demo_swarm.py` (six familles),
