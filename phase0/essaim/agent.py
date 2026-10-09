@@ -12,6 +12,8 @@ http://127.0.0.1:8400/v1) and adds the swarm as a per-step strategy:
             normalised and the plurality wins; ties go to the family with the best dev record. This is the
             "proposer + vote on the next command" strategy: it only helps when peers often propose the SAME command,
             which for exploratory shell work they rarely do, hence
+  cascade   the same peers; ask a reference on disagreement or any malformed peer reply, without consulting
+            the final verifier (used by the Docker-free Aider Python pilot);
   verify    (design only, see the E12 section of the phase-0 README) best-of-k with execution feedback: run each distinct
             proposal in a COPY of the container (docker commit / snapshot), keep the one whose output looks
             productive (exit 0, new files, tests moving from fail to pass). Needs snapshot support in the environment.
@@ -46,6 +48,10 @@ class ActionError(ValueError):
 
 class GenerationLimit(RuntimeError):
     """The shared episode generation budget is exhausted."""
+
+
+class GenerationDeadline(GenerationLimit):
+    """The episode deadline expired during generation; grade the sources already produced."""
 
 
 def parse_action(reply: str) -> str:
@@ -156,11 +162,13 @@ def clip(text: str, limit: int = MAX_OBS_CHARS) -> str:
 
 def run_episode(chat: Chat, env: Env, task: str, families: list[str], strategy: str = "single", max_steps: int = 50,
                 cmd_timeout_s: float = 60.0, priority: list[str] | None = None, timeout_s: float | None = None,
-                on_step: Callable[[Step], None] | None = None) -> dict:
+                on_step: Callable[[Step], None] | None = None, reference: str | None = None) -> dict:
     """One task. `families`: model names to ask (one for `single`, the k peers for `vote`). Returns the transcript
     and why it stopped ("submitted", "max_steps"); the verdict comes from the benchmark's verifier, not from here."""
-    if strategy not in ("single", "vote"):
-        raise ValueError("strategy must be 'single' or 'vote' ('verify' is a design, not implemented)")
+    if strategy not in ("single", "vote", "cascade"):
+        raise ValueError("strategy must be 'single', 'vote' or 'cascade'")
+    if strategy == "cascade" and not reference:
+        raise ValueError("cascade requires a reference model")
     if not families or len(set(families)) != len(families) or max_steps <= 0 or cmd_timeout_s <= 0:
         raise ValueError("nonempty distinct models and positive limits required")
     if timeout_s is not None and (not math.isfinite(timeout_s) or timeout_s <= 0):
@@ -182,6 +190,8 @@ def run_episode(chat: Chat, env: Env, task: str, families: list[str], strategy: 
                 return {"steps": steps, "stopped": "timeout"}
             try:
                 reply = chat(fam, messages)
+            except GenerationDeadline:
+                return {"steps": steps, "stopped": "timeout"}
             except GenerationLimit:
                 return {"steps": steps, "stopped": "generation_limit"}
             replies[fam] = reply
@@ -189,12 +199,34 @@ def run_episode(chat: Chat, env: Env, task: str, families: list[str], strategy: 
                 props.append((fam, parse_action(reply)))
             except ActionError as e:
                 replies[fam] = reply + f"\n[format error: {e}]"
+        cascade = strategy == "cascade" and (len(props) != len(asks)
+                   or len({normalise(c) for _, c in props}) != 1)
+        peer_vote = vote(props, priority or list(asks))[1] if props and strategy == "cascade" else None
+        if cascade:
+            if time.monotonic() >= deadline:
+                return {"steps": steps, "stopped": "timeout"}
+            try:
+                reply = chat(reference, messages)
+            except GenerationDeadline:
+                return {"steps": steps, "stopped": "timeout"}
+            except GenerationLimit:
+                return {"steps": steps, "stopped": "generation_limit"}
+            replies[reference] = reply
+            try:
+                props = [(reference, parse_action(reply))]
+            except ActionError as e:
+                props = []
+                replies[reference] = reply + f"\n[format error: {e}]"
         if not props:  # nobody produced a command: tell the model, count the turn
             messages += [{"role": "assistant", "content": next(iter(replies.values()))},
                          {"role": "user", "content": "Format error: reply with exactly one ```bash block."}]
-            record(Step(next(iter(replies.values())), None, None, "", {"format_error": True, "replies": replies}))
+            record(Step(next(iter(replies.values())), None, None, "", {
+                "format_error": True, "replies": replies, "cascade": cascade}))
             continue
-        cmd, note = vote(props, priority or list(asks)) if strategy == "vote" else (props[0][1], {})
+        cmd, note = vote(props, priority or list(asks)) if strategy in ("vote", "cascade") else (props[0][1], {})
+        note["cascade"] = cascade
+        if peer_vote is not None:
+            note["peer_vote"] = peer_vote
         note["replies"] = replies
         chosen = next(f for f, c in props if c == cmd)
         messages.append({"role": "assistant", "content": replies[chosen]})

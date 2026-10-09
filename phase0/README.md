@@ -206,7 +206,12 @@ faisabilité du dépôt privé.
 - **Terminal-Bench 4.0** : adaptateur Harbor réel et lanceur sur trois tâches publiques épinglées,
   puis comparaison single/vote/référence aux mêmes plafonds. Aucun score mesuré : Docker WSL et tunnel
   authentifié d'inférence indisponibles. Commandes, provenance et limites : [guide](../docs/11_terminal_bench.md).
-  **DeepSWE** reste en conception.
+  **Terminal-Bench et DeepSWE sont gelés par décision du propriétaire : aucun Docker.**
+- **Pilote code sans Docker** : 34 exercices Python Aider Polyglot préparés et épinglés, trois premiers
+  lexicographiques présélectionnés (affine-cipher, beer-song, book-store), boucle single/vote/cascade/référence seule,
+  bac Linux WSL Landlock/namespaces/seccomp, vérificateur séparé et comptabilité jetons/temps/coût estimé.
+  Provenance modèle/serveur structurée obligatoire ; solo direct Linux accepté. Aucune inférence ni mesure modèle
+  dans ce jalon ; [reproduction et limites](../docs/12_code_pilot.md).
 
 Deux fichiers viennent du propriétaire et ne sont jamais commités (`phase0/data/` est ignoré) : `gpqa_diamond.csv`
 (accepter les conditions de GPQA sur Hugging Face) et `scicode_test_data.h5` (dossier Drive du README de SciCode ;

@@ -1,0 +1,38 @@
+{
+  "aider": {
+    "url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/_data/polyglot_leaderboard.yml",
+    "sha256": "85a50b25953512d18ba4bb0c23c0b8e626fcf9a5b52d287644b8a0b44b9535de",
+    "bytes": 45725,
+    "consulted": "2026-10-09"
+  },
+  "bigcode": {
+    "url": "https://bigcode-bench.github.io/results-hard.json",
+    "sha256": "6c3b7df370bb95e3671aa70979c53a81fc0f946e29f574e3e62b225db8024d63",
+    "bytes": 76062,
+    "consulted": "2026-10-09"
+  },
+  "bfcl": {
+    "url": "https://gorilla.cs.berkeley.edu/data_overall.csv",
+    "sha256": "ede5081a24bc5ac7f9b3b09a52af6bcfcd35aa0f1709239fed979db77a8159a6",
+    "bytes": 33046,
+    "consulted": "2026-10-09"
+  },
+  "crux": {
+    "url": "https://crux-eval.github.io/data.csv",
+    "sha256": "84bfbecda6baba34ab97254eb6d4520eda363ec16cd25303a9f3fce6231c4953",
+    "bytes": 3770,
+    "consulted": "2026-10-09"
+  },
+  "lcb": {
+    "url": "https://huggingface.co/datasets/livecodebench/code_generation_lite/raw/0fe84c3912ea0c4d4a78037083943e8f0c4dd505/code_generation_lite.py",
+    "sha256": "973e37989fed0f069c8246776e918d0d96600d64a3730cd6242dd76bccf2f7bb",
+    "bytes": 5013,
+    "consulted": "2026-10-09"
+  },
+  "lcb_leaderboard": {
+    "url": "https://livecodebench.github.io/performances_generation.json",
+    "sha256": "17f9a1d69e3f6290fc8b967a4dd13fbb46e34dd05716fdee793780a1cfadd0c1",
+    "bytes": 6950346,
+    "consulted": "2026-10-10"
+  }
+}

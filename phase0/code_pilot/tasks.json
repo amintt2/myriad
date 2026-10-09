@@ -1,0 +1,1178 @@
+{
+  "version": "aider-python-v1",
+  "commit": "7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f",
+  "archive_url": "https://codeload.github.com/Aider-AI/polyglot-benchmark/tar.gz/7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f",
+  "archive_sha256": "331eb06fddbbc145e4a800b34c5afc2209b3664ce9a3267604fd9550b60bc68f",
+  "license_url": "https://raw.githubusercontent.com/exercism/python/617408a174390ad45200d11b7ba06e068bd7a94b/LICENSE",
+  "tasks": [
+    "affine-cipher",
+    "beer-song",
+    "book-store",
+    "bottle-song",
+    "bowling",
+    "connect",
+    "dominoes",
+    "dot-dsl",
+    "food-chain",
+    "forth",
+    "go-counting",
+    "grade-school",
+    "grep",
+    "hangman",
+    "list-ops",
+    "paasio",
+    "phone-number",
+    "pig-latin",
+    "poker",
+    "pov",
+    "proverb",
+    "react",
+    "rest-api",
+    "robot-name",
+    "scale-generator",
+    "sgf-parsing",
+    "simple-linked-list",
+    "transpose",
+    "tree-building",
+    "two-bucket",
+    "variable-length-quantity",
+    "wordy",
+    "zebra-puzzle",
+    "zipper"
+  ],
+  "pilot": [
+    "affine-cipher",
+    "beer-song",
+    "book-store"
+  ],
+  "files": {
+    "README.md": {
+      "size": 1077,
+      "sha256": "9a06b876910a1566e5152658213d70e62922642513c7dfeb04bed868d510856e"
+    },
+    "python/exercises/practice/affine-cipher/.docs/instructions.append.md": {
+      "size": 1028,
+      "sha256": "e5dc5300128239b38b82ecfa24ed5e64df264b4a99e3ae8e23f10ab6a5253f1b"
+    },
+    "python/exercises/practice/affine-cipher/.docs/instructions.md": {
+      "size": 2982,
+      "sha256": "8ca08c38274662d67f1bd6482242161a36a6268851ad1e61acf1bb327b20c729"
+    },
+    "python/exercises/practice/affine-cipher/.meta/config.json": {
+      "size": 493,
+      "sha256": "89f5e3da0cd332167e2f8362493f6c1e2adef433c3fca9b39ad532d4c1fcecb3"
+    },
+    "python/exercises/practice/affine-cipher/.meta/example.py": {
+      "size": 1078,
+      "sha256": "6952153be60d7690e0bfad52c89c4647e9edb4bd068c77f1c15735e00d9216ba"
+    },
+    "python/exercises/practice/affine-cipher/.meta/template.j2": {
+      "size": 1163,
+      "sha256": "9413f9baf7e44210eb30fe338da0c2043ba898d3c60d9520071b8957e8ff83b2"
+    },
+    "python/exercises/practice/affine-cipher/.meta/tests.toml": {
+      "size": 1413,
+      "sha256": "0034a54f8e7fa9b6cd89b3d4f7d9523b5b0f6c5da8d2183ebbef2bab571021fd"
+    },
+    "python/exercises/practice/affine-cipher/affine_cipher.py": {
+      "size": 83,
+      "sha256": "d3164dc77d13a429fb14899cd5e74a81d848ed0c7b95b02db3247a75e0bbd72b"
+    },
+    "python/exercises/practice/affine-cipher/affine_cipher_test.py": {
+      "size": 2797,
+      "sha256": "4d9dac99b726068707a37e36145d73f74a52704145fb95bb4acaccdd7cd3ef54"
+    },
+    "python/exercises/practice/beer-song/.docs/instructions.md": {
+      "size": 12055,
+      "sha256": "74f85047feabcf41b1846d5c58ad0133a51e0963567d0afbc5e21541beb37e4f"
+    },
+    "python/exercises/practice/beer-song/.meta/config.json": {
+      "size": 594,
+      "sha256": "469a7d344e408e5125f5bb9b6bd933dac8bb6e14503df32d7fee38757ca94b36"
+    },
+    "python/exercises/practice/beer-song/.meta/example.py": {
+      "size": 972,
+      "sha256": "b799738d63ff7e375f9bedfb76552eeee9b328ee8c3581f6f48a05ff71690fef"
+    },
+    "python/exercises/practice/beer-song/.meta/template.j2": {
+      "size": 820,
+      "sha256": "643ce90e3042763aa05fd952933967ca5d139ff1cfa6d53533de6ef005f3afe8"
+    },
+    "python/exercises/practice/beer-song/.meta/tests.toml": {
+      "size": 795,
+      "sha256": "6497d67ccf3744ac0ab1bd8018bf29fcc9d10ba44b200297413f3cce494678bc"
+    },
+    "python/exercises/practice/beer-song/beer_song.py": {
+      "size": 36,
+      "sha256": "942234e1d907d3867f9eee8102573a8c398520a28ad1ca10cd23a0d9247134bc"
+    },
+    "python/exercises/practice/beer-song/beer_song_test.py": {
+      "size": 19203,
+      "sha256": "91c87daae769e12821ba3526858ca3fd45c3501033669edb6101e486d74eff1f"
+    },
+    "python/exercises/practice/book-store/.docs/instructions.md": {
+      "size": 1733,
+      "sha256": "025999b58db674568be4d2239fc577b749ec40e98593fc3638e21e72915ad4c5"
+    },
+    "python/exercises/practice/book-store/.meta/additional_tests.json": {
+      "size": 827,
+      "sha256": "f97ae666f90efd0aefb9a65e0765d7dc6215e8ac33889de11ddd3bd50b90f061"
+    },
+    "python/exercises/practice/book-store/.meta/config.json": {
+      "size": 679,
+      "sha256": "6bae06984205573b52770a4af33dfccbdc31c6134e042397b6c2c1c69372ee08"
+    },
+    "python/exercises/practice/book-store/.meta/example.py": {
+      "size": 634,
+      "sha256": "728655581209a08f392aa2d6a5060bca855f53ea3e96f66a86db738dbf23d751"
+    },
+    "python/exercises/practice/book-store/.meta/template.j2": {
+      "size": 684,
+      "sha256": "1c015727d283be53b783b319fb1029f43b95eb4e04b3fa385116a9fee232b108"
+    },
+    "python/exercises/practice/book-store/.meta/tests.toml": {
+      "size": 2365,
+      "sha256": "644fe654d6804f7bf401979b2ad694a08752a9a27a33d77e7657a8492452dd1d"
+    },
+    "python/exercises/practice/book-store/book_store.py": {
+      "size": 28,
+      "sha256": "5c22fe209f90b16dbbacff457199d0b14152b48616c875085c8ff1f6f7188ec2"
+    },
+    "python/exercises/practice/book-store/book_store_test.py": {
+      "size": 3494,
+      "sha256": "fa4109f3378cceaff8bdc389b333bc23c65f8b1345bc907be5c09593be0ee1eb"
+    },
+    "python/exercises/practice/bottle-song/.docs/instructions.md": {
+      "size": 1973,
+      "sha256": "0e4fd6e0e83949fe62ef118036e7b28fb597666ed19a478eca3d3d9018614b11"
+    },
+    "python/exercises/practice/bottle-song/.meta/config.json": {
+      "size": 420,
+      "sha256": "d663c1ac3eca53669624828d2f49042b2e9417ff622d94e7150414413807c536"
+    },
+    "python/exercises/practice/bottle-song/.meta/example.py": {
+      "size": 1078,
+      "sha256": "202fffe8d02d30f4e4f62c0786e20dfa1f54969890bb01ee39cee874048f4e06"
+    },
+    "python/exercises/practice/bottle-song/.meta/template.j2": {
+      "size": 820,
+      "sha256": "643ce90e3042763aa05fd952933967ca5d139ff1cfa6d53533de6ef005f3afe8"
+    },
+    "python/exercises/practice/bottle-song/.meta/tests.toml": {
+      "size": 1207,
+      "sha256": "fbffb064149aa8dcb767f794f56e126d2c2b35793495ab6fc65969534c34330a"
+    },
+    "python/exercises/practice/bottle-song/bottle_song.py": {
+      "size": 36,
+      "sha256": "942234e1d907d3867f9eee8102573a8c398520a28ad1ca10cd23a0d9247134bc"
+    },
+    "python/exercises/practice/bottle-song/bottle_song_test.py": {
+      "size": 5937,
+      "sha256": "c27aadffe3a14df3f04dfa65de1798d1ab7b4bf07126f8978808fbd25302b700"
+    },
+    "python/exercises/practice/bowling/.docs/instructions.append.md": {
+      "size": 1225,
+      "sha256": "51b23a84cccf816778935b8dce09c0f88fc0deda3bdc896152a2c65ec9d341fc"
+    },
+    "python/exercises/practice/bowling/.docs/instructions.md": {
+      "size": 2160,
+      "sha256": "38a7d249928abfaac3e24d47222283a9bc3a6c5c599d9cea1d43bbe55eb8de1c"
+    },
+    "python/exercises/practice/bowling/.meta/config.json": {
+      "size": 516,
+      "sha256": "ff4e4a727258398458fc48e7382abc9fe7d403a3932f2a0fbe9c85e113eb07dd"
+    },
+    "python/exercises/practice/bowling/.meta/example.py": {
+      "size": 3367,
+      "sha256": "7f634589daeb5c2974d3600d8eaf60a8fa157c0ceb37fe7341e47ea0b2e9ca8f"
+    },
+    "python/exercises/practice/bowling/.meta/template.j2": {
+      "size": 1050,
+      "sha256": "8d2ca07fc5fcdbf753b0c2e201e661bf6e2d6ce09093a23ace4cad7e8ed0eaf9"
+    },
+    "python/exercises/practice/bowling/.meta/tests.toml": {
+      "size": 4155,
+      "sha256": "a22167d04839444ae2baf18fc1f8e6c6c2ca217f6dad453639fd65c2dc7c2552"
+    },
+    "python/exercises/practice/bowling/bowling.py": {
+      "size": 131,
+      "sha256": "a356c0682b6c0c04e9e30a7da603b2014c227426b43bbe37f34cd99913d368b6"
+    },
+    "python/exercises/practice/bowling/bowling_test.py": {
+      "size": 8558,
+      "sha256": "6b9a80b6835828f575ce0aba66876850f75c59f764014ac509fe1df7e3a9ee20"
+    },
+    "python/exercises/practice/connect/.docs/instructions.md": {
+      "size": 1164,
+      "sha256": "3c717817dc88865be3fd9ad5b084d0244602e8bd416a59eca9c3cbea546b70aa"
+    },
+    "python/exercises/practice/connect/.meta/config.json": {
+      "size": 369,
+      "sha256": "9257e7813dd725d07a0c6f306834f2f7ff71f7e0cf3e17f54f4b495cb416d9f4"
+    },
+    "python/exercises/practice/connect/.meta/example.py": {
+      "size": 2077,
+      "sha256": "8664d19c48528035ebd15fc7917d19c40f7c43ad9b95c5f488d2633e01520705"
+    },
+    "python/exercises/practice/connect/.meta/template.j2": {
+      "size": 361,
+      "sha256": "fe4e7d0378882f8dd348d18e9608cb090d988eec53a5e9db84aad5e85ebfb6f8"
+    },
+    "python/exercises/practice/connect/.meta/tests.toml": {
+      "size": 1078,
+      "sha256": "2e0e95dd77ad2a2e02e3803f4680e1281e0ec59d13192db60af3be6bb86b40bc"
+    },
+    "python/exercises/practice/connect/connect.py": {
+      "size": 104,
+      "sha256": "2e5d51380a8160d906d2eacc8655eceea5ce87abb7f0783a010a1521cf608216"
+    },
+    "python/exercises/practice/connect/connect_test.py": {
+      "size": 3142,
+      "sha256": "4de5c414b9a5023754ebdbb9a192b72ad19fdf402179a3020d87727e9946ce2b"
+    },
+    "python/exercises/practice/dominoes/.docs/instructions.md": {
+      "size": 819,
+      "sha256": "4d0e12e178b83a18ea3e4cdc2b108e0a2ae01ae7e66625887d2895672db7fece"
+    },
+    "python/exercises/practice/dominoes/.meta/config.json": {
+      "size": 350,
+      "sha256": "bf0397ea82d0056d19d9fce44dd919e1234e07491109a756f63e0bf8aec82fd4"
+    },
+    "python/exercises/practice/dominoes/.meta/example.py": {
+      "size": 838,
+      "sha256": "4a51af33d2fed21b11146fb6ef03179771481f27f4c59d53fe442218fc9e2d6a"
+    },
+    "python/exercises/practice/dominoes/.meta/template.j2": {
+      "size": 2731,
+      "sha256": "58d94811ced77e0d02d34d693ec1028d108254253dd69d239955d39cfab85ae4"
+    },
+    "python/exercises/practice/dominoes/.meta/tests.toml": {
+      "size": 1529,
+      "sha256": "e5d5cd58afa739db9984223b45906d233c64c66639dd919add4164d72e446526"
+    },
+    "python/exercises/practice/dominoes/dominoes.py": {
+      "size": 34,
+      "sha256": "89f1fede34db8dbd73fb7103476080307e769425049014bf60b7d5e632f9743b"
+    },
+    "python/exercises/practice/dominoes/dominoes_test.py": {
+      "size": 5099,
+      "sha256": "9645efc873738b9247ced09ccdce782fe2124646d24588d52c23df59e23ab140"
+    },
+    "python/exercises/practice/dot-dsl/.docs/instructions.append.md": {
+      "size": 1594,
+      "sha256": "b2d4f955bf69cdf98949fc50138c961b51cf3616e617c98a55f146b824742f1d"
+    },
+    "python/exercises/practice/dot-dsl/.docs/instructions.md": {
+      "size": 1530,
+      "sha256": "3abc3569b7d33fec5ccfe4bdd38ab43bb82926faaf40656d74a4f9a6d3b520a0"
+    },
+    "python/exercises/practice/dot-dsl/.meta/config.json": {
+      "size": 510,
+      "sha256": "6f2cd3aadfef4bb75e17e7d3df891878054bb5f0de1ad3ea698a9569f271dd50"
+    },
+    "python/exercises/practice/dot-dsl/.meta/example.py": {
+      "size": 1536,
+      "sha256": "7acd5e4ba093036c9b7be98628bf235489910b6996b9928b99fadaaf0f4c858d"
+    },
+    "python/exercises/practice/dot-dsl/dot_dsl.py": {
+      "size": 578,
+      "sha256": "e13b484dcf24ab01d5d8c2f9ee259bc725069c69d80a1b9855d81cfd742b386a"
+    },
+    "python/exercises/practice/dot-dsl/dot_dsl_test.py": {
+      "size": 3994,
+      "sha256": "02f801ecff9b041978af4ea77b127bb74dc419edd0e0e420c912bb421db92627"
+    },
+    "python/exercises/practice/food-chain/.docs/instructions.md": {
+      "size": 2542,
+      "sha256": "282ba689e0653e74892e2104962c2ed4ef79fd307a182c343cd72ae807e466f3"
+    },
+    "python/exercises/practice/food-chain/.meta/config.json": {
+      "size": 502,
+      "sha256": "a37c3d46414a7f978df16da031287a595403e9556c7e88f2ffde2b94f51ad416"
+    },
+    "python/exercises/practice/food-chain/.meta/example.py": {
+      "size": 1981,
+      "sha256": "8eea5c1f75e15326ac221952e38c9289cacdabdd9dc1dcc4a5b52b4fb0682640"
+    },
+    "python/exercises/practice/food-chain/.meta/template.j2": {
+      "size": 556,
+      "sha256": "29c7dfadbec9fbec1d8fedd2f5b66b1edde4d889fa4db5c45d20b19042deef44"
+    },
+    "python/exercises/practice/food-chain/.meta/tests.toml": {
+      "size": 825,
+      "sha256": "9ce37a5168ddb753354c14ec4843d1f0a717aa9ebc3c79b8ba15677f465ba0ff"
+    },
+    "python/exercises/practice/food-chain/food_chain.py": {
+      "size": 45,
+      "sha256": "d7c1f854251ec4677ff36fdabbc87ef0ebcff8e8559fdee91b52fdeb8c3dc6b5"
+    },
+    "python/exercises/practice/food-chain/food_chain_test.py": {
+      "size": 8258,
+      "sha256": "8ff5c6c45bbcdee64f0e3c9d879d2a08e97c90594d00d15ee0f228b4e7eac548"
+    },
+    "python/exercises/practice/forth/.docs/instructions.append.md": {
+      "size": 2213,
+      "sha256": "ec3a69fad548faa5f17b2ef73cebfdd06759225c1b0f4ed805c7e0a630cdcd77"
+    },
+    "python/exercises/practice/forth/.docs/instructions.md": {
+      "size": 937,
+      "sha256": "06875da79159e3783cde3d006e405f8329e16837b09b0b4b8225efc3d27a6d9c"
+    },
+    "python/exercises/practice/forth/.meta/config.json": {
+      "size": 411,
+      "sha256": "f732bc7caeee8d59cc1dfb133f15c79c7f5b45a92539d67688718dc2e3eb1912"
+    },
+    "python/exercises/practice/forth/.meta/example.py": {
+      "size": 2097,
+      "sha256": "a90f6134d4f24b5abee77880c8eb4f8adf7a88d925c0cd3d9bbfcfba895a320b"
+    },
+    "python/exercises/practice/forth/.meta/template.j2": {
+      "size": 1768,
+      "sha256": "dfc44342abd6e8192457a254a5024514684e1078254c896b7a07053597eea4c0"
+    },
+    "python/exercises/practice/forth/.meta/tests.toml": {
+      "size": 6506,
+      "sha256": "b36c9c2a0726f1f4ca795c41fb4383cf208e06cc78664bdb2eaa757dc052b642"
+    },
+    "python/exercises/practice/forth/forth.py": {
+      "size": 84,
+      "sha256": "9acd281e02feff4fc5ae766063a1ce1290b625bb930cc8f54c15a0109610e562"
+    },
+    "python/exercises/practice/forth/forth_test.py": {
+      "size": 11264,
+      "sha256": "05f78a51ce5b3e18439088442925c7cea5b1fb1703bc10832dd048c057b7639c"
+    },
+    "python/exercises/practice/go-counting/.docs/instructions.append.md": {
+      "size": 1102,
+      "sha256": "c59b9fc9456cc13a6115badad795891a711d44c825d5ac9ce42f1b58a9913f36"
+    },
+    "python/exercises/practice/go-counting/.docs/instructions.md": {
+      "size": 1207,
+      "sha256": "f774382c9c34518f382d9ccbdcc3be778037fa44b5eaac4b0caf0d990fcc109b"
+    },
+    "python/exercises/practice/go-counting/.meta/config.json": {
+      "size": 368,
+      "sha256": "71b3eedcce3022d3b828c9f6bc8f03732566d4ba6db153e2552002628b7ffff9"
+    },
+    "python/exercises/practice/go-counting/.meta/example.py": {
+      "size": 2482,
+      "sha256": "78f9812eec1107283a9b09362eec1b46150f00ecf651ff6b19b581c6e9dbb91d"
+    },
+    "python/exercises/practice/go-counting/.meta/template.j2": {
+      "size": 1471,
+      "sha256": "11ec0919022e15025d2917ce82d14e13eee550cd8c3184122b6bde779f6f53e3"
+    },
+    "python/exercises/practice/go-counting/.meta/tests.toml": {
+      "size": 1232,
+      "sha256": "119a26ce1b9084f42fe8421b4a8482593d1d8325c55043bddf8a13dffc772e20"
+    },
+    "python/exercises/practice/go-counting/go_counting.py": {
+      "size": 1059,
+      "sha256": "93533b48aa59c4b85a8ddd8a6f212f28491dfe6c016a660d0ef7c97192ee18d3"
+    },
+    "python/exercises/practice/go-counting/go_counting_test.py": {
+      "size": 3738,
+      "sha256": "66b355989d67c4120e49bf5e7e1d224f0af21dd1eeb30b884c204640e73fe358"
+    },
+    "python/exercises/practice/grade-school/.docs/instructions.append.md": {
+      "size": 321,
+      "sha256": "ccc8c763419ac8712f4e9971b5e70e3ab795f1cfe8aa86ff8da0ce1f2e32dabb"
+    },
+    "python/exercises/practice/grade-school/.docs/instructions.md": {
+      "size": 1036,
+      "sha256": "8dc7133cd5f0564717108757c27ad96ebadf44f03b5fde5c35b826aaeb0b4e0f"
+    },
+    "python/exercises/practice/grade-school/.meta/config.json": {
+      "size": 592,
+      "sha256": "b081949a93a84cafb5c1ad5d7d6f7267b9d4534f63993d3de7eaba829d4f61b6"
+    },
+    "python/exercises/practice/grade-school/.meta/example.py": {
+      "size": 910,
+      "sha256": "f6a52a73ebe023737547952d2b27231a0eaa086f2b9804aac4c137b9fd687473"
+    },
+    "python/exercises/practice/grade-school/.meta/template.j2": {
+      "size": 1008,
+      "sha256": "8274e61d823e4974033707ffd47cf296228a3c3b3173d664eb9d8d584ec8760e"
+    },
+    "python/exercises/practice/grade-school/.meta/tests.toml": {
+      "size": 3164,
+      "sha256": "4b6e02acc39cd78ff408490d6b5db7484840d864aa8c85f52155a4b488ff71a7"
+    },
+    "python/exercises/practice/grade-school/grade_school.py": {
+      "size": 225,
+      "sha256": "d2af6e7a288b738c4d98ec1989f5a604809a07abe42d76a7aebe223d7460d53d"
+    },
+    "python/exercises/practice/grade-school/grade_school_test.py": {
+      "size": 6975,
+      "sha256": "72827c03772b6cf4256fd2f378ae6ddff2703ccacb6053ba647e973b415e27b9"
+    },
+    "python/exercises/practice/grep/.docs/instructions.md": {
+      "size": 1299,
+      "sha256": "c68254de5f7f8eb68527d638595ce53dedfec499cd52cca0ad5bff8b3065e980"
+    },
+    "python/exercises/practice/grep/.meta/config.json": {
+      "size": 638,
+      "sha256": "3843058c454afb2ccffc71548853cae192edaa0e69499c64a66b2124bf6f3833"
+    },
+    "python/exercises/practice/grep/.meta/example.py": {
+      "size": 1399,
+      "sha256": "cac7f6c5ee08c8700bad86e30f00e1cb334e85cb6884d072c2577b3eb1a90cf8"
+    },
+    "python/exercises/practice/grep/.meta/plugins.py": {
+      "size": 322,
+      "sha256": "1069f0993c4912c3f9035c3cf3e5a0312a6bab3dd7f137c5644bdf222cb77918"
+    },
+    "python/exercises/practice/grep/.meta/template.j2": {
+      "size": 1686,
+      "sha256": "e965dd4034445c964e9523c382cb26777088f27ea46f92c29afcb9a239437440"
+    },
+    "python/exercises/practice/grep/.meta/tests.toml": {
+      "size": 2808,
+      "sha256": "75b2c38cb86f62e09d568f75699942ff0cb39e6f743b2ba7d7f5550780fc7673"
+    },
+    "python/exercises/practice/grep/grep.py": {
+      "size": 42,
+      "sha256": "00350df01f0993f6268ba128c4d05a693a7188573fb9fca5275be53738fe829a"
+    },
+    "python/exercises/practice/grep/grep_test.py": {
+      "size": 12686,
+      "sha256": "30721903a1dea840b7ab33374bb08cb0db84f63f4c80fc0a5515cff3071c0506"
+    },
+    "python/exercises/practice/hangman/.docs/instructions.append.md": {
+      "size": 1309,
+      "sha256": "a96e81af1a831a656cbd48705d0a5d5eb0b90b62a783825c04e2bf58b1b40b70"
+    },
+    "python/exercises/practice/hangman/.docs/instructions.md": {
+      "size": 773,
+      "sha256": "ed73c7cbfd96365f12988af95c5369c3e244bb874d3209018e03c42a8b5d5ac0"
+    },
+    "python/exercises/practice/hangman/.meta/config.json": {
+      "size": 372,
+      "sha256": "a6e8e8e8a863a99ccd7fba88c9688d724049e162338631131264c28e722ec2d3"
+    },
+    "python/exercises/practice/hangman/.meta/example.py": {
+      "size": 1360,
+      "sha256": "fde813e1c2871eb8b522dd687b47781c2196375e7c8c37e2ab40ddd7e108e300"
+    },
+    "python/exercises/practice/hangman/hangman.py": {
+      "size": 372,
+      "sha256": "9ed6db0932276c19a9aaac728211c1bda0d8a143c4ac4c6a3c5c23b941137562"
+    },
+    "python/exercises/practice/hangman/hangman_test.py": {
+      "size": 3567,
+      "sha256": "0eece50307284a914eca79d25ea623d023029f1b173bfbc60293578d3570a11a"
+    },
+    "python/exercises/practice/list-ops/.docs/instructions.md": {
+      "size": 1359,
+      "sha256": "99b119333c4f19ab2563d6205781813f165bcef909c227a206305543d739e74b"
+    },
+    "python/exercises/practice/list-ops/.meta/additional_tests.json": {
+      "size": 475,
+      "sha256": "a06e64fb6bd54a0e9cc4ace299b317286f0cfb32ec20790453bb6bd1ab7ea66e"
+    },
+    "python/exercises/practice/list-ops/.meta/config.json": {
+      "size": 437,
+      "sha256": "e77be88cf4d1321578e465cea181256fe317c36c2c06d2048185f27c9181ee48"
+    },
+    "python/exercises/practice/list-ops/.meta/example.py": {
+      "size": 722,
+      "sha256": "fb206c755414929f90770f4e086f1ab11236a458be1b8edaa2bb0bd974dc8a93"
+    },
+    "python/exercises/practice/list-ops/.meta/template.j2": {
+      "size": 2026,
+      "sha256": "3d5bc494a4b9abcfb9428258d9f321ccdaff0bc34f08383f9360510545886def"
+    },
+    "python/exercises/practice/list-ops/.meta/tests.toml": {
+      "size": 4814,
+      "sha256": "c8809f49204651da9efa100cbf12785fccd93bdebc3475469f49de4b48379c57"
+    },
+    "python/exercises/practice/list-ops/list_ops.py": {
+      "size": 293,
+      "sha256": "a3ff5742b7a38f4f35d7a9cb0d86f10fa6b7ac31777e9adf3fc06099978e38c8"
+    },
+    "python/exercises/practice/list-ops/list_ops_test.py": {
+      "size": 3482,
+      "sha256": "373082dc316d8c4cb1f1c40d9b238e7312d41dcd507aa0d745880670089cde9a"
+    },
+    "python/exercises/practice/paasio/.docs/instructions.md": {
+      "size": 412,
+      "sha256": "4f389a21f0b352607babb959e45bb449ab5d9b9970d1e3aaf5c2423b2ffc0c33"
+    },
+    "python/exercises/practice/paasio/.meta/config.json": {
+      "size": 392,
+      "sha256": "df2be327500ebecce55294f641932800c21107a5b9018328c9b2d28d5bd7ed64"
+    },
+    "python/exercises/practice/paasio/.meta/example.py": {
+      "size": 2308,
+      "sha256": "592790e76ac7e4905cd12fbad3449ad5e4a9257c191f994f5155430892544159"
+    },
+    "python/exercises/practice/paasio/paasio.py": {
+      "size": 1159,
+      "sha256": "9a6238e652c6289fee1211c8a530563c091b7d386dbe5347a999b28d2a7211e8"
+    },
+    "python/exercises/practice/paasio/paasio_test.py": {
+      "size": 19945,
+      "sha256": "4c9aa14b0fdfea01221d5bdff32b9a5569bbfaf412e0985d82502776c41eb569"
+    },
+    "python/exercises/practice/paasio/test_utils.py": {
+      "size": 4519,
+      "sha256": "9c890fda159fa05e00ee30903d9beb226e0e76eb583d505cd46783bc63546194"
+    },
+    "python/exercises/practice/phone-number/.docs/instructions.append.md": {
+      "size": 2253,
+      "sha256": "c093e2195d15a182ea018a10043a58945b5238d8f1d9a8d10dade09a7c70e5de"
+    },
+    "python/exercises/practice/phone-number/.docs/instructions.md": {
+      "size": 1253,
+      "sha256": "ca1e2c1c43454c151e519a2f784439621c243bb2824715c69a8e0904abc473a5"
+    },
+    "python/exercises/practice/phone-number/.meta/additional_tests.json": {
+      "size": 735,
+      "sha256": "d1927875b3183bbe2a553fd3ba61e6dff132e32a20b65d9eac1e2eadb7182534"
+    },
+    "python/exercises/practice/phone-number/.meta/config.json": {
+      "size": 696,
+      "sha256": "2c7f789f8c8b5c9fcf505452b2b62a87dc9dca5ed0a7cb1fc6731805b8c42060"
+    },
+    "python/exercises/practice/phone-number/.meta/example.py": {
+      "size": 1818,
+      "sha256": "4724acfb7b22518b9a0b4b3ea031cb614cda2a58225f4aaf1a52416b3225a846"
+    },
+    "python/exercises/practice/phone-number/.meta/template.j2": {
+      "size": 1273,
+      "sha256": "d9366c4de9cef926b6e1fd8914a926225fe84d2ee15ba7cde7b3a9d429208909"
+    },
+    "python/exercises/practice/phone-number/.meta/tests.toml": {
+      "size": 2844,
+      "sha256": "fa03b7027d1d70e12aa49b4ee1a4c6c8ce6c3cb2998ecc3d8992f553675baea1"
+    },
+    "python/exercises/practice/phone-number/phone_number.py": {
+      "size": 64,
+      "sha256": "be4018194beaf2c67df5d95e277d5cf7a7344c03a3c64d283aabcf0a2a0480d7"
+    },
+    "python/exercises/practice/phone-number/phone_number_test.py": {
+      "size": 5417,
+      "sha256": "68c6fc5c281f12eb0a0d5f4e9c963e33b5f1a69576cccce2c712bec9788b6c8e"
+    },
+    "python/exercises/practice/pig-latin/.approaches/config.json": {
+      "size": 316,
+      "sha256": "78425b502745cd13b1c93d699a18011cf8617fc75bc47c6c5c26920fec45616e"
+    },
+    "python/exercises/practice/pig-latin/.approaches/introduction.md": {
+      "size": 1740,
+      "sha256": "6e41b7e888ae9aab8c1da13f582213278322e22f05f76560d25c02fee0c8c274"
+    },
+    "python/exercises/practice/pig-latin/.approaches/sets-and-slices/content.md": {
+      "size": 3914,
+      "sha256": "de8e4768d29ae9ebc8124f2e4eb1e9558b84b95d5b1ee3b9f79bff54ec16868e"
+    },
+    "python/exercises/practice/pig-latin/.approaches/sets-and-slices/snippet.txt": {
+      "size": 230,
+      "sha256": "7dcd6098ffacadec0aaa92d2162672991d1fb2ad15472273029b3556ad7d8113"
+    },
+    "python/exercises/practice/pig-latin/.docs/instructions.md": {
+      "size": 1834,
+      "sha256": "549115cb33a5a91e8e5c4aeea68cf6e672c84fd8d77669d2eeb2518a2d4d6aa5"
+    },
+    "python/exercises/practice/pig-latin/.docs/introduction.md": {
+      "size": 479,
+      "sha256": "215d592a2a5bb66bf521678d712e71e395e9f3375219bf59d69dfe0ba524698a"
+    },
+    "python/exercises/practice/pig-latin/.meta/config.json": {
+      "size": 621,
+      "sha256": "3bb69ebccaf35175d75eceb1a7dd5db377f126c42ed18fa932b06db6c18e48d5"
+    },
+    "python/exercises/practice/pig-latin/.meta/example.py": {
+      "size": 597,
+      "sha256": "52a698b0db8c23e113b4346b1c41df69b56bbc7d9422dcab9cde942d06721019"
+    },
+    "python/exercises/practice/pig-latin/.meta/template.j2": {
+      "size": 555,
+      "sha256": "cea7f084c29f8a72671abfb93996f77f1668aa2be6ec1622955295d17fd54eff"
+    },
+    "python/exercises/practice/pig-latin/.meta/tests.toml": {
+      "size": 2083,
+      "sha256": "44f8fd467227b6506600b4c6f271438a4acc6994c51e3e9da196a2fd9d23c71b"
+    },
+    "python/exercises/practice/pig-latin/pig_latin.py": {
+      "size": 30,
+      "sha256": "fbef923db1bc51436424e83ca92e8d5d4f2505c5796fee8daf3fe276b2259e63"
+    },
+    "python/exercises/practice/pig-latin/pig_latin_test.py": {
+      "size": 2655,
+      "sha256": "2a2bec06a0389dad5636c83cc604a418e6f0ed79fbf8768f620c7d1101ec65c2"
+    },
+    "python/exercises/practice/poker/.docs/instructions.md": {
+      "size": 194,
+      "sha256": "62427ba25c07f8c57519f93cbfc293dd3eb9e8b74a33aae3645281433b8941ea"
+    },
+    "python/exercises/practice/poker/.meta/config.json": {
+      "size": 599,
+      "sha256": "4f909ffbc55d536e4e6d42831a64009a981e652b9e03c745e07701bc3fed55af"
+    },
+    "python/exercises/practice/poker/.meta/example.py": {
+      "size": 1185,
+      "sha256": "9627361e2566290218239ed64ea4edf610f826e94ae7044d9eef9316d241ec43"
+    },
+    "python/exercises/practice/poker/.meta/template.j2": {
+      "size": 430,
+      "sha256": "e12cc76ab70e0d274f342c8c888e8eb62480831df07a49a98a34d710aed28e5b"
+    },
+    "python/exercises/practice/poker/.meta/tests.toml": {
+      "size": 5001,
+      "sha256": "bd73d721b8dab8c6a99f8f96e8489d61ba67973941f60c9cf99ca9b24eff6be1"
+    },
+    "python/exercises/practice/poker/poker.py": {
+      "size": 32,
+      "sha256": "6a4b5adab3ba9261fb4f9e2b09abc549b9ea37bf0774edc3c7759cec9a8b41fe"
+    },
+    "python/exercises/practice/poker/poker_test.py": {
+      "size": 7690,
+      "sha256": "b39f023208318973e18a341449aa076f7595ff98f07174082a2a1b05c84ad8fd"
+    },
+    "python/exercises/practice/pov/.docs/instructions.append.md": {
+      "size": 1098,
+      "sha256": "d33a5d90425010c100c4b798ce1484cb822c6c86787e84bda6e0725126e525ea"
+    },
+    "python/exercises/practice/pov/.docs/instructions.md": {
+      "size": 1477,
+      "sha256": "3276ced63a920fb572cdacbd412ca98c8ab70c2e21c5ef2e22a86a9707d15a9e"
+    },
+    "python/exercises/practice/pov/.meta/config.json": {
+      "size": 446,
+      "sha256": "8b140f3eabcd8693532ac904d3a3dd429d49b36649c3d5c5f8bfa06e8868a4b8"
+    },
+    "python/exercises/practice/pov/.meta/example.py": {
+      "size": 2097,
+      "sha256": "7057cfff3546e55a89e34b20555d4a530a7b0890c6a9de6241645998b3961f7e"
+    },
+    "python/exercises/practice/pov/.meta/template.j2": {
+      "size": 2485,
+      "sha256": "a510c1ad2f7b0474900acae33caad803b34af0ff2e0528f50389397d09af046a"
+    },
+    "python/exercises/practice/pov/.meta/tests.toml": {
+      "size": 1664,
+      "sha256": "b044f334bba86ad8e7d44ae768d764c755795e3065c966615494aa84ce86cc44"
+    },
+    "python/exercises/practice/pov/pov.py": {
+      "size": 622,
+      "sha256": "ed7eba5f0b64b69a0a1904dc338ce39039b5de3ea2aa74019d8d494ca46b11ba"
+    },
+    "python/exercises/practice/pov/pov_test.py": {
+      "size": 6346,
+      "sha256": "a5127ac17db6ad1563a08ba8ee2bbfc25ed8ab81ee56b92a355eb4a4dc2559fe"
+    },
+    "python/exercises/practice/proverb/.docs/instructions.append.md": {
+      "size": 592,
+      "sha256": "00a1545be09e9047cdfa45487e0075db4effa19f6143d7939336f2e3c7fa4172"
+    },
+    "python/exercises/practice/proverb/.docs/instructions.md": {
+      "size": 819,
+      "sha256": "db74a89ac1c983d3cd5c8ade251df98fa4748baa60a6967e323ed42b5ff547f7"
+    },
+    "python/exercises/practice/proverb/.meta/additional_tests.json": {
+      "size": 998,
+      "sha256": "7a66fc69b53bc44bb90f4aefaca401f3d33e8779a2b3a7aaa3de7266e52ed3d4"
+    },
+    "python/exercises/practice/proverb/.meta/config.json": {
+      "size": 619,
+      "sha256": "7238a66c62dc3f385c2b2874ff2cc8318b64ee0577141174b8ea5771ac66f4eb"
+    },
+    "python/exercises/practice/proverb/.meta/example.py": {
+      "size": 452,
+      "sha256": "21defe08a5cbfe2c9c25eed0b70c2b8d1367e575ea5a2c25165eb56208bd0a4e"
+    },
+    "python/exercises/practice/proverb/.meta/template.j2": {
+      "size": 1198,
+      "sha256": "fc73b73d6cd4c8be6b7a8d273d44a9742a93deff28c7c3b0e6f5c2b4e83fb6de"
+    },
+    "python/exercises/practice/proverb/.meta/tests.toml": {
+      "size": 618,
+      "sha256": "91459900fadbc3485975929e2fc3c21ccd7015a2a1be97a88ea8c8b023765fbb"
+    },
+    "python/exercises/practice/proverb/proverb.py": {
+      "size": 24,
+      "sha256": "6ffde7190552cc3a19fdabc7d0624359302e3663a06671b28e1c65b13af61a42"
+    },
+    "python/exercises/practice/proverb/proverb_test.py": {
+      "size": 3511,
+      "sha256": "6792db661176bc5dfd4447b8f68209d441797631a3896b880421ceba98895682"
+    },
+    "python/exercises/practice/react/.docs/instructions.md": {
+      "size": 732,
+      "sha256": "2d227f7e0b99585c441704993f1ed93009b946ec1ab46c3e9cde89e4dbee500b"
+    },
+    "python/exercises/practice/react/.meta/config.json": {
+      "size": 359,
+      "sha256": "644df9df77c3d1f7d1317bae06ef62f358a7880a176736a79ac33dc8be241ffa"
+    },
+    "python/exercises/practice/react/.meta/example.py": {
+      "size": 1471,
+      "sha256": "a1198a835f44b3826e6bb2d6c2d0df81ede7e7541f9f85853aff08f1487039ff"
+    },
+    "python/exercises/practice/react/.meta/template.j2": {
+      "size": 3010,
+      "sha256": "a547f5c23c8cce0dca06d16722c830a3e7ecae09fb6285f432b60d885b340517"
+    },
+    "python/exercises/practice/react/.meta/tests.toml": {
+      "size": 1650,
+      "sha256": "3258593bd49a662ea4efd71500d392cffb9a2178dde35e73e515d74a807d0433"
+    },
+    "python/exercises/practice/react/react.py": {
+      "size": 290,
+      "sha256": "49f06798292a5ae593375b8b080f4bee839b85a19827b06dd4c6c25583e5f5ce"
+    },
+    "python/exercises/practice/react/react_test.py": {
+      "size": 7973,
+      "sha256": "3017017c1f0830d96ddedac16fb6945a6e7769c62fdc89d8b251082cf9d495aa"
+    },
+    "python/exercises/practice/rest-api/.docs/instructions.md": {
+      "size": 2338,
+      "sha256": "bcbbaeccabfca6fa8e8958c623f2ac972205c94e69e7b6c61310201a9fd131b2"
+    },
+    "python/exercises/practice/rest-api/.meta/config.json": {
+      "size": 410,
+      "sha256": "f4bec3937e25ae0ebd4494fb31c7f1d68c66ca18a9203adb20a044ec5225b855"
+    },
+    "python/exercises/practice/rest-api/.meta/example.py": {
+      "size": 3201,
+      "sha256": "394374b0b87ac6e2bfa2cf135f101369dea35c3ee01f02fe55b1cbde0df538a6"
+    },
+    "python/exercises/practice/rest-api/.meta/template.j2": {
+      "size": 865,
+      "sha256": "1e31e00093e74bfae1960eaaf19466871f44e84c3464244dd0ee478125f7e985"
+    },
+    "python/exercises/practice/rest-api/.meta/tests.toml": {
+      "size": 921,
+      "sha256": "e4a4ac4002a6795cd0b80f82cc6f4f562eeec172fca3a266b20611db713c2c71"
+    },
+    "python/exercises/practice/rest-api/rest_api.py": {
+      "size": 172,
+      "sha256": "249967634165d5b28853c6b7ce2ff83f384b864c2547bcdaf82f93d00df7575a"
+    },
+    "python/exercises/practice/rest-api/rest_api_test.py": {
+      "size": 6299,
+      "sha256": "3fae966db6e7935a9338a72f017f764d36c6cbff6c6f9c812d4fe6d9b49af47e"
+    },
+    "python/exercises/practice/robot-name/.approaches/config.json": {
+      "size": 558,
+      "sha256": "c4dfd0415bbf0b7a70adb77e24151c0c9fc1cc33e9efede265da658936c9f46e"
+    },
+    "python/exercises/practice/robot-name/.approaches/introduction.md": {
+      "size": 2305,
+      "sha256": "228930db4ff0a53bf56e3dfb4f2cbcffa131ece6dfab2001ed3dd7cbea4d9ff0"
+    },
+    "python/exercises/practice/robot-name/.approaches/mass-name-generation/content.md": {
+      "size": 2424,
+      "sha256": "de63b4171575364179b7f7e1d58e2e6d4325c382b9dcf80c9a8ec0cf33bce167"
+    },
+    "python/exercises/practice/robot-name/.approaches/mass-name-generation/snippet.txt": {
+      "size": 172,
+      "sha256": "5f47d60c90ad584e07f1ea4a6a390e608005873a741d3a5ef97c782e0ccbcaf4"
+    },
+    "python/exercises/practice/robot-name/.approaches/name-on-the-fly/content.md": {
+      "size": 2467,
+      "sha256": "894059ed01430fc863659039fd79d456b20624d25a25e1b6249ace502de3fd88"
+    },
+    "python/exercises/practice/robot-name/.approaches/name-on-the-fly/snippet.txt": {
+      "size": 246,
+      "sha256": "6afd5d4a004bf99a5ffaf5b2857f0e1858dddaec35d2276444be239d9fac2490"
+    },
+    "python/exercises/practice/robot-name/.docs/instructions.md": {
+      "size": 633,
+      "sha256": "bbb01d54e892de555eb900b3b93fd3645ad7fcfd09eace353fb6b81e768c4310"
+    },
+    "python/exercises/practice/robot-name/.meta/config.json": {
+      "size": 501,
+      "sha256": "68d0f3d9bf0d9cab494f92f6c7de7a2996da0943752ceb9cf71e40b78766231e"
+    },
+    "python/exercises/practice/robot-name/.meta/example.py": {
+      "size": 889,
+      "sha256": "d5c2eecdf7738305ce15bf6f6e5b410835179ca0125450baf43643263e2b7c1c"
+    },
+    "python/exercises/practice/robot-name/robot_name.py": {
+      "size": 50,
+      "sha256": "cc89225ac6cb0b5dae3133d02620f6f7ca5831274afa8ea9e462eb5d6b66f21d"
+    },
+    "python/exercises/practice/robot-name/robot_name_test.py": {
+      "size": 1235,
+      "sha256": "c9d7b8ad737fe2d13d3053fe8859ac7d8a4493689b26e788ca99374438b91f9a"
+    },
+    "python/exercises/practice/scale-generator/.docs/instructions.md": {
+      "size": 3818,
+      "sha256": "4101835869d2d6376accf0644e51bb216fa0bd252ba93b7102827e43b6342859"
+    },
+    "python/exercises/practice/scale-generator/.meta/config.json": {
+      "size": 443,
+      "sha256": "33f0300528af7215fe68a80d220c8ff03fa42b8934eb5b10d2f170cf8a7a9d4c"
+    },
+    "python/exercises/practice/scale-generator/.meta/example.py": {
+      "size": 1155,
+      "sha256": "46e23bb615c77f5bebe5beffc3a561ff2df57c36146571e89699935acf8f7cf4"
+    },
+    "python/exercises/practice/scale-generator/.meta/template.j2": {
+      "size": 887,
+      "sha256": "e4254bba4d846c5cd19d915cc8e64b7cb203d03f2e5848dd0772bc51e8b058ae"
+    },
+    "python/exercises/practice/scale-generator/.meta/tests.toml": {
+      "size": 4961,
+      "sha256": "2e86400753c4c461a4b2e3d7eb6b3a9d81a7e933354a1f7719f303359622221e"
+    },
+    "python/exercises/practice/scale-generator/scale_generator.py": {
+      "size": 145,
+      "sha256": "3dbc77dd439f4f4e1e41c6ec3f07dce2a55cb40f6e203797b66a27f251be8c24"
+    },
+    "python/exercises/practice/scale-generator/scale_generator_test.py": {
+      "size": 3248,
+      "sha256": "a3252f32d07001e695db35466ec00d8e713063aed8b9da8e20103c9681b90a41"
+    },
+    "python/exercises/practice/sgf-parsing/.docs/instructions.append.md": {
+      "size": 1499,
+      "sha256": "5bba17d539d0704745375f9967ebaa439667974944ce49d221f09d640e19c997"
+    },
+    "python/exercises/practice/sgf-parsing/.docs/instructions.md": {
+      "size": 3383,
+      "sha256": "93ae936049168d8532e283a8610f45a06c6d9225e5812a2ece5c2c164d2870d0"
+    },
+    "python/exercises/practice/sgf-parsing/.meta/config.json": {
+      "size": 397,
+      "sha256": "9c52336ba9a18d325c0735d2eb3da606392d8f4baa5d324fc06e04089a492ac3"
+    },
+    "python/exercises/practice/sgf-parsing/.meta/example.py": {
+      "size": 3452,
+      "sha256": "2382065cc01d03b7348eb42cfd7db9899565eccd85fcc6cf8199eb2627b5a226"
+    },
+    "python/exercises/practice/sgf-parsing/.meta/template.j2": {
+      "size": 1795,
+      "sha256": "2a8e2030426b8b17fe4bbe61ff3a0c913865c434a9075448146e043d74bd6894"
+    },
+    "python/exercises/practice/sgf-parsing/.meta/tests.toml": {
+      "size": 2882,
+      "sha256": "d632c2ce6304c5dcb70748836a727a273cf47f83c8e1e38ee298943a523b945e"
+    },
+    "python/exercises/practice/sgf-parsing/sgf_parsing.py": {
+      "size": 901,
+      "sha256": "e821e6d68abd9336a222d56049ed9fb89c001b6d8ac62e2d10da44a36f76de9d"
+    },
+    "python/exercises/practice/sgf-parsing/sgf_parsing_test.py": {
+      "size": 6315,
+      "sha256": "c8274cd12d6432b18d5f4fd6b15e64bdba6745007ae6c0d275a4fe048d4dba6e"
+    },
+    "python/exercises/practice/simple-linked-list/.docs/hints.md": {
+      "size": 2916,
+      "sha256": "1fdbe94da9fc8bbaefb6e5f0dedc057c313dd7d6890aaf1ad42e4515836a2b69"
+    },
+    "python/exercises/practice/simple-linked-list/.docs/instructions.append.md": {
+      "size": 7427,
+      "sha256": "487457a2de0c72dbc330020b15d86e664fe6c4d57c218d7660e63261bac1e7f8"
+    },
+    "python/exercises/practice/simple-linked-list/.docs/instructions.md": {
+      "size": 873,
+      "sha256": "ddf0b0d7a6d0a7b39a70a8dac0ae2e5cc4b7d9ad4163f4a103988bb53abeb914"
+    },
+    "python/exercises/practice/simple-linked-list/.docs/introduction.md": {
+      "size": 144,
+      "sha256": "5bbc19ccbd143e879220f07c20986ce4571c485a216c7eba04a3810a997f42c2"
+    },
+    "python/exercises/practice/simple-linked-list/.meta/config.json": {
+      "size": 640,
+      "sha256": "ecbc36c4ae93c22353a704212fc6367f260c68e87951b94d92d85ca98840127d"
+    },
+    "python/exercises/practice/simple-linked-list/.meta/example.py": {
+      "size": 1684,
+      "sha256": "a93a409f17f9904467da3924d47e2c93211038604a41ae27cba4afdc020ce12a"
+    },
+    "python/exercises/practice/simple-linked-list/simple_linked_list.py": {
+      "size": 464,
+      "sha256": "99ae2a714c113f895a899f79728ead86001e0a3c2c8042485bea4279269e0101"
+    },
+    "python/exercises/practice/simple-linked-list/simple_linked_list_test.py": {
+      "size": 3873,
+      "sha256": "2ac2c242c2348058a7ce1319b2d8dd653a33f1cc39a7df4d1a6552bdff3b4229"
+    },
+    "python/exercises/practice/transpose/.docs/instructions.md": {
+      "size": 851,
+      "sha256": "4107fc3ed25cb2106df05774f9e6328663bf96777712df14ab5c3090438c6c66"
+    },
+    "python/exercises/practice/transpose/.meta/config.json": {
+      "size": 666,
+      "sha256": "34d4e636304d291902f3971d9fe511537a8f84389aeb94a427b3cae8519e5d12"
+    },
+    "python/exercises/practice/transpose/.meta/example.py": {
+      "size": 286,
+      "sha256": "33b60c3de3f36df81ab7443a9b51e788364746914e3cb3bbe67952bca5a7e877"
+    },
+    "python/exercises/practice/transpose/.meta/template.j2": {
+      "size": 648,
+      "sha256": "c51e0d87ed7d66b11ba8033f3e2e81128200b1254dfb5c9e1853877d013698e5"
+    },
+    "python/exercises/practice/transpose/.meta/tests.toml": {
+      "size": 1387,
+      "sha256": "902a64f54668a7a14e04491adfa77750dae4b35fe63d108a1469efbd116f651c"
+    },
+    "python/exercises/practice/transpose/transpose.py": {
+      "size": 30,
+      "sha256": "009152d0e004d0e7ec4de2c7aec36bdfbb0c3dd7061553e9494cabeaae7c4797"
+    },
+    "python/exercises/practice/transpose/transpose_test.py": {
+      "size": 2580,
+      "sha256": "7ac879485ac2de3e925a39b0ebe65788543491625b0931bd08b450293e1f681b"
+    },
+    "python/exercises/practice/tree-building/.docs/instructions.append.md": {
+      "size": 947,
+      "sha256": "6486f2ae5f94ac89bbd94ae9e3286d0dd3bb1c6007665c4e967974efa90cdb17"
+    },
+    "python/exercises/practice/tree-building/.docs/instructions.md": {
+      "size": 1010,
+      "sha256": "bc6707eaca08a398da9c033e8691e1c655c28a5c80f005458329a6741c209ba2"
+    },
+    "python/exercises/practice/tree-building/.meta/config.json": {
+      "size": 343,
+      "sha256": "312a152498cec84744925ad531a8e46a7ac9c234e810ea9356d14e4dc717b042"
+    },
+    "python/exercises/practice/tree-building/.meta/example.py": {
+      "size": 1334,
+      "sha256": "773b1d5388d0518220cbf069410bf7e7a3cb491df30c4dae446c4ceed88adbd9"
+    },
+    "python/exercises/practice/tree-building/tree_building.py": {
+      "size": 1597,
+      "sha256": "ee9128807b278a39a851ee4df53479dec6d5da7dbb066a86fac810c8f28ba285"
+    },
+    "python/exercises/practice/tree-building/tree_building_test.py": {
+      "size": 6545,
+      "sha256": "074179d36fb946588411674c0441328c123c2107737ff419ff3aca8c230744b7"
+    },
+    "python/exercises/practice/two-bucket/.docs/instructions.append.md": {
+      "size": 1036,
+      "sha256": "4ec58cd7e715e86b7b5c3ca788af5698c9eec941fc81db1a725d39c9530d0677"
+    },
+    "python/exercises/practice/two-bucket/.docs/instructions.md": {
+      "size": 2375,
+      "sha256": "69471472c9db28eda2f841096ae4afd07605949293489b8445142f4cb0cd9ff8"
+    },
+    "python/exercises/practice/two-bucket/.meta/config.json": {
+      "size": 581,
+      "sha256": "c24f814713bd81df19f82b2d34be37ee5c856e3d4b32386b6ea77bb9ba7259de"
+    },
+    "python/exercises/practice/two-bucket/.meta/example.py": {
+      "size": 1932,
+      "sha256": "bbf49eb2dc84d6a161e07e11d5bee11f224ad3b93a1c9afcf8a1083c405aa269"
+    },
+    "python/exercises/practice/two-bucket/.meta/template.j2": {
+      "size": 969,
+      "sha256": "bbc4f9823b733402f5987764e5692939628af4267fb4262f6f105e855a435c0d"
+    },
+    "python/exercises/practice/two-bucket/.meta/tests.toml": {
+      "size": 1684,
+      "sha256": "e7c7112de988f784435a045c915962ad952ea8ef5e45a18a6040eabd9858cd6a"
+    },
+    "python/exercises/practice/two-bucket/two_bucket.py": {
+      "size": 66,
+      "sha256": "6ed45b4d895c2e1ff15732719df5c832f1b67a610b069f71c1c0c8c528da1dd4"
+    },
+    "python/exercises/practice/two-bucket/two_bucket_test.py": {
+      "size": 2011,
+      "sha256": "3dedaa5c25ff1b94112807ee25a488c66fc5f7241e1fd86c19a8be07c7597466"
+    },
+    "python/exercises/practice/variable-length-quantity/.docs/instructions.append.md": {
+      "size": 1105,
+      "sha256": "e8e1ea605e914f44d798d6ba345b7a16db5fbf52f99cdf8427175afa7d7062d8"
+    },
+    "python/exercises/practice/variable-length-quantity/.docs/instructions.md": {
+      "size": 1403,
+      "sha256": "665731f052d645396f9b7017d27c1ba77c8100f156de4fcad92300bddefb1484"
+    },
+    "python/exercises/practice/variable-length-quantity/.meta/config.json": {
+      "size": 584,
+      "sha256": "418face1a939687aabf477975269bcb66ee69402a8df8530909fb22b166408be"
+    },
+    "python/exercises/practice/variable-length-quantity/.meta/example.py": {
+      "size": 743,
+      "sha256": "a516b77e06bb9961d956494e5953708510efd37a65ba6996d453ca932f07319d"
+    },
+    "python/exercises/practice/variable-length-quantity/.meta/template.j2": {
+      "size": 1099,
+      "sha256": "dbcbaf29635f6c2a6d2c15372e2a348fb0f799b2b97b8d2739fa88c7c801bc98"
+    },
+    "python/exercises/practice/variable-length-quantity/.meta/tests.toml": {
+      "size": 2217,
+      "sha256": "7dcb68247eaab1326a80956ed91b681bdefa6c226b14981d69233e42548f8f49"
+    },
+    "python/exercises/practice/variable-length-quantity/variable_length_quantity.py": {
+      "size": 61,
+      "sha256": "c065d92722a1b8b9723bae2de3662583b65287c3fa2a459768f65e667a2ac695"
+    },
+    "python/exercises/practice/variable-length-quantity/variable_length_quantity_test.py": {
+      "size": 4328,
+      "sha256": "e9ecd83a153958e4ef268faa83df2441ef7deb509e01040dc042af53b7aaf7ef"
+    },
+    "python/exercises/practice/wordy/.approaches/config.json": {
+      "size": 1945,
+      "sha256": "f457bdef184da85f743d3993ce2e0ca6b2024923d4a1e1b4db63e4dacdbed62f"
+    },
+    "python/exercises/practice/wordy/.approaches/dunder-getattribute/content.md": {
+      "size": 5427,
+      "sha256": "438e82b9ae69a697b0a47ce13883da8653f391e7b1bce6df8abd29013d24f6cb"
+    },
+    "python/exercises/practice/wordy/.approaches/dunder-getattribute/snippet.txt": {
+      "size": 253,
+      "sha256": "02e8d88ac24e453807ef0b9bcf270ec52f9b684722ac10c5b9b7e8164d1ae160"
+    },
+    "python/exercises/practice/wordy/.approaches/functools-reduce/content.md": {
+      "size": 6347,
+      "sha256": "0434557b55540477a34f06b11fa11a5a7f247a677c2b59b9667c82e053e8db64"
+    },
+    "python/exercises/practice/wordy/.approaches/functools-reduce/snippet.txt": {
+      "size": 299,
+      "sha256": "48cdbe3bfe3146bc3c3305ddd29094df9781e802cd35103646ade53f2b01e6fd"
+    },
+    "python/exercises/practice/wordy/.approaches/import-callables-from-operator/content.md": {
+      "size": 6443,
+      "sha256": "bcbc8c84c49e6c97530f7ddf1382a1a4a71dafc9e72c5ce0cae8b87d72d4032f"
+    },
+    "python/exercises/practice/wordy/.approaches/import-callables-from-operator/snippet.txt": {
+      "size": 312,
+      "sha256": "8716ffb10eac86fcef6bd3e0ba9237a96b65f1873925ddc15e9abe733e93b376"
+    },
+    "python/exercises/practice/wordy/.approaches/introduction.md": {
+      "size": 22062,
+      "sha256": "90cafafcd39272a802ae6263882a5f76eab67a57f4b0a496225d07a2cb4b4b1c"
+    },
+    "python/exercises/practice/wordy/.approaches/lambdas-in-a-dictionary/content.md": {
+      "size": 4227,
+      "sha256": "7fb0391c772cf5e2ac8fa702764d8e257fa73b25c54ff36b264cea2d157be449"
+    },
+    "python/exercises/practice/wordy/.approaches/lambdas-in-a-dictionary/snippet.txt": {
+      "size": 173,
+      "sha256": "e60699df543ec27e65abe8553e6338ea2bf35990e8010d1e216330c76cb00279"
+    },
+    "python/exercises/practice/wordy/.approaches/recursion/content.md": {
+      "size": 16314,
+      "sha256": "8f5b2da2e7834f406126ca3ef196a235ffe8048770b518ab4a5af414f10ae1cb"
+    },
+    "python/exercises/practice/wordy/.approaches/recursion/snippet.txt": {
+      "size": 322,
+      "sha256": "ca24d60deef43612ea4185bf0bc72b852ebbdd85a8aa108bf5ac9cc85631cd16"
+    },
+    "python/exercises/practice/wordy/.approaches/regex-with-operator-module/content.md": {
+      "size": 4463,
+      "sha256": "fb4ec41b37973dae323c55705fb44b8c289b9f5bb063ed7c1351518b4292aca1"
+    },
+    "python/exercises/practice/wordy/.approaches/regex-with-operator-module/snippet.txt": {
+      "size": 234,
+      "sha256": "63fb3a263431abfe87fc9692eb866db244a1c80e839b70c2aa71d5a1c7daca19"
+    },
+    "python/exercises/practice/wordy/.approaches/string-list-and-dict-methods/content.md": {
+      "size": 11027,
+      "sha256": "834391359ad10e0c04581abce0b44cce6afce2c25cea26a17d7861d8b2cf1b0d"
+    },
+    "python/exercises/practice/wordy/.approaches/string-list-and-dict-methods/snippet.txt": {
+      "size": 454,
+      "sha256": "9fadfbd3ad786d9a9ad2e2eb1f2937b1f745ac338beea88aa3086a1c2ead45f8"
+    },
+    "python/exercises/practice/wordy/.docs/hints.md": {
+      "size": 3453,
+      "sha256": "9ccec08be869b7cde394154be102d92bcca0766930410ca846339b64aedf7785"
+    },
+    "python/exercises/practice/wordy/.docs/instructions.append.md": {
+      "size": 2537,
+      "sha256": "485af0a0036cda1cf3415813f8a8317472b56de1af6d9a3e591d38a1af015e19"
+    },
+    "python/exercises/practice/wordy/.docs/instructions.md": {
+      "size": 1083,
+      "sha256": "b9e24dd95b27fa04f706e4dd9e5c7f430684b1af13a1cfde34faee705300aeee"
+    },
+    "python/exercises/practice/wordy/.meta/additional_tests.json": {
+      "size": 421,
+      "sha256": "7789665e9cb3e9e432580729f72e82251e281ba479966ddadfaf6b6d5fe4f8ec"
+    },
+    "python/exercises/practice/wordy/.meta/config.json": {
+      "size": 769,
+      "sha256": "cd68ca6c9bdf48b0098954f7677acb5e657fc1eac27d277c73267b734666dd0f"
+    },
+    "python/exercises/practice/wordy/.meta/example.py": {
+      "size": 1515,
+      "sha256": "ae46b493f1782fffa932a26b279041c5d2d8083b0858b2289107bacc6161c796"
+    },
+    "python/exercises/practice/wordy/.meta/template.j2": {
+      "size": 995,
+      "sha256": "447a06b6f47c355b181fd3b3960bd675792fd5813ea77918564ed155e5eb950f"
+    },
+    "python/exercises/practice/wordy/.meta/tests.toml": {
+      "size": 1989,
+      "sha256": "2b8707bb18f88c95f651c9b3e9a32a822a1e2c8b47f1199c2d8c8774e649c542"
+    },
+    "python/exercises/practice/wordy/wordy.py": {
+      "size": 31,
+      "sha256": "3a8e9cf28b599898ff62c4714ad747b95ec84e8e04034b3dbf14b9f40afe0ee1"
+    },
+    "python/exercises/practice/wordy/wordy_test.py": {
+      "size": 4551,
+      "sha256": "3c8bf5b17e14c8f8953107c0ae9600be0c0d96e578cf442526dbedf0c57889da"
+    },
+    "python/exercises/practice/zebra-puzzle/.docs/instructions.md": {
+      "size": 1283,
+      "sha256": "475239352eed823e34a2677b65d861d58e0ca37a7da9ae399141c0c95758a8e6"
+    },
+    "python/exercises/practice/zebra-puzzle/.docs/introduction.md": {
+      "size": 834,
+      "sha256": "5579722519373eecc2559b9a6301a4e65408bb2888f34b0542de36c33f052c3d"
+    },
+    "python/exercises/practice/zebra-puzzle/.meta/config.json": {
+      "size": 473,
+      "sha256": "89e35b4a4c1b115fa314dc875a960e5828daca645b11ef06158819810165eafd"
+    },
+    "python/exercises/practice/zebra-puzzle/.meta/example.py": {
+      "size": 1878,
+      "sha256": "74be8f26867df7ef1946dcfc1c07ce851758dbbf3d2ab795abba19c2213eba7a"
+    },
+    "python/exercises/practice/zebra-puzzle/.meta/template.j2": {
+      "size": 361,
+      "sha256": "e517b187e6a3e06f7482e3ffe3c744b4a57244bc18269a45b6716f8862c80acc"
+    },
+    "python/exercises/practice/zebra-puzzle/.meta/tests.toml": {
+      "size": 362,
+      "sha256": "bf004e47e8707eb7c273f910d91f2be3c9102b30cd7756d8ef1dc545e4e138d6"
+    },
+    "python/exercises/practice/zebra-puzzle/zebra_puzzle.py": {
+      "size": 58,
+      "sha256": "6916bddd73997faa6920d6ef41a6a9f593e65bac41252dedc19deb65df844c67"
+    },
+    "python/exercises/practice/zebra-puzzle/zebra_puzzle_test.py": {
+      "size": 515,
+      "sha256": "079d65e614c911f7e21ef19a1aa5d0d4bb2c69fba1bd86cb84e0f1f4e39efb90"
+    },
+    "python/exercises/practice/zipper/.docs/instructions.md": {
+      "size": 1392,
+      "sha256": "30c3fa8f9de3afdd691f3ff72e0407581da6676426ad7f175ef1553504df6066"
+    },
+    "python/exercises/practice/zipper/.meta/config.json": {
+      "size": 327,
+      "sha256": "8438cdf2127d1ff96a12dc4e18110aa53efb52a066225b3bec72e36e2eea421c"
+    },
+    "python/exercises/practice/zipper/.meta/example.py": {
+      "size": 1077,
+      "sha256": "c1eff987dcc104ad0721087a18b96735f5630d4eb3828532e09adf434f6a06df"
+    },
+    "python/exercises/practice/zipper/.meta/template.j2": {
+      "size": 1770,
+      "sha256": "ffc8c3b7e54001a8cc62c3b236d1711c971c2bc481b224e8697d9667813e9ff7"
+    },
+    "python/exercises/practice/zipper/.meta/tests.toml": {
+      "size": 1606,
+      "sha256": "6307330adb1f2c7ae9f115b54430d74f11ad1040dca64abf6870345e189dccdb"
+    },
+    "python/exercises/practice/zipper/zipper.py": {
+      "size": 359,
+      "sha256": "66276107d448f53a12509da6f503280e0dca4a6bbd9d690a774fb0972a55f926"
+    },
+    "python/exercises/practice/zipper/zipper_test.py": {
+      "size": 9641,
+      "sha256": "a3cf6e5ebcf6b2171bcc80fa0ce81b425af23b522f222e841fa2abd3119e95b2"
+    },
+    "LICENSE.python": {
+      "size": 1065,
+      "sha256": "e52f804e74f0fbd34e8927962319df346166b8194094309a0aee318693df44df"
+    }
+  }
+}

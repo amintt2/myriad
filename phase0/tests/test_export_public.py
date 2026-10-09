@@ -40,6 +40,14 @@ class TestScan(unittest.TestCase):
             with self.subTest(extra=extra[:20]):
                 self.assertTrue(self.scan({rel: (real + "\n" + extra + "\n").encode()}))
 
+    def test_code_pilot_artifacts_still_block_secrets_and_private_paths(self):
+        base = "phase0/results/code_pilot_cpu_20261010_01/"
+        home = "C:" + "\\Users\\someone\\Documents\\private.txt"
+        for name in ("manifest.json", "single__affine-cipher.jsonl", "accuracy_seconds_per_task.svg"):
+            self.assertTrue(ex.selected(base + name))
+            for text in (FAKE_TOKEN, home):
+                self.assertTrue(self.scan({base + name: text.encode()}))
+
     def test_e10_synthetic_result_exact_line_only(self):
         rel = "phase0/results/sot_base_Qwen__Qwen3.5-4B_colab_other.jsonl"
         data = (ROOT / rel).read_bytes()
@@ -155,6 +163,35 @@ class TestScan(unittest.TestCase):
             readme = (out / "phase0/README.md").read_text(encoding="utf-8")
             self.assertIn("[guide](../docs/11_terminal_bench.md)", readme)
             self.assertNotIn("docs/10_bancs_reels.md", readme)
+
+    def test_code_pilot_resources_are_an_exact_allowlist(self):
+        base = "phase0/code_pilot/"
+        for name in ("pyproject.toml", "uv.lock", "tasks.json", "sources.json"):
+            self.assertTrue(ex.selected(base + name), name)
+        self.assertTrue(ex.selected("docs/12_code_pilot.md"))
+        for rel in (base + "private.json", base + "credentials.env", base + "nested/tasks.json",
+                    base + ".venv/pyvenv.cfg", "phase0/data/code-pilot/README.md"):
+            self.assertFalse(ex.selected(rel), rel)
+
+    def test_code_pilot_results_are_an_exact_flat_allowlist(self):
+        base = "phase0/results/code_pilot_cpu_20261010_01/"
+        names = {"manifest.json", "verdicts.json", "summary.json", "report.md"}
+        names.update(f"{mode}__{task}.jsonl" for mode in ("single", "vote", "cascade", "reference")
+                     for task in ("affine-cipher", "beer-song", "book-store"))
+        names.update(f"accuracy_{metric}.{ext}" for metric in ("seconds_per_task", "estimated_eur_per_task")
+                     for ext in ("svg", "png", "pdf"))
+        self.assertEqual(len(names), 22)
+        for name in names:
+            self.assertTrue(ex.selected(base + name), name)
+        for name in ("manifest.json.part", "manifest_other.json", "verdict.json", "smoke.json", ".campaign.lock",
+                     "cache.json", "archive.zip", "single__affine-cipher.jsonl.meta.json", "single__allergies.jsonl",
+                     "single__affine_cipher.jsonl", "verify__affine-cipher.jsonl", "accuracy_seconds_per_task.jpg",
+                     "accuracy_seconds_per_task_extra.svg", "GPQA_dump.jsonl", "nested/manifest.json"):
+            self.assertFalse(ex.selected(base + name), name)
+        for folder in ("code_pilot_cpu_20261010_01_extra", "code_pilot_cpu_20261010", "code_pilot_cpu_20261010_1",
+                       "code_pilot_gpqa_20261010_01", "archive_v1"):
+            self.assertFalse(ex.selected(f"phase0/results/{folder}/manifest.json"))
+        self.assertTrue(ex.selected("phase0/results/code_pilot_compare_20261010_01/reference__book-store.jsonl"))
 
 
 @unittest.skipIf(ex is None, "tools/export_public.py absent (public tree)")
