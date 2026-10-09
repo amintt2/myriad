@@ -1,10 +1,10 @@
 ; Inno Setup script of the Myriad installer (per-user install, no administrator rights needed).
-;   iscc /DAppVersion=0.2.0 /DSourceDir=..\..\dist\Myriad /DOutputDir=..\..\dist packaging\windows\myriad.iss
+;   iscc /DAppVersion=0.2.1 /DSourceDir=..\..\dist\Myriad /DOutputDir=..\..\dist packaging\windows\myriad.iss
 ; Code signing: pass /DSignTool=1 and define a sign tool named "myriad" in ISCC (iscc "/Smyriad=signtool sign
 ; /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f cert.pfx /p PASSWORD $f"); see release.yml.
 
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.2.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\dist\Myriad"

@@ -1,0 +1,26 @@
+{
+  "model": "allenai/OLMo-2-0425-1B-Instruct",
+  "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "OLMo-2-0425-1B-Instruct-Q8_0.gguf",
+  "weights": {
+    "name": "OLMo-2-0425-1B-Instruct-Q8_0.gguf",
+    "size": 1581667488,
+    "sha256": "4a180742923d27d2434e53062b21f508257a5ee15abda398a3db13385e33d6e6"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "TIGER-Lab/MMLU-Pro",
+    "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+    "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+  },
+  "bench": "mmlupro",
+  "split": "dev",
+  "n": 300,
+  "prompt": "solo-v1",
+  "max_tokens": 1024,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

@@ -449,14 +449,16 @@ wheels = [
 
 [[package]]
 name = "myriad"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "huggingface-hub" },
     { name = "pydantic" },
+    { name = "truststore" },
     { name = "uvicorn" },
     { name = "websockets" },
 ]
@@ -480,6 +482,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi", specifier = ">=2026.7.22" },
     { name = "cryptography", specifier = ">=42" },
     { name = "fastapi", specifier = ">=0.110" },
     { name = "httpx", specifier = ">=0.27" },
@@ -489,6 +492,7 @@ requires-dist = [
     { name = "pystray", marker = "extra == 'desktop'", specifier = ">=0.19" },
     { name = "pywebview", marker = "extra == 'desktop'", specifier = ">=5.0" },
     { name = "pywebview", extras = ["qt"], marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = ">=5.0" },
+    { name = "truststore", specifier = ">=0.10.4" },
     { name = "uvicorn", specifier = ">=0.29" },
     { name = "websockets", specifier = ">=13.0" },
 ]

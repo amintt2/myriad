@@ -1,0 +1,26 @@
+{
+  "model": "google/gemma-4-E2B-it",
+  "revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "gemma-4-E2B-it-Q8_0.gguf",
+  "weights": {
+    "name": "gemma-4-E2B-it-Q8_0.gguf",
+    "size": 4967497152,
+    "sha256": "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "TIGER-Lab/MMLU-Pro",
+    "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+    "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+  },
+  "bench": "mmlupro",
+  "split": "dev",
+  "n": 300,
+  "prompt": "solo-v1",
+  "max_tokens": 1024,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

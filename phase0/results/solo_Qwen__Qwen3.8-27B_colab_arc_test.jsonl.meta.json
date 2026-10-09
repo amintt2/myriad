@@ -1,0 +1,26 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.8-27B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.8-27B-Q8_0.gguf",
+    "size": 29047086048,
+    "sha256": "a680f44a06920e5d689774823782006aa3acc8db95750323373b24139b67e348"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "allenai/ai2_arc",
+    "revision": "210d026faf9955653af8916fad021475a3f00453",
+    "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+  },
+  "bench": "arc",
+  "split": "test",
+  "n": 300,
+  "prompt": "solo-v1",
+  "max_tokens": 1024,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

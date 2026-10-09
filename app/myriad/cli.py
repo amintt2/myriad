@@ -325,7 +325,14 @@ def cmd_update(args) -> int:
     return 0
 
 
+def cmd_selftest_tls(args) -> int:
+    from . import tls
+    return tls.selftest(args.url)
+
+
 def main(argv: list[str] | None = None) -> int:
+    from .tls import setup_tls
+    setup_tls()  # before any HTTPS / WSS client creates its SSL context
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(errors="replace")
@@ -408,6 +415,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--check", action="store_true", help="vérifier seulement, sans rien télécharger")
     p.add_argument("--tracker", help="URL du traqueur à interroger (défaut : celui de la configuration)")
     p.set_defaults(func=cmd_update)
+
+    from .tls import DEFAULT_SELFTEST_URL
+    p = sub.add_parser("selftest-tls", help=argparse.SUPPRESS)  # hidden: used by the packaging smoke test
+    p.add_argument("url", nargs="?", default=DEFAULT_SELFTEST_URL)
+    p.set_defaults(func=cmd_selftest_tls)
 
     args = ap.parse_args(argv)
     return args.func(args)

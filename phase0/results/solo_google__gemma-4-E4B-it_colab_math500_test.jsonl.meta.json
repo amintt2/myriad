@@ -1,0 +1,26 @@
+{
+  "model": "google/gemma-4-E4B-it",
+  "revision": "ee0ef6023621cff504d758262d4e04895a5af4a2",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "gemma-4-E4B-it-Q8_0.gguf",
+  "weights": {
+    "name": "gemma-4-E4B-it-Q8_0.gguf",
+    "size": 8031242688,
+    "sha256": "34be82b17b4942d389b9b527170c4b058027abdd32531fda063d3d97dd8ce80a"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/MATH-500",
+    "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+    "sha256": "3e8bce3d73fd6965f5f1141d48b2115c8d398626cdee22b2a831418fcde438a5"
+  },
+  "bench": "math500",
+  "split": "test",
+  "n": 250,
+  "prompt": "solo-v1",
+  "max_tokens": 2048,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

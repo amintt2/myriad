@@ -3,7 +3,7 @@
 The package was called `essaim` before; the console scripts `essaim` and `essaim-desktop` remain as
 aliases, and an existing `essaim` data directory is copied to `myriad` on first start (config.py)."""
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 # Wire protocol identifiers. They keep the former name `essaim` ON PURPOSE and must not be renamed:
 # PROTOCOL prefixes every signed message (job, result, receipt, challenge answer: crypto.py) and is
 # the `version` literal that every node announces (protocol.py), so renaming it would make the nodes,

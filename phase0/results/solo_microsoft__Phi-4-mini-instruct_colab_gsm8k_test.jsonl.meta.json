@@ -1,0 +1,26 @@
+{
+  "model": "microsoft/Phi-4-mini-instruct",
+  "revision": "cfbefacb99257ffa30c83adab238a50856ac3083",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+  "weights": {
+    "name": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+    "size": 4084611456,
+    "sha256": "a12f242c4ee379b9da91673e5d78b30bfacfe4fd86a0b2259d2ecad5d93cb6c7"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "openai/gsm8k",
+    "revision": "740312add88f781978c0658806c59bc2815b9866",
+    "sha256": "2c3971124fc185d0b416b1e4cba88175879627bfbebc3ddb95f6b7e8b4231086"
+  },
+  "bench": "gsm8k",
+  "split": "test",
+  "n": 300,
+  "prompt": "solo-v1",
+  "max_tokens": 1024,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

@@ -1,0 +1,26 @@
+{
+  "model": "HuggingFaceTB/SmolLM3-3B",
+  "revision": "a07cc9a04f16550a088caea529712d1d335b0ac1",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "SmolLM3-Q8_0.gguf",
+  "weights": {
+    "name": "SmolLM3-Q8_0.gguf",
+    "size": 3275574624,
+    "sha256": "8aa8cc74656137174a1988d993b00828e65a86fd68773412b632a75aa1373248"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "openai/gsm8k",
+    "revision": "740312add88f781978c0658806c59bc2815b9866",
+    "sha256": "2c3971124fc185d0b416b1e4cba88175879627bfbebc3ddb95f6b7e8b4231086"
+  },
+  "bench": "gsm8k",
+  "split": "test",
+  "n": 300,
+  "prompt": "solo-v1",
+  "max_tokens": 1024,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

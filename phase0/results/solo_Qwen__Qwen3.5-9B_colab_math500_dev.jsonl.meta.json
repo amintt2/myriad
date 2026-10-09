@@ -1,0 +1,26 @@
+{
+  "model": "Qwen/Qwen3.5-9B",
+  "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.5-9B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.5-9B-Q8_0.gguf",
+    "size": 9527502048,
+    "sha256": "809626574d0cb43d4becfa56169980da2bb448f2299270f7be443cb89d0a6ae4"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/MATH-500",
+    "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+    "sha256": "3e8bce3d73fd6965f5f1141d48b2115c8d398626cdee22b2a831418fcde438a5"
+  },
+  "bench": "math500",
+  "split": "dev",
+  "n": 250,
+  "prompt": "solo-v1",
+  "max_tokens": 2048,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

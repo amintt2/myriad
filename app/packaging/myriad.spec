@@ -13,8 +13,9 @@ VERSION = re.search(r'__version__ = "([^"]+)"', (APP / "myriad" / "__init__.py")
 ICONS = HERE / "icons"
 
 datas = collect_data_files("myriad", includes=["web/**/*", "landing/**/*", "priors.json"])
+datas += collect_data_files("certifi")  # cacert.pem: the TLS fallback of myriad/tls.py
 datas += [(str(APP.parent / name), ".") for name in ("LICENSE", "NOTICE") if (APP.parent / name).exists()]
-hiddenimports = collect_submodules("myriad") + [
+hiddenimports = collect_submodules("myriad") + collect_submodules("truststore") + ["certifi", "truststore"] + [
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.loops.asyncio", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
     "uvicorn.protocols.websockets.websockets_impl", "uvicorn.lifespan.on",

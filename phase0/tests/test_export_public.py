@@ -27,6 +27,18 @@ class TestScan(unittest.TestCase):
                 p.write_bytes(data)
             return ex.scan(Path(d), list(files))[0]
 
+    def test_reviewed_fixture_lines_only(self):
+        # The privacy guard's synthetic fixtures are excused line by line (whole line hashed): another
+        # private key or home path in the same file still blocks (Codex review of the allowlist).
+        rel = "app/tests/test_e2e_privacy.py"
+        real = Path(ROOT / rel).read_text(encoding="utf-8")
+        self.assertEqual(self.scan({rel: real.encode()}), [])
+        key = "-----BEGIN OPENSSH " + "PRIVATE KEY-----"  # split: this file is exported and scanned
+        home = "C:" + "\\Users\\someone\\Documents\\private.txt"
+        for extra in (f'X = "{key}\\nreal\\n"', f'P = r"{home}"', '"api_key": ["sk-' + "x" * 30 + '"],'):
+            with self.subTest(extra=extra[:20]):
+                self.assertTrue(self.scan({rel: (real + "\n" + extra + "\n").encode()}))
+
     def test_any_extension_and_notebooks(self):
         # Audit 2026-10-09 (paper, 1): a token in a .ipynb or a .env variant gave zero alerts.
         for rel, data in (("phase0/colab/x.ipynb", json.dumps({"cells": [{"source": [FAKE_TOKEN]}]}).encode()),

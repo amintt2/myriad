@@ -23,11 +23,29 @@ def get(url: str):
         return r.status, r.read(), r.headers
 
 
+def selftest_tls(exe: Path, env: dict) -> None:
+    """A real HTTPS GET from inside the frozen app: fails the build if the CA certificates are not found
+    (the macOS CERTIFICATE_VERIFY_FAILED regression of v0.2.0)."""
+    last = None
+    for _ in range(3):  # tolerate a transient network blip on the runner
+        r = subprocess.run([str(exe), "--selftest-tls"], env=env, capture_output=True, timeout=120)
+        out = (r.stdout + r.stderr).decode(errors="replace").strip()
+        if r.returncode == 0:
+            print(f"OK: TLS self-test {out}")
+            return
+        last = f"exit {r.returncode}: {out}"
+        if "CERTIFICATE_VERIFY_FAILED" in out:
+            break
+        time.sleep(3)
+    raise SystemExit(f"TLS self-test failed ({last})")
+
+
 def main() -> int:
     exe = Path(sys.argv[1]).resolve()
     home = Path(tempfile.mkdtemp(prefix="myriad-smoke-"))
     env = {**os.environ, "MYRIAD_HOME": str(home)}
     # A tracker that refuses connections at once: the app must still start and serve its interface.
+    selftest_tls(exe, env)
     args = [str(exe), "--home", str(home), "--headless", "--tracker", "http://127.0.0.1:9"]
     proc = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     url_file = home / "myriad.url"

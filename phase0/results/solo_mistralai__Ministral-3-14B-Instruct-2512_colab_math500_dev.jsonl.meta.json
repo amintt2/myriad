@@ -1,0 +1,26 @@
+{
+  "model": "mistralai/Ministral-3-14B-Instruct-2512",
+  "revision": "29439f81c2be264d8d393273f99e7db9c0961120",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Ministral-3-14B-Instruct-2512-Q8_0.gguf",
+  "weights": {
+    "name": "Ministral-3-14B-Instruct-2512-Q8_0.gguf",
+    "size": 14359836224,
+    "sha256": "8122acc8df446039d41dd9650dabb024d3c6b8dae6eff336d28ac2bddd3bbc13"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "HuggingFaceH4/MATH-500",
+    "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+    "sha256": "3e8bce3d73fd6965f5f1141d48b2115c8d398626cdee22b2a831418fcde438a5"
+  },
+  "bench": "math500",
+  "split": "dev",
+  "n": 250,
+  "prompt": "solo-v1",
+  "max_tokens": 2048,
+  "temperature": 0.0,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "logprobs": false
+}

@@ -359,6 +359,8 @@ def setup_logging(home: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .tls import DEFAULT_SELFTEST_URL, selftest, setup_tls
+    setup_tls()  # before any HTTPS / WSS client creates its SSL context
     ap = argparse.ArgumentParser(prog="myriad-desktop", description=f"{APP_NAME} : application de bureau")
     ap.add_argument("--version", action="version", version=f"{APP_NAME} {__version__}")
     ap.add_argument("--home", help="dossier de données (défaut : dossier utilisateur, ou MYRIAD_HOME)")
@@ -370,7 +372,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="ni fenêtre, ni navigateur, ni icône : sert l'interface et attend (serveurs, tests)")
     ap.add_argument("--stop", action="store_true", help="arrêter proprement l'instance en cours, puis quitter")
     ap.add_argument("--after-update", action="store_true", help=argparse.SUPPRESS)  # relaunch after an update
+    ap.add_argument("--selftest-tls", nargs="?", const=DEFAULT_SELFTEST_URL, metavar="URL",
+                    help=argparse.SUPPRESS)  # real HTTPS GET, then exit (packaging smoke test)
     args = ap.parse_args(argv)
+    if args.selftest_tls:
+        return selftest(args.selftest_tls)
     home = Path(args.home).expanduser() if args.home else home_dir()
     home.mkdir(parents=True, exist_ok=True)
     setup_logging(home)
