@@ -180,6 +180,13 @@ ignorés par git) : `run_code.py ... --suffix _smoke --benches humanevalplus --s
 `exec_code.py --suffix _smoke ...` et `analyze_code.py --suffix _smoke --swarm <les deux modèles> --refs
 --fit-split test`. `exec_code.py --reference-only` vérifie le banc seul (aucun modèle).
 
+Les lectures WSL `colab/colab_phase0.sh status` et `diagnose` ont une borne murale externe de 90 secondes :
+Un superviseur Python envoie `TERM` au groupe local, puis `KILL` au plus tard 5 secondes après. Le délai interne
+`colab exec --timeout 60` concerne l'exécution distante et ne suffit pas à borner une connexion bloquée.
+Les codes d'erreur remontent au surveillant ; la campagne distante reste active. Cette borne ne concerne pas `up`.
+Le superviseur reste hors du groupe du CLI : il termine aussi les enfants qui ignorent `TERM`, sans dépendre
+du comportement de l'utilitaire système `timeout` (uutils sous WSL sur ce PC).
+
 ## E12 : des bancs plus réels (GPQA Diamond, SciCode ; essai Terminal-Bench préparé, DeepSWE en conception)
 
 La question du propriétaire : l'essaim d'E4 (7 petits modèles de 7 familles) obtient-il un score supérieur à 0 sur les

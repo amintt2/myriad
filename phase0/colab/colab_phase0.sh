@@ -44,15 +44,16 @@ case "${1:-}" in
     colab exec -s "$S" --timeout 1800 -f "$REPO/phase0/colab_bootstrap.py"
     ;;
   status)
+    # The CLI's 60s limit covers remote execution, not a stuck local connection. Bound the whole process group.
     printf '%s\n' "import os, subprocess" \
       "for p in ('$REMOTE/colab_bootstrap_status.json', '$REMOTE/colab_status.json'):" \
       "    print(open(p).read() if os.path.exists(p) else f'{os.path.basename(p)} : absent')" \
       "print(subprocess.run(['tail','-5','$REMOTE/colab_launcher.log'],capture_output=True,text=True).stdout)" \
       "print(subprocess.run(['nvidia-smi','--query-gpu=utilization.gpu,memory.used,memory.total','--format=csv,noheader'],capture_output=True,text=True).stdout)" \
-      | colab exec -s "$S" --timeout 60
+      | python3 "$REPO/phase0/colab/read_timeout.py" colab exec -s "$S" --timeout 60
     ;;
   diagnose)
-    colab exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/diagnose.py"
+    python3 "$REPO/phase0/colab/read_timeout.py" colab exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/diagnose.py"
     ;;
   pull)
     dest="$REPO/phase0/results"
