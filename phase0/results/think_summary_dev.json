@@ -1,0 +1,412 @@
+{
+  "split": "dev",
+  "fit_split": null,
+  "experts": [
+    "Qwen/Qwen3-1.7B@_colab_think768",
+    "ibm-granite/granite-3.3-2b-instruct@_colab_think768",
+    "HuggingFaceTB/SmolLM3-3B@_colab_think768",
+    "google/gemma-4-E2B-it@_colab_think768"
+  ],
+  "reference": [
+    "Qwen/Qwen3-4B@_colab_think768"
+  ],
+  "repetition": "sampling seed (original option order)",
+  "benches": {
+    "arc": {
+      "questions": 100,
+      "passes": 3,
+      "dropped_incomplete": 0,
+      "best_expert": {
+        "pass": "HuggingFaceTB/SmolLM3-3B@_colab_think768",
+        "avg": "HuggingFaceTB/SmolLM3-3B@_colab_think768"
+      },
+      "systems": {
+        "seul:Qwen/Qwen3-1.7B@_colab_think768": {
+          "pass": [
+            0.85,
+            0.84,
+            0.86
+          ],
+          "avg": 0.86
+        },
+        "seul:ibm-granite/granite-3.3-2b-instruct@_colab_think768": {
+          "pass": [
+            0.79,
+            0.77,
+            0.79
+          ],
+          "avg": 0.8
+        },
+        "seul:HuggingFaceTB/SmolLM3-3B@_colab_think768": {
+          "pass": [
+            0.89,
+            0.91,
+            0.93
+          ],
+          "avg": 0.93
+        },
+        "seul:google/gemma-4-E2B-it@_colab_think768": {
+          "pass": [
+            0.91,
+            0.9,
+            0.92
+          ],
+          "avg": 0.93
+        },
+        "ref:Qwen/Qwen3-4B@_colab_think768": {
+          "pass": [
+            0.92,
+            0.91,
+            0.92
+          ],
+          "avg": 0.92
+        },
+        "fusion:moyenne": {
+          "pass": [
+            0.9,
+            0.9,
+            0.93
+          ],
+          "avg": 0.92
+        },
+        "fusion:produit": {
+          "pass": [
+            0.93,
+            0.91,
+            0.94
+          ],
+          "avg": 0.89
+        },
+        "fusion:pondérée par la confiance": {
+          "pass": [
+            0.9,
+            0.9,
+            0.93
+          ],
+          "avg": 0.92
+        },
+        "fusion:vote": {
+          "pass": [
+            0.9,
+            0.9,
+            0.93
+          ],
+          "avg": 0.92
+        },
+        "fusion:produit calibré": {
+          "pass": [
+            0.91,
+            0.91,
+            0.94
+          ],
+          "avg": 0.9
+        },
+        "fusion:mélange calibré": {
+          "pass": [
+            0.91,
+            0.9,
+            0.93
+          ],
+          "avg": 0.92
+        }
+      },
+      "gain_vs_best": {
+        "moyenne": {
+          "pass": {
+            "points": 0.0,
+            "ci95": [
+              -2.6666666666666616,
+              2.6666666666666727
+            ]
+          },
+          "avg": {
+            "points": -1.0000000000000009,
+            "ci95": [
+              -4.999999999999993,
+              2.0000000000000018
+            ]
+          }
+        },
+        "produit": {
+          "pass": {
+            "points": 1.6666666666666718,
+            "ci95": [
+              -2.0000000000000018,
+              5.000000000000004
+            ]
+          },
+          "avg": {
+            "points": -4.0000000000000036,
+            "ci95": [
+              -8.999999999999996,
+              0.0
+            ]
+          }
+        },
+        "pondérée par la confiance": {
+          "pass": {
+            "points": 0.0,
+            "ci95": [
+              -2.6666666666666616,
+              2.6666666666666727
+            ]
+          },
+          "avg": {
+            "points": -1.0000000000000009,
+            "ci95": [
+              -4.999999999999993,
+              2.0000000000000018
+            ]
+          }
+        },
+        "vote": {
+          "pass": {
+            "points": 0.0,
+            "ci95": [
+              -2.6666666666666616,
+              2.6666666666666727
+            ]
+          },
+          "avg": {
+            "points": -1.0000000000000009,
+            "ci95": [
+              -4.999999999999993,
+              2.0000000000000018
+            ]
+          }
+        },
+        "produit calibré": {
+          "pass": {
+            "points": 0.9999999999999898,
+            "ci95": [
+              -1.675000000000015,
+              4.0000000000000036
+            ]
+          },
+          "avg": {
+            "points": -3.0000000000000027,
+            "ci95": [
+              -6.999999999999995,
+              1.0000000000000009
+            ]
+          }
+        },
+        "mélange calibré": {
+          "pass": {
+            "points": 0.33333333333334103,
+            "ci95": [
+              -2.0000000000000018,
+              3.3333333333333326
+            ]
+          },
+          "avg": {
+            "points": -1.0000000000000009,
+            "ci95": [
+              -4.0000000000000036,
+              2.9999999999999916
+            ]
+          }
+        }
+      },
+      "frozen_temperatures": null
+    },
+    "mmlupro": {
+      "questions": 100,
+      "passes": 3,
+      "dropped_incomplete": 0,
+      "best_expert": {
+        "pass": "google/gemma-4-E2B-it@_colab_think768",
+        "avg": "google/gemma-4-E2B-it@_colab_think768"
+      },
+      "systems": {
+        "seul:Qwen/Qwen3-1.7B@_colab_think768": {
+          "pass": [
+            0.45,
+            0.49,
+            0.46
+          ],
+          "avg": 0.49
+        },
+        "seul:ibm-granite/granite-3.3-2b-instruct@_colab_think768": {
+          "pass": [
+            0.36,
+            0.36,
+            0.38
+          ],
+          "avg": 0.4
+        },
+        "seul:HuggingFaceTB/SmolLM3-3B@_colab_think768": {
+          "pass": [
+            0.49,
+            0.49,
+            0.43
+          ],
+          "avg": 0.49
+        },
+        "seul:google/gemma-4-E2B-it@_colab_think768": {
+          "pass": [
+            0.51,
+            0.57,
+            0.53
+          ],
+          "avg": 0.57
+        },
+        "ref:Qwen/Qwen3-4B@_colab_think768": {
+          "pass": [
+            0.54,
+            0.53,
+            0.55
+          ],
+          "avg": 0.55
+        },
+        "fusion:moyenne": {
+          "pass": [
+            0.49,
+            0.55,
+            0.51
+          ],
+          "avg": 0.55
+        },
+        "fusion:produit": {
+          "pass": [
+            0.56,
+            0.56,
+            0.52
+          ],
+          "avg": 0.56
+        },
+        "fusion:pondérée par la confiance": {
+          "pass": [
+            0.52,
+            0.56,
+            0.53
+          ],
+          "avg": 0.57
+        },
+        "fusion:vote": {
+          "pass": [
+            0.48,
+            0.56,
+            0.51
+          ],
+          "avg": 0.53
+        },
+        "fusion:produit calibré": {
+          "pass": [
+            0.57,
+            0.53,
+            0.51
+          ],
+          "avg": 0.54
+        },
+        "fusion:mélange calibré": {
+          "pass": [
+            0.55,
+            0.51,
+            0.54
+          ],
+          "avg": 0.55
+        }
+      },
+      "gain_vs_best": {
+        "moyenne": {
+          "pass": {
+            "points": -2.0000000000000018,
+            "ci95": [
+              -7.000000000000006,
+              3.6666666666666625
+            ]
+          },
+          "avg": {
+            "points": -1.9999999999999907,
+            "ci95": [
+              -9.025000000000007,
+              5.999999999999995
+            ]
+          }
+        },
+        "produit": {
+          "pass": {
+            "points": 1.0000000000000009,
+            "ci95": [
+              -2.6666666666666616,
+              5.000000000000004
+            ]
+          },
+          "avg": {
+            "points": -0.9999999999999898,
+            "ci95": [
+              -6.999999999999995,
+              5.000000000000004
+            ]
+          }
+        },
+        "pondérée par la confiance": {
+          "pass": {
+            "points": 0.0,
+            "ci95": [
+              -4.666666666666675,
+              5.000000000000004
+            ]
+          },
+          "avg": {
+            "points": 0.0,
+            "ci95": [
+              -5.999999999999995,
+              6.000000000000005
+            ]
+          }
+        },
+        "vote": {
+          "pass": {
+            "points": -2.0000000000000018,
+            "ci95": [
+              -7.333333333333342,
+              3.9999999999999982
+            ]
+          },
+          "avg": {
+            "points": -3.9999999999999925,
+            "ci95": [
+              -12.0,
+              3.9999999999999982
+            ]
+          }
+        },
+        "produit calibré": {
+          "pass": {
+            "points": 0.0,
+            "ci95": [
+              -5.008333333333337,
+              5.999999999999995
+            ]
+          },
+          "avg": {
+            "points": -2.9999999999999916,
+            "ci95": [
+              -9.999999999999998,
+              4.0000000000000036
+            ]
+          }
+        },
+        "mélange calibré": {
+          "pass": {
+            "points": -0.33333333333334103,
+            "ci95": [
+              -5.000000000000004,
+              6.333333333333336
+            ]
+          },
+          "avg": {
+            "points": -1.9999999999999907,
+            "ci95": [
+              -9.000000000000002,
+              4.999999999999993
+            ]
+          }
+        }
+      },
+      "frozen_temperatures": null
+    }
+  }
+}

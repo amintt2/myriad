@@ -1,0 +1,35 @@
+{
+  "model": "ibm-granite/granite-3.3-2b-instruct",
+  "revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+  "backend": "llama.cpp",
+  "gguf": "granite-3.3-2b-instruct-Q8_0.gguf",
+  "device": "gpu, all layers offloaded (-ngl 999)",
+  "dtype": "per GGUF file (see weights)",
+  "engine": {
+    "llama-server": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with Clang 20.1.8 for Windows x86_64",
+    "transformers (tokenizer)": "5.19.0"
+  },
+  "weights": {
+    "name": "granite-3.3-2b-instruct-Q8_0.gguf",
+    "size": 2694120096,
+    "sha256": "39068a5bcb15f10487a49426d617b1b0f38a624d7dbdefe5ff6f26de82d97039"
+  },
+  "data": {
+    "arc": {
+      "dataset": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+    },
+    "mmlupro": {
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+    }
+  },
+  "split": "dev",
+  "n": 300,
+  "runs": 5,
+  "repetition": "balanced option order (balanced_perm)",
+  "prompt": "mc-v3",
+  "template_date": "2026-10-08"
+}

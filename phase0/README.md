@@ -1,0 +1,130 @@
+# Phase 0, mode B : des modèles de familles différentes qui répondent ensemble
+
+La question à trancher : est-ce que plusieurs petits modèles **de familles différentes**, gelés et sans aucun
+entraînement, font mieux ensemble que le meilleur d'entre eux, et que le modèle plus gros qui tient seul sur
+le PC ? Le contexte est résumé dans `../RESEARCH.md`.
+
+| rôle | modèle | famille | machine |
+| --- | --- | --- | --- |
+| expert | Qwen/Qwen3-1.7B | Alibaba | PC |
+| expert | HuggingFaceTB/SmolLM3-3B | Hugging Face | PC |
+| expert | ibm-granite/granite-3.3-2b-instruct | IBM | PC |
+| expert | google/gemma-4-E2B-it | Google | Mac |
+| référence locale | Qwen/Qwen3-4B | Alibaba | PC |
+
+Tous sont sous licence Apache-2.0 et non restreints. Ils tournent en Q8 sur le GPU via llama.cpp (Vulkan
+sur le PC, Metal sur le Mac). Les GGUF viennent des dépôts officiels (`fastdl.py`, SHA-256 vérifié) ou sont
+convertis localement (`make_gguf.py`).
+
+## Méthode
+
+- **Deux jeux disjoints** par benchmark (`essaim/data.py`) :
+  - **dev** (300 questions) sert à choisir la méthode de fusion ;
+  - **test** (300 autres) n'est utilisé qu'une fois la méthode figée.
+- **5 passages par question**, avec un ordre des réponses différent et équilibré à chaque passage
+  (`balanced_perm`) : chaque option passe par plusieurs positions.
+- **Lecture exacte** de la probabilité de chaque lettre. Toutes ses graphies d'un seul jeton (« A » et
+  « A » précédé d'une espace) sont lues, sans aucune valeur estimée.
+- **Fichiers de résultats sûrs** (`essaim/results.py`). Un manifeste enregistre :
+  - la révision du tokenizer, l'empreinte du GGUF et l'identité des données ;
+  - le protocole, la version du prompt et la date figée des modèles de chat.
+
+  Une reprise avec une autre configuration est refusée, un verrou empêche deux écritures simultanées, et les
+  doublons sont détectés.
+- **Analyse** (`analyze_mc.py`). Deux protocoles :
+  - « 1 passage » ;
+  - « moyenne des passages » : un ensemble gratuit, donné aussi aux modèles seuls.
+
+  Fusions comparées :
+  - **sans apprentissage** : moyenne, produit, pondérée par la confiance, vote ;
+  - **calibrées** : une température par modèle.
+
+  Intervalles de confiance par bootstrap apparié par question. Gain sur chaque expert et sur la référence
+  locale. Sur le jeu test, les températures sont **apprises sur dev puis figées** (`--fit-split dev`).
+
+## Expérience 1 : QCM (ARC-Challenge, MMLU-Pro)
+
+```
+uv run python run_mc.py --model Qwen/Qwen3-1.7B --gguf ../models/Qwen3-1.7B-Q8_0.gguf --suffix _gpu --split dev
+uv run python run_mc.py --model Qwen/Qwen3-1.7B --gguf ../models/Qwen3-1.7B-Q8_0.gguf --suffix _gpu --split test
+uv run python analyze_mc.py --split dev --experts Qwen/Qwen3-1.7B@_gpu HuggingFaceTB/SmolLM3-3B@_gpu ibm-granite/granite-3.3-2b-instruct@_gpu google/gemma-4-E2B-it@_gpu --reference Qwen/Qwen3-4B@_gpu
+uv run python analyze_mc.py --split test --fit-split dev --experts ... --reference ...
+```
+
+Le volet **avec réflexion** (`run_think.py`) utilise le mode réflexion de chaque famille, avec un budget de
+768 jetons ; on lit ensuite la lettre exactement de la même façon.
+
+## Expérience 2 : générer ensemble (GSM8K) sur le réseau
+
+Chaque modèle tourne comme un **pair** HTTP (`essaim.peer`), et `run_gen.py` les coordonne :
+
+| mode | ce qui se passe | allers-retours |
+| --- | --- | --- |
+| `solo` | chaque pair répond seul | 1 |
+| `vote` | majorité des réponses finales des pairs (calculé à partir de `solo`) | 1 au total |
+| `accord` | chaque pair écrit un brouillon de 16 jetons ; on garde le plus long début commun à la majorité, sinon le brouillon le plus confiant | 1 par tour |
+| `croise` | brouillons, puis chaque pair note tous les brouillons, mot par mot ; on garde le meilleur jusqu'au premier mot jugé improbable par le groupe | 2 par tour |
+
+```
+uv run python -m essaim.peer --model Qwen/Qwen3-1.7B --gguf ../models/Qwen3-1.7B-Q8_0.gguf --port 8101
+ESSAIM_TOKEN=<secret> uv run python run_gen.py --peers http://127.0.0.1:8101 ... http://IP_DU_MAC:8104 --tag essaim4
+```
+
+Ce que garantit le coordinateur (vérifié par une revue de code avant l'expérience) :
+- **Arrêt « réponse finale » nommé.** Il ignore ce qui est écrit dans la réflexion, y compris une réflexion
+  déjà ouverte dans le préfixe.
+- **k réponses valides exactement**, prises dans leur ordre d'arrivée :
+  - un seul envoi en cours par pair ;
+  - un pair en erreur n'arrête pas le tour ;
+  - le k effectivement obtenu et les erreurs sont journalisés pour chaque phase.
+- **Coûts complets.** Le temps de décision est séparé du coût total, et les appels tardifs ou en échec sont
+  comptés dans leur mode.
+- **Pairs protégés.** Prompt et candidats sont bornés en jetons, la génération a une échéance, et le pair
+  exige un jeton d'accès hors de la machine locale.
+
+## E10 : sections en parallèle (Skeleton-of-Thought entre pairs hétérogènes)
+
+La question : plusieurs pairs peuvent-ils écrire **une seule** réponse longue en même temps, sans perdre en
+qualité face à un pair qui répond seul ? Un pair écrit le squelette (3 à 8 points numérotés, 12 mots au plus
+chacun), puis le point i est développé par le pair i mod P d'une liste fixe de P familles, tous les points à
+la fois (Ning et al., 2023, « Skeleton-of-Thought »).
+
+- **Données** : premiers tours de MT-Bench (`HuggingFaceH4/mt_bench_prompts`, Apache-2.0, commit fixé).
+  On garde les catégories à réponse longue faite de parties séparables : writing, roleplay, stem,
+  humanities (40 prompts, dev 16 et test 24, tirage fixe). Les autres (reasoning, math, coding, extraction)
+  forment la partition `other`, rapportée à part : une seule chaîne de calcul ou une réponse courte ne se
+  découpe pas en points.
+- **Génération** (`run_sot.py`, un modèle à la fois sur le GPU) : `baseline` (chaque modèle répond seul,
+  1024 jetons au plus), `outline` (le modèle désigné écrit les squelettes, lecture robuste, repli enregistré
+  quand il est illisible : le modèle du squelette répond alors seul), `expand` (chaque pair développe ses
+  points, 256 jetons au plus). Chaque appel enregistre ses jetons, son temps mesuré **sous service en lot**
+  et sa raison d'arrêt.
+- **Juge** (`judge_sot.py`) : un modèle plus gros compare la réponse parallèle à chaque réponse seule, dans
+  **les deux ordres**, avec un verdict d'une lettre (A, B ou C pour l'égalité) imposé par une grammaire ; les
+  probabilités des trois lettres sont lues aussi.
+- **Analyse** (`analyze_sot.py`) : victoires, égalités et défaites après débiaisage de l'ordre (un verdict
+  qui change avec l'ordre compte comme une égalité), IC bootstrap appariés sur les prompts. Comparaisons
+  déclarées d'avance : le modèle du squelette seul, et le « meilleur modèle seul », celui contre lequel la
+  réponse parallèle fait le moins bien sur dev. La **vitesse est modélisée** : jetons mesurés, vitesses
+  mono-flux mesurées sur une RX 6650 XT (`speeds_consumer.json`), RTT de 50, 100 et 150 ms, et une variante
+  où tous les pairs vont à 50 jetons/s.
+
+```
+bash colab/colab_phase0.sh up sot-1 A100      # étapes : réponses seules + squelettes, développements, juge
+uv run python analyze_sot.py --tag sot1 --outline-model Qwen/Qwen3.5-4B --judge Qwen/Qwen3.8-27B --suffix _colab \
+    --peers Qwen/Qwen3.5-4B google/gemma-4-E4B-it ibm-granite/granite-4.2-3b mistralai/Ministral-3-3B-Instruct-2512 \
+            microsoft/Phi-4-mini-instruct HuggingFaceTB/SmolLM3-3B --baselines <les mêmes six modèles>
+uv run python -m unittest discover -s tests   # tests sans modèle
+```
+
+## Sur le Mac
+
+Avec llama.cpp de Homebrew : `LLAMA_SERVER=/opt/homebrew/bin/llama-server uv run python run_mc.py --model
+google/gemma-4-E2B-it --gguf ../models/gemma-4-E2B-it-Q8_0.gguf --suffix _gpu --split dev`, puis `--split
+test`. Pour l'expérience 2, le pair écoute sur le réseau local seulement avec un jeton :
+`ESSAIM_TOKEN=<secret> ... -m essaim.peer ... --host 0.0.0.0 --port 8104`.
+
+## Audits
+
+Chaque modification de code a été relue par une revue automatique (Codex), chaque remarque vérifiée à la
+main. Les résultats de la première série (avant corrections) ne sont pas publiés.

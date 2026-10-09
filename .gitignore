@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+phase0/data/
+phase0_mac.zip
+*.log
+tools/*
+!tools/export_public.py
+models/
+*.prev
+.claude/
+paper/main.pdf
+phase0/results/sot_*_smoke_*
+app/dist/
+app/build/

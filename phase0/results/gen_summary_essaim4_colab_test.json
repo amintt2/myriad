@@ -1,0 +1,126 @@
+{
+  "split": "test",
+  "n": 200,
+  "peers": [
+    "Qwen/Qwen3-1.7B",
+    "ibm-granite/granite-3.3-2b-instruct",
+    "HuggingFaceTB/SmolLM3-3B",
+    "google/gemma-4-E2B-it"
+  ],
+  "best_peer": "HuggingFaceTB/SmolLM3-3B",
+  "reference": "référence : Qwen/Qwen3-4B",
+  "accuracy": {
+    "Qwen/Qwen3-1.7B": 69.5,
+    "ibm-granite/granite-3.3-2b-instruct": 73.5,
+    "HuggingFaceTB/SmolLM3-3B": 86.5,
+    "google/gemma-4-E2B-it": 74.0,
+    "vote": 89.0,
+    "accord": 87.0,
+    "croise": 89.5,
+    "référence : Qwen/Qwen3-4B": 91.0
+  },
+  "ceiling": 95.0,
+  "gain_vs_best": {
+    "vote": [
+      2.5,
+      -1.5,
+      6.5
+    ],
+    "accord": [
+      0.5,
+      -5.0,
+      5.5
+    ],
+    "croise": [
+      3.0,
+      -1.5,
+      7.5
+    ]
+  },
+  "gain_vs_reference": {
+    "vote": [
+      -2.0,
+      -6.0,
+      2.0
+    ],
+    "accord": [
+      -4.0,
+      -8.5,
+      0.5
+    ],
+    "croise": [
+      -1.5,
+      -5.5,
+      2.5
+    ]
+  },
+  "cost": {
+    "solo": {
+      "trips_mean": 1,
+      "trips_max": 1,
+      "wall_s_mean": 5.13775,
+      "wall_s_median": 5.03,
+      "failed_calls": 0,
+      "calls": 800,
+      "net_ms_median": 5.0,
+      "wan_s_mean": {
+        "50": 5.187749999999999,
+        "100": 5.23775,
+        "150": 5.28775
+      }
+    },
+    "vote": {
+      "trips_mean": 1,
+      "trips_max": 1,
+      "wall_s_mean": 5.13775,
+      "wall_s_median": 5.03,
+      "failed_calls": 0,
+      "calls": 800,
+      "net_ms_median": 5.0,
+      "wan_s_mean": {
+        "50": 5.187749999999999,
+        "100": 5.23775,
+        "150": 5.28775
+      }
+    },
+    "accord": {
+      "trips_mean": 19.705,
+      "trips_max": 40,
+      "wall_s_mean": 8.2296,
+      "wall_s_median": 7.55,
+      "failed_calls": 0,
+      "calls": 15742,
+      "net_ms_median": 5.3,
+      "wan_s_mean": {
+        "50": 9.21485,
+        "100": 10.2001,
+        "150": 11.18535
+      },
+      "rounds_mean": 19.705,
+      "words_mean": 109.45
+    },
+    "croise": {
+      "trips_mean": 33.145,
+      "trips_max": 80,
+      "wall_s_mean": 34.59035,
+      "wall_s_median": 31.85,
+      "failed_calls": 60,
+      "calls": 26498,
+      "net_ms_median": 6.2,
+      "wan_s_mean": {
+        "50": 36.2476,
+        "100": 37.90485,
+        "150": 39.5621
+      },
+      "rounds_mean": 17.05,
+      "words_mean": 104.26
+    }
+  },
+  "peer_errors": {
+    "Qwen/Qwen3-1.7B": 0,
+    "ibm-granite/granite-3.3-2b-instruct": 0,
+    "HuggingFaceTB/SmolLM3-3B": 0,
+    "google/gemma-4-E2B-it": 0,
+    "référence : Qwen/Qwen3-4B": 0
+  }
+}

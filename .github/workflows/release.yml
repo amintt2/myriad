@@ -1,0 +1,180 @@
+# Build Myriad for Windows, macOS and Linux on a version tag (v*), test it, and attach the installers
+# to a DRAFT GitHub release (publish it by hand after checking).
+#
+# Unsigned by default. Code-signing hooks run only when their secrets exist (none are configured):
+#   Windows : WINDOWS_CERT_PFX (base64 .pfx), WINDOWS_CERT_PASSWORD
+#   macOS   : MACOS_CERT_P12 (base64 .p12), MACOS_CERT_PASSWORD, MACOS_SIGN_IDENTITY,
+#             APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD (notarization)
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (without the v), e.g. 0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.11.21"
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { version: "${{ env.UV_VERSION }}" }
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2022, target: windows-x64 }
+          - { os: macos-15, target: macos-arm64, arch: arm64 }
+          - { os: macos-15-intel, target: macos-x86_64, arch: x86_64 }
+          - { os: ubuntu-22.04, target: linux-x86_64 }
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { working-directory: app, shell: bash } }
+    env:
+      WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+      MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+    steps:
+      - uses: actions/checkout@v4
+      # A regular CPython (shared libpython, what PyInstaller expects), used by uv for the build.
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - uses: astral-sh/setup-uv@v6
+        with: { version: "${{ env.UV_VERSION }}" }
+      - name: Version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          grep -q "__version__ = \"$V\"" myriad/__init__.py || echo "::warning::myriad/__init__.py does not say $V"
+      - name: Linux system libraries (Qt web view, tray icon, AppImage)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 \
+            libxcb-shape0 libxcb-xinerama0 libxcb-randr0 libxcb-render-util0 libxcb-image0 libdbus-1-3 \
+            libfontconfig1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 libasound2 libfuse2 file
+      - run: uv sync --frozen --extra desktop --group build --python "$(python -c 'import sys; print(sys.executable)')"
+      - name: PyInstaller
+        run: uv run pyinstaller packaging/myriad.spec --noconfirm --distpath dist --workpath build
+
+      # ---------------------------------------------------------------- Windows
+      - name: Sign Myriad.exe (only with a certificate)
+        if: runner.os == 'Windows' && env.WINDOWS_CERT_PFX != ''
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          & $signtool.FullName sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f "$env:RUNNER_TEMP\cert.pfx" /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" dist\Myriad\Myriad.exe
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: python packaging/smoke_test.py dist/Myriad/Myriad.exe
+      - name: Portable zip and installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $v = "${{ steps.v.outputs.version }}"
+          Compress-Archive -Path dist\Myriad -DestinationPath "dist\Myriad-$v-windows-x64-portable.zip"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          $extra = @()
+          if ($env:WINDOWS_CERT_PFX) {
+            $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName
+            $extra = @("/DSignTool=1", "/Smyriad=`"$signtool`" sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f `"$env:RUNNER_TEMP\cert.pfx`" /p `"${{ secrets.WINDOWS_CERT_PASSWORD }}`" `$f")
+          }
+          & $iscc "/DAppVersion=$v" /DSourceDir=..\..\dist\Myriad /DOutputDir=..\..\dist @extra packaging\windows\myriad.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # ---------------------------------------------------------------- macOS
+      - name: Sign and notarize (only with a Developer ID)
+        if: runner.os == 'macOS' && env.MACOS_CERT_P12 != ''
+        run: |
+          KC="$RUNNER_TEMP/build.keychain"; PW="$(uuidgen)"
+          echo "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$PW" "$KC" && security unlock-keychain -p "$PW" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "${{ secrets.MACOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KC"
+          security list-keychains -d user -s "$KC"
+          codesign --force --deep --options runtime --timestamp -s "${{ secrets.MACOS_SIGN_IDENTITY }}" dist/Myriad.app
+          ditto -c -k --keepParent dist/Myriad.app "$RUNNER_TEMP/Myriad.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/Myriad.zip" --apple-id "${{ secrets.APPLE_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" --password "${{ secrets.APPLE_APP_PASSWORD }}" --wait
+          xcrun stapler staple dist/Myriad.app
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        run: python3 packaging/smoke_test.py dist/Myriad.app/Contents/MacOS/Myriad
+      - name: Disk image (macOS)
+        if: runner.os == 'macOS'
+        run: bash packaging/macos/build_dmg.sh "${{ steps.v.outputs.version }}" "${{ matrix.arch }}"
+
+      # ---------------------------------------------------------------- Linux
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: python3 packaging/smoke_test.py dist/Myriad/Myriad
+      - name: tar.gz, AppImage, .deb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$RUNNER_TEMP/appimagetool"
+          bash packaging/linux/build_linux.sh "${{ steps.v.outputs.version }}" "$RUNNER_TEMP/appimagetool"
+
+      - name: Checksums
+        run: |
+          cd dist
+          for f in Myriad-*.zip Myriad-Setup-*.exe Myriad-*.dmg Myriad-*.tar.gz Myriad-*.AppImage myriad_*.deb; do
+            [ -f "$f" ] && (sha256sum "$f" 2>/dev/null || shasum -a 256 "$f") >> "SHA256SUMS-${{ matrix.target }}.txt"
+          done
+          cat SHA256SUMS-*.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: myriad-${{ matrix.target }}
+          if-no-files-found: error
+          path: |
+            app/dist/Myriad-*.zip
+            app/dist/Myriad-Setup-*.exe
+            app/dist/Myriad-*.dmg
+            app/dist/Myriad-*.tar.gz
+            app/dist/Myriad-*.AppImage
+            app/dist/myriad_*.deb
+            app/dist/SHA256SUMS-*.txt
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts, merge-multiple: true }
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then TAG="v${{ inputs.version }}"; else TAG="$GITHUB_REF_NAME"; fi
+          cat artifacts/SHA256SUMS-*.txt > artifacts/SHA256SUMS.txt && rm artifacts/SHA256SUMS-*.txt
+          cat > notes.md <<EOF
+          Myriad ${TAG#v} — a myriad of small models, one answer.
+
+          Unsigned builds: on Windows, SmartScreen asks for confirmation ("More info" → "Run anyway");
+          on macOS, right-click the app → Open the first time (or System Settings → Privacy & Security →
+          "Open Anyway"). See the README. SHA-256 checksums: SHA256SUMS.txt.
+          EOF
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "Myriad ${TAG#v}" \
+            --notes-file notes.md artifacts/*

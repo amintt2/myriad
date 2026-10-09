@@ -1,0 +1,1748 @@
+{
+ "experiment": "E7",
+ "plan": "v11_failure",
+ "date": "2026-10-09 14:52:08",
+ "protocol_version": "essaim/1.1",
+ "tracker_defaults": {
+  "starter_credit": 1000.0,
+  "spot_rate": 0.05,
+  "receipt_grace_s": 60.0,
+  "max_inflight": 64,
+  "sweep_s": 0.25,
+  "job_ttl_s": 600.0,
+  "ping_s": 10.0,
+  "ping_timeout_s": 5.0,
+  "suspend_base_s": 10.0,
+  "suspend_max_s": 300.0,
+  "timeout_strikes": 2,
+  "strike_min_deadline_s": 10.0,
+  "peers_snapshot_s": 3.0
+ },
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "fail_crash",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 1.0,
+    "req_workers": 1,
+    "gateways_per_worker": 6
+   },
+   "setup_s": 9.3,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 4.700379999121651,
+    "peers_encode_ms": 6.129159999545664,
+    "peers_ms": 10.829539998667315,
+    "reliability_ms": 0.22806000197306275,
+    "peers_cpu_ms": 9.375,
+    "batch_cpu_s": 0.046875,
+    "snapshot_work_ms": 1.8784200015943497,
+    "snapshot_block_ms": 1.968600001418963,
+    "snapshot_bytes": 95306,
+    "select4_us": 9.50149999698624
+   },
+   "phases": [
+    {
+     "requests": 292,
+     "ok": 292,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9384,
+     "accuracy_all": 0.9384,
+     "latency_s": {
+      "p50": 4.545,
+      "p95": 8.001,
+      "p99": 9.478,
+      "mean": 4.956,
+      "max": 10.669
+     },
+     "peers_asked_mean": 4.024,
+     "peers_answered_mean": 3.017,
+     "peers_answered_hist": {
+      "2": 100,
+      "3": 87,
+      "4": 105
+     },
+     "early_stop_frac": 0.64,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 881,
+      "annulé": 287,
+      "erreur": 7
+     },
+     "peer_errors": {
+      "peer_disconnected": 7
+     },
+     "replacements_per_request": 0.024,
+     "requests_with_replacement": 0.017,
+     "routing": {
+      "tracker": 292
+     },
+     "health": {},
+     "suspended_end": 0,
+     "offered_rps": 2.433,
+     "goodput_rps": 2.342,
+     "drain_s": 4.667,
+     "tracker": {
+      "cpu_s": 4.406,
+      "wall_s": 125.76,
+      "cpu_util": 0.035,
+      "frames_in": 5912,
+      "frames_out": 6155,
+      "frames_in_by_type": {
+       "cancel": 287,
+       "job": 1175,
+       "pong": 2570,
+       "receipt": 891,
+       "result": 941,
+       "status": 48
+      },
+      "frames_per_request": 41.33,
+      "cpu_us_per_frame": 365.1,
+      "cpu_ms_per_request": 15.09,
+      "http_calls": {
+       "/v1/health": 6,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 61
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 4539,
+       "p50": 10.554,
+       "p99": 14.768,
+       "max": 49.571
+      },
+      "jobs_retained": 1228,
+      "conns": 198
+     },
+     "node_workers_cpu_util": 0.014,
+     "requester_workers_cpu_util": 0.011,
+     "phase": {
+      "rate": 2.5,
+      "duration": 120,
+      "early_stop": true,
+      "timeout_s": 30.0,
+      "kill": {
+       "at_s": 40.0,
+       "mode": "crash",
+       "frac": 0.25
+      }
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 5.2,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 7.3,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 9.5,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 11.6,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 13.7,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 15.8,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 17.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 20.0,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 22.0,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 24.1,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 26.2,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 28.3,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 30.4,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 32.4,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 34.5,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 36.6,
+       "util": 0.12,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 38.7,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 40.8,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 42.9,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 45.0,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 47.1,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 49.2,
+       "util": 0.03,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 51.3,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 53.4,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 55.4,
+       "util": 0.06,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 57.5,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 59.6,
+       "util": 0.06,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 61.7,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 63.8,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 65.9,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 68.0,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 70.1,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 72.1,
+       "util": 0.03,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 74.2,
+       "util": 0.06,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 76.3,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 78.3,
+       "util": 0.04,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 80.4,
+       "util": 0.04,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 82.5,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 84.6,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 86.7,
+       "util": 0.02,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 88.8,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 90.9,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 92.9,
+       "util": 0.03,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 95.1,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 97.1,
+       "util": 0.04,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 99.2,
+       "util": 0.03,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 101.3,
+       "util": 0.04,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 103.4,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 105.5,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 107.6,
+       "util": 0.04,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 109.7,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 111.8,
+       "util": 0.03,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 113.9,
+       "util": 0.05,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 116.0,
+       "util": 0.06,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 118.1,
+       "util": 0.08,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 120.3,
+       "util": 0.06,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 122.4,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      },
+      {
+       "t": 124.5,
+       "util": 0.01,
+       "serving": 192,
+       "suspended": 0
+      }
+     ],
+     "killed": [
+      {
+       "killed": 64,
+       "mode": "crash"
+      }
+     ],
+     "windows": {
+      "before": {
+       "requests": 87,
+       "ok": 87,
+       "accuracy_all": 0.908,
+       "p50": 4.596,
+       "p95": 8.2,
+       "max": 9.729,
+       "peers_answered_mean": 3.092,
+       "peer_errors": {
+        "peer_disconnected": 7
+       },
+       "fail_codes": {}
+      },
+      "during_10s": {
+       "requests": 16,
+       "ok": 16,
+       "accuracy_all": 1.0,
+       "p50": 4.462,
+       "p95": 7.889,
+       "max": 8.107,
+       "peers_answered_mean": 3,
+       "peer_errors": {},
+       "fail_codes": {}
+      },
+      "after": {
+       "requests": 189,
+       "ok": 189,
+       "accuracy_all": 0.9471,
+       "p50": 4.552,
+       "p95": 7.833,
+       "max": 10.669,
+       "peers_answered_mean": 2.984,
+       "peer_errors": {},
+       "fail_codes": {}
+      }
+     }
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 142.5
+  },
+  {
+   "scenario": {
+    "name": "fail_hang",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 1.0,
+    "req_workers": 1,
+    "gateways_per_worker": 6
+   },
+   "setup_s": 9.6,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 4.648620000807568,
+    "peers_encode_ms": 6.154179997975007,
+    "peers_ms": 10.802799998782575,
+    "reliability_ms": 0.22948000114411116,
+    "peers_cpu_ms": 9.375,
+    "batch_cpu_s": 0.046875,
+    "snapshot_work_ms": 1.8952799960970879,
+    "snapshot_block_ms": 2.0932999905198812,
+    "snapshot_bytes": 95306,
+    "select4_us": 9.46220000332687
+   },
+   "phases": [
+    {
+     "requests": 292,
+     "ok": 292,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9281,
+     "accuracy_all": 0.9281,
+     "latency_s": {
+      "p50": 4.758,
+      "p95": 8.89,
+      "p99": 30.134,
+      "mean": 5.7,
+      "max": 30.146
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.027,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 94,
+      "3": 93,
+      "4": 104
+     },
+     "early_stop_frac": 0.62,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 884,
+      "annulé": 272,
+      "erreur": 12
+     },
+     "peer_errors": {
+      "deadline": 12
+     },
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 292
+     },
+     "health": {
+      "engine_down": 250,
+      "suspend_engine_down": 250,
+      "strike_timeout": 13
+     },
+     "suspended_end": 64,
+     "offered_rps": 2.433,
+     "goodput_rps": 2.292,
+     "drain_s": 7.384,
+     "tracker": {
+      "cpu_s": 4.172,
+      "wall_s": 128.522,
+      "cpu_util": 0.032,
+      "frames_in": 6301,
+      "frames_out": 6455,
+      "frames_in_by_type": {
+       "cancel": 272,
+       "job": 1168,
+       "job_error": 13,
+       "pong": 2895,
+       "receipt": 901,
+       "result": 940,
+       "status": 112
+      },
+      "frames_per_request": 43.68,
+      "cpu_us_per_frame": 327.1,
+      "cpu_ms_per_request": 14.29,
+      "http_calls": {
+       "/v1/health": 6,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 62
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 4653,
+       "p50": 10.526,
+       "p99": 13.829,
+       "max": 33.356
+      },
+      "jobs_retained": 1208,
+      "conns": 262
+     },
+     "node_workers_cpu_util": 0.013,
+     "requester_workers_cpu_util": 0.011,
+     "phase": {
+      "rate": 2.5,
+      "duration": 120,
+      "early_stop": true,
+      "timeout_s": 30.0,
+      "kill": {
+       "at_s": 40.0,
+       "mode": "hang",
+       "frac": 0.25
+      }
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 5.2,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 7.3,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 9.4,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 11.5,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 13.6,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 15.7,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 17.7,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 19.8,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 21.9,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 24.0,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 26.1,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 28.2,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 30.3,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 32.4,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 34.5,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 36.6,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 38.7,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 40.8,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 42.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 45.0,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 47.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 11
+      },
+      {
+       "t": 49.1,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 37
+      },
+      {
+       "t": 51.2,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 63
+      },
+      {
+       "t": 53.3,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 55.4,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 57.5,
+       "util": 0.08,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 59.6,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 61.7,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 63.7,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 65.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 67.9,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 70.0,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 72.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 74.2,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 76.3,
+       "util": 0.07,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 78.4,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 80.5,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 82.6,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 84.7,
+       "util": 0.07,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 86.8,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 88.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 90.9,
+       "util": 0.0,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 93.0,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 95.1,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 97.3,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 99.3,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 101.4,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 103.5,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 105.6,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 107.7,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 109.8,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 111.8,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 113.9,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 116.0,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 118.2,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 120.3,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 122.4,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 124.4,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 64
+      },
+      {
+       "t": 126.5,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 64
+      }
+     ],
+     "killed": [
+      {
+       "killed": 64,
+       "mode": "hang"
+      }
+     ],
+     "windows": {
+      "before": {
+       "requests": 87,
+       "ok": 87,
+       "accuracy_all": 0.908,
+       "p50": 4.918,
+       "p95": 8.749,
+       "max": 10.639,
+       "peers_answered_mean": 3.126,
+       "peer_errors": {},
+       "fail_codes": {}
+      },
+      "during_10s": {
+       "requests": 16,
+       "ok": 16,
+       "accuracy_all": 0.8125,
+       "p50": 7.291,
+       "p95": 30.138,
+       "max": 30.146,
+       "peers_answered_mean": 2.562,
+       "peer_errors": {
+        "deadline": 11
+       },
+       "fail_codes": {}
+      },
+      "after": {
+       "requests": 189,
+       "ok": 189,
+       "accuracy_all": 0.9471,
+       "p50": 4.672,
+       "p95": 8.084,
+       "max": 30.142,
+       "peers_answered_mean": 3.021,
+       "peer_errors": {
+        "deadline": 1
+       },
+       "fail_codes": {}
+      }
+     }
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 145.6
+  },
+  {
+   "scenario": {
+    "name": "fail_hang_engine",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 1.0,
+    "req_workers": 1,
+    "gateways_per_worker": 6
+   },
+   "setup_s": 9.1,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 4.955459997290745,
+    "peers_encode_ms": 6.155900005251169,
+    "peers_ms": 11.111360002541915,
+    "reliability_ms": 0.2355199947487563,
+    "peers_cpu_ms": 9.375,
+    "batch_cpu_s": 0.046875,
+    "snapshot_work_ms": 1.8619999988004565,
+    "snapshot_block_ms": 1.9091999856755137,
+    "snapshot_bytes": 95306,
+    "select4_us": 9.297249998780899
+   },
+   "phases": [
+    {
+     "requests": 292,
+     "ok": 292,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8836,
+     "accuracy_all": 0.8836,
+     "latency_s": {
+      "p50": 5.137,
+      "p95": 30.135,
+      "p99": 30.158,
+      "mean": 8.277,
+      "max": 30.185
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.89,
+     "peers_answered_hist": {
+      "1": 5,
+      "2": 97,
+      "3": 115,
+      "4": 75
+     },
+     "early_stop_frac": 0.634,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 844,
+      "annulé": 272,
+      "erreur": 52
+     },
+     "peer_errors": {
+      "deadline": 52
+     },
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 292
+     },
+     "health": {
+      "strike_timeout": 68,
+      "suspend_timeout": 10,
+      "readmitted": 5
+     },
+     "suspended_end": 5,
+     "offered_rps": 2.433,
+     "goodput_rps": 1.971,
+     "drain_s": 28.136,
+     "tracker": {
+      "cpu_s": 4.688,
+      "wall_s": 149.214,
+      "cpu_util": 0.031,
+      "frames_in": 7037,
+      "frames_out": 7281,
+      "frames_in_by_type": {
+       "cancel": 272,
+       "job": 1168,
+       "job_error": 69,
+       "pong": 3708,
+       "receipt": 859,
+       "result": 907,
+       "status": 54
+      },
+      "frames_per_request": 49.03,
+      "cpu_us_per_frame": 327.4,
+      "cpu_ms_per_request": 16.05,
+      "http_calls": {
+       "/v1/health": 6,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 72
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 5277,
+       "p50": 10.751,
+       "p99": 14.119,
+       "max": 26.003
+      },
+      "jobs_retained": 1229,
+      "conns": 262
+     },
+     "node_workers_cpu_util": 0.014,
+     "requester_workers_cpu_util": 0.009,
+     "phase": {
+      "rate": 2.5,
+      "duration": 120,
+      "early_stop": true,
+      "timeout_s": 30.0,
+      "kill": {
+       "at_s": 40.0,
+       "mode": "hang_engine",
+       "frac": 0.25
+      }
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 5.2,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 7.3,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 9.4,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 11.5,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 13.6,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 15.7,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 17.8,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 19.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 22.0,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 24.1,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 26.1,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 28.2,
+       "util": 0.08,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 30.3,
+       "util": 0.0,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 32.4,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 34.5,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 36.5,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 38.6,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 40.7,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 42.8,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 44.9,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 47.0,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 49.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 51.2,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 53.2,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 55.3,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 57.4,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 59.5,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 61.6,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 63.6,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 65.7,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 67.8,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 69.9,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 72.0,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 74.1,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 76.2,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 78.3,
+       "util": 0.08,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 80.3,
+       "util": 0.09,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 82.4,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 84.5,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 86.6,
+       "util": 0.07,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 88.7,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 90.8,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 92.9,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 95.0,
+       "util": 0.0,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 97.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 99.1,
+       "util": 0.07,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 101.2,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 103.4,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 105.4,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 107.5,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 109.6,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 111.7,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 113.8,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 115.8,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 118.0,
+       "util": 0.06,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 120.0,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 122.1,
+       "util": 0.02,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 124.2,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 126.3,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 128.4,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 130.4,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 1
+      },
+      {
+       "t": 132.5,
+       "util": 0.03,
+       "serving": 256,
+       "suspended": 3
+      },
+      {
+       "t": 134.6,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 4
+      },
+      {
+       "t": 136.7,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 4
+      },
+      {
+       "t": 138.8,
+       "util": 0.0,
+       "serving": 256,
+       "suspended": 3
+      },
+      {
+       "t": 140.9,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 3
+      },
+      {
+       "t": 143.0,
+       "util": 0.01,
+       "serving": 256,
+       "suspended": 3
+      },
+      {
+       "t": 145.1,
+       "util": 0.0,
+       "serving": 256,
+       "suspended": 3
+      },
+      {
+       "t": 147.2,
+       "util": 0.04,
+       "serving": 256,
+       "suspended": 3
+      }
+     ],
+     "killed": [
+      {
+       "killed": 64,
+       "mode": "hang_engine"
+      }
+     ],
+     "windows": {
+      "before": {
+       "requests": 87,
+       "ok": 87,
+       "accuracy_all": 0.9195,
+       "p50": 4.743,
+       "p95": 7.674,
+       "max": 8.579,
+       "peers_answered_mean": 3.069,
+       "peer_errors": {},
+       "fail_codes": {}
+      },
+      "during_10s": {
+       "requests": 16,
+       "ok": 16,
+       "accuracy_all": 0.9375,
+       "p50": 4.845,
+       "p95": 30.15,
+       "max": 30.15,
+       "peers_answered_mean": 2.812,
+       "peer_errors": {
+        "deadline": 8
+       },
+       "fail_codes": {}
+      },
+      "after": {
+       "requests": 189,
+       "ok": 189,
+       "accuracy_all": 0.8624,
+       "p50": 5.43,
+       "p95": 30.139,
+       "max": 30.185,
+       "peers_answered_mean": 2.815,
+       "peer_errors": {
+        "deadline": 44
+       },
+       "fail_codes": {}
+      }
+     }
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 165.9
+  }
+ ]
+}

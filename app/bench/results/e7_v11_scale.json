@@ -1,0 +1,769 @@
+{
+ "experiment": "E7",
+ "plan": "v11_scale",
+ "date": "2026-10-09 14:12:50",
+ "protocol_version": "essaim/1.1",
+ "tracker_defaults": {
+  "starter_credit": 1000.0,
+  "spot_rate": 0.05,
+  "receipt_grace_s": 60.0,
+  "max_inflight": 64,
+  "sweep_s": 0.25,
+  "job_ttl_s": 600.0,
+  "ping_s": 10.0,
+  "ping_timeout_s": 5.0,
+  "suspend_base_s": 10.0,
+  "suspend_max_s": 300.0,
+  "timeout_strikes": 2,
+  "strike_min_deadline_s": 10.0,
+  "peers_snapshot_s": 3.0
+ },
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "scale_n64_rtt100",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 8.6,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 1.209440000820905,
+    "peers_encode_ms": 1.5561999985948205,
+    "peers_ms": 2.7656399994157255,
+    "reliability_ms": 0.20247999927960336,
+    "peers_cpu_ms": 3.125,
+    "batch_cpu_s": 0.015625,
+    "snapshot_work_ms": 0.5253200011793524,
+    "snapshot_block_ms": 0.7939000206533819,
+    "snapshot_bytes": 23834,
+    "select4_us": 9.09710000269115
+   },
+   "phases": [
+    {
+     "requests": 179,
+     "ok": 179,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9385,
+     "accuracy_all": 0.9385,
+     "latency_s": {
+      "p50": 0.685,
+      "p95": 0.938,
+      "p99": 1.124,
+      "mean": 0.701,
+      "max": 1.192
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.989,
+     "peers_answered_hist": {
+      "2": 63,
+      "3": 55,
+      "4": 61
+     },
+     "early_stop_frac": 0.659,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 535,
+      "annulé": 181
+     },
+     "peer_errors": {},
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 179
+     },
+     "health": {},
+     "suspended_end": 0,
+     "offered_rps": 8.95,
+     "goodput_rps": 8.779,
+     "drain_s": 0.389,
+     "tracker": {
+      "cpu_s": 1.75,
+      "wall_s": 21.528,
+      "cpu_util": 0.081,
+      "frames_in": 2349,
+      "frames_out": 2349,
+      "frames_in_by_type": {
+       "cancel": 181,
+       "job": 716,
+       "pong": 128,
+       "receipt": 638,
+       "result": 678,
+       "status": 8
+      },
+      "frames_per_request": 26.25,
+      "cpu_us_per_frame": 372.5,
+      "cpu_ms_per_request": 9.78,
+      "http_calls": {
+       "/v1/health": 8,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 817,
+       "p50": 10.483,
+       "p99": 20.973,
+       "max": 26.037
+      },
+      "jobs_retained": 750,
+      "conns": 72
+     },
+     "node_workers_cpu_util": 0.027,
+     "requester_workers_cpu_util": 0.051,
+     "phase": {
+      "rate": 9.6,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.02,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 5.3,
+       "util": 0.07,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 7.4,
+       "util": 0.08,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 9.5,
+       "util": 0.09,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 11.7,
+       "util": 0.09,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 13.8,
+       "util": 0.04,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 15.9,
+       "util": 0.18,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 18.1,
+       "util": 0.09,
+       "serving": 64,
+       "suspended": 0
+      },
+      {
+       "t": 20.2,
+       "util": 0.17,
+       "serving": 64,
+       "suspended": 0
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 37.7
+  },
+  {
+   "scenario": {
+    "name": "scale_n256_rtt100",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 9.3,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 8.04952000034973,
+    "peers_encode_ms": 6.086339999455959,
+    "peers_ms": 14.135859999805689,
+    "reliability_ms": 0.22671999759040773,
+    "peers_cpu_ms": 15.625,
+    "batch_cpu_s": 0.078125,
+    "snapshot_work_ms": 1.7424000019673258,
+    "snapshot_block_ms": 1.8171000119764358,
+    "snapshot_bytes": 95306,
+    "select4_us": 9.242550004273653
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9425,
+     "accuracy_all": 0.9425,
+     "latency_s": {
+      "p50": 0.674,
+      "p95": 1.03,
+      "p99": 1.362,
+      "mean": 0.713,
+      "max": 1.965
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.018,
+     "peers_answered_hist": {
+      "2": 74,
+      "3": 74,
+      "4": 78
+     },
+     "early_stop_frac": 0.655,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 682,
+      "annulé": 222
+     },
+     "peer_errors": {},
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 226
+     },
+     "health": {},
+     "suspended_end": 0,
+     "offered_rps": 11.3,
+     "goodput_rps": 10.924,
+     "drain_s": 0.689,
+     "tracker": {
+      "cpu_s": 2.891,
+      "wall_s": 21.813,
+      "cpu_util": 0.133,
+      "frames_in": 3348,
+      "frames_out": 3325,
+      "frames_in_by_type": {
+       "cancel": 222,
+       "job": 904,
+       "pong": 512,
+       "receipt": 828,
+       "result": 874,
+       "status": 8
+      },
+      "frames_per_request": 29.53,
+      "cpu_us_per_frame": 433.2,
+      "cpu_ms_per_request": 12.79,
+      "http_calls": {
+       "/v1/health": 8,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 859,
+       "p50": 10.243,
+       "p99": 21.706,
+       "max": 28.736
+      },
+      "jobs_retained": 946,
+      "conns": 264
+     },
+     "node_workers_cpu_util": 0.064,
+     "requester_workers_cpu_util": 0.068,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.13,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 5.3,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 7.5,
+       "util": 0.18,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 9.7,
+       "util": 0.13,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 11.8,
+       "util": 0.1,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 14.0,
+       "util": 0.17,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 16.1,
+       "util": 0.18,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 18.2,
+       "util": 0.19,
+       "serving": 256,
+       "suspended": 0
+      },
+      {
+       "t": 20.4,
+       "util": 0.05,
+       "serving": 256,
+       "suspended": 0
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 38.8
+  },
+  {
+   "scenario": {
+    "name": "scale_n1024_rtt100",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 12.4,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 19.861780002247542,
+    "peers_encode_ms": 25.045599997974932,
+    "peers_ms": 44.907380000222474,
+    "reliability_ms": 0.41994000202976167,
+    "peers_cpu_ms": 43.75,
+    "batch_cpu_s": 0.21875,
+    "snapshot_work_ms": 8.109680021880195,
+    "snapshot_block_ms": 2.25800002226606,
+    "snapshot_bytes": 381191,
+    "select4_us": 10.748950007837266
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9204,
+     "accuracy_all": 0.9204,
+     "latency_s": {
+      "p50": 0.692,
+      "p95": 1.004,
+      "p99": 1.207,
+      "mean": 0.718,
+      "max": 1.578
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.018,
+     "peers_answered_hist": {
+      "2": 73,
+      "3": 76,
+      "4": 77
+     },
+     "early_stop_frac": 0.659,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 682,
+      "annulé": 222
+     },
+     "peer_errors": {},
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 226
+     },
+     "health": {},
+     "suspended_end": 0,
+     "offered_rps": 11.3,
+     "goodput_rps": 10.816,
+     "drain_s": 0.895,
+     "tracker": {
+      "cpu_s": 2.703,
+      "wall_s": 22.05,
+      "cpu_util": 0.123,
+      "frames_in": 4901,
+      "frames_out": 4859,
+      "frames_in_by_type": {
+       "cancel": 222,
+       "job": 904,
+       "pong": 2049,
+       "receipt": 832,
+       "result": 886,
+       "status": 8
+      },
+      "frames_per_request": 43.19,
+      "cpu_us_per_frame": 277.0,
+      "cpu_ms_per_request": 11.96,
+      "http_calls": {
+       "/v1/health": 8,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 949,
+       "p50": 8.237,
+       "p99": 20.538,
+       "max": 102.062
+      },
+      "jobs_retained": 956,
+      "conns": 1032
+     },
+     "node_workers_cpu_util": 0.026,
+     "requester_workers_cpu_util": 0.053,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.11,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 5.4,
+       "util": 0.22,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 7.5,
+       "util": 0.12,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 9.7,
+       "util": 0.03,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 11.8,
+       "util": 0.04,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 14.0,
+       "util": 0.15,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 16.2,
+       "util": 0.2,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 18.3,
+       "util": 0.2,
+       "serving": 1024,
+       "suspended": 0
+      },
+      {
+       "t": 20.4,
+       "util": 0.13,
+       "serving": 1024,
+       "suspended": 0
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 43.2
+  },
+  {
+   "scenario": {
+    "name": "scale_n4096_rtt100",
+    "nodes": 4096,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 22.9,
+   "directory_cost": {
+    "peers": 4096,
+    "peers_view_ms": 82.71375999902375,
+    "peers_encode_ms": 100.03264000406489,
+    "peers_ms": 182.74640000308864,
+    "reliability_ms": 1.6550200001802295,
+    "peers_cpu_ms": 181.25,
+    "batch_cpu_s": 0.90625,
+    "snapshot_work_ms": 38.704319979297,
+    "snapshot_block_ms": 5.56790002156049,
+    "snapshot_bytes": 1527640,
+    "select4_us": 14.212850001058541
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9381,
+     "accuracy_all": 0.9381,
+     "latency_s": {
+      "p50": 0.69,
+      "p95": 0.989,
+      "p99": 1.22,
+      "mean": 0.708,
+      "max": 1.385
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.031,
+     "peers_answered_hist": {
+      "2": 76,
+      "3": 67,
+      "4": 83
+     },
+     "early_stop_frac": 0.633,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 685,
+      "annulé": 219
+     },
+     "peer_errors": {},
+     "replacements_per_request": 0,
+     "requests_with_replacement": 0,
+     "routing": {
+      "tracker": 226
+     },
+     "health": {},
+     "suspended_end": 0,
+     "offered_rps": 11.3,
+     "goodput_rps": 10.854,
+     "drain_s": 0.822,
+     "tracker": {
+      "cpu_s": 5.484,
+      "wall_s": 21.931,
+      "cpu_util": 0.25,
+      "frames_in": 11569,
+      "frames_out": 11548,
+      "frames_in_by_type": {
+       "cancel": 219,
+       "job": 904,
+       "pong": 8741,
+       "receipt": 825,
+       "result": 872,
+       "status": 8
+      },
+      "frames_per_request": 102.29,
+      "cpu_us_per_frame": 237.2,
+      "cpu_ms_per_request": 24.27,
+      "http_calls": {
+       "/v1/health": 8,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11
+      },
+      "http_peers_per_s": 0.0,
+      "loop_lag_ms": {
+       "n": 960,
+       "p50": 4.756,
+       "p99": 22.455,
+       "max": 261.83
+      },
+      "jobs_retained": 951,
+      "conns": 4104
+     },
+     "node_workers_cpu_util": 0.04,
+     "requester_workers_cpu_util": 0.065,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.3,
+       "util": 0.36,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 5.4,
+       "util": 0.34,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 7.6,
+       "util": 0.26,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 9.7,
+       "util": 0.23,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 11.8,
+       "util": 0.25,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 14.0,
+       "util": 0.26,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 16.2,
+       "util": 0.2,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 18.3,
+       "util": 0.21,
+       "serving": 4096,
+       "suspended": 0
+      },
+      {
+       "t": 20.5,
+       "util": 0.17,
+       "serving": 4096,
+       "suspended": 0
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 57.8
+  }
+ ]
+}

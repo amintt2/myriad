@@ -1,0 +1,245 @@
+{
+ "experiment": "E7",
+ "plan": "v11_dircost",
+ "date": "2026-10-09 14:11:53",
+ "protocol_version": "essaim/1.1",
+ "tracker_defaults": {
+  "starter_credit": 1000.0,
+  "spot_rate": 0.05,
+  "receipt_grace_s": 60.0,
+  "max_inflight": 64,
+  "sweep_s": 0.25,
+  "job_ttl_s": 600.0,
+  "ping_s": 10.0,
+  "ping_timeout_s": 5.0,
+  "suspend_base_s": 10.0,
+  "suspend_max_s": 300.0,
+  "timeout_strikes": 2,
+  "strike_min_deadline_s": 10.0,
+  "peers_snapshot_s": 3.0
+ },
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "dircost_n64",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 5.2,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 1.2796500013791956,
+    "peers_encode_ms": 1.6341749986167997,
+    "peers_ms": 2.9138249999959953,
+    "reliability_ms": 0.15011500072432682,
+    "peers_cpu_ms": 2.34375,
+    "batch_cpu_s": 0.046875,
+    "snapshot_work_ms": 0.46645499678561464,
+    "snapshot_block_ms": 0.7809000089764595,
+    "snapshot_bytes": 23834,
+    "select4_us": 9.41110000712797,
+    "http_peers_ms_p50": 1.2,
+    "http_peers_bytes": 23834
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 7.8
+  },
+  {
+   "scenario": {
+    "name": "dircost_n256",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 5.5,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 4.80978999985382,
+    "peers_encode_ms": 6.105839999509044,
+    "peers_ms": 10.915629999362864,
+    "reliability_ms": 0.15680500073358417,
+    "peers_cpu_ms": 10.9375,
+    "batch_cpu_s": 0.21875,
+    "snapshot_work_ms": 1.7729999992297962,
+    "snapshot_block_ms": 2.1089000219944865,
+    "snapshot_bytes": 95306,
+    "select4_us": 9.049950007465668,
+    "http_peers_ms_p50": 1.13,
+    "http_peers_bytes": 95306
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 7.9
+  },
+  {
+   "scenario": {
+    "name": "dircost_n1024",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 7.7,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 19.0219199997955,
+    "peers_encode_ms": 25.09245999972336,
+    "peers_ms": 44.11437999951886,
+    "reliability_ms": 0.29298000008566305,
+    "peers_cpu_ms": 43.75,
+    "batch_cpu_s": 0.875,
+    "snapshot_work_ms": 8.133175005787052,
+    "snapshot_block_ms": 2.438600000459701,
+    "snapshot_bytes": 381191,
+    "select4_us": 11.352649991749786,
+    "http_peers_ms_p50": 1.55,
+    "http_peers_bytes": 381191
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 11.8
+  },
+  {
+   "scenario": {
+    "name": "dircost_n4096",
+    "nodes": 4096,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 15.8,
+   "directory_cost": {
+    "peers": 4096,
+    "peers_view_ms": 77.12253999925451,
+    "peers_encode_ms": 103.03186000091955,
+    "peers_ms": 180.15440000017406,
+    "reliability_ms": 1.383654998790007,
+    "peers_cpu_ms": 180.46875,
+    "batch_cpu_s": 3.609375,
+    "snapshot_work_ms": 37.29554999154061,
+    "snapshot_block_ms": 14.04709997586906,
+    "snapshot_bytes": 1526776,
+    "select4_us": 13.319150006282143,
+    "http_peers_ms_p50": 4.1,
+    "http_peers_bytes": 1526776
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 26.0
+  }
+ ]
+}

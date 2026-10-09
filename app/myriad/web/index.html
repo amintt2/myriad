@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="myriad-token" content="__TOKEN__">
+<meta name="color-scheme" content="dark light">
+<title>Myriad</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Aller au contenu</a>
+<div class="shell">
+  <aside class="side" aria-label="Navigation">
+    <div class="brand">
+      <img src="/static/icon.svg" alt="" width="36" height="36">
+      <div>
+        <div class="brand-name">Myriad</div>
+        <div class="brand-tag" data-i18n="tagline">une myriade de petits modèles, une seule réponse</div>
+      </div>
+    </div>
+    <nav class="nav" role="tablist" aria-orientation="vertical">
+      <button class="nav-item active" role="tab" aria-selected="true" data-view="dashboard" id="tab-dashboard" aria-controls="view-dashboard">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="1.6"/><circle cx="19.5" cy="6" r="1.6"/><circle cx="4.5" cy="18" r="1.6"/><circle cx="19.5" cy="18" r="1.6"/><path d="M6 6.8 9.6 10.4M18 6.8l-3.6 3.6M6 17.2l3.6-3.6M18 17.2l-3.6-3.6"/></svg>
+        <span data-i18n="nav.dashboard">Tableau de bord</span>
+      </button>
+      <button class="nav-item" role="tab" aria-selected="false" data-view="chat" id="tab-chat" aria-controls="view-chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
+        <span data-i18n="nav.chat">Discussion</span>
+      </button>
+      <button class="nav-item" role="tab" aria-selected="false" data-view="peers" id="tab-peers" aria-controls="view-peers">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span data-i18n="nav.peers">Pairs</span>
+      </button>
+      <button class="nav-item" role="tab" aria-selected="false" data-view="about" id="tab-about" aria-controls="view-about">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+        <span data-i18n="nav.about">À propos</span>
+      </button>
+    </nav>
+    <div class="side-foot">
+      <div class="conn" id="conn" role="status" aria-live="polite"><span class="dot"></span><span id="conn-text">…</span></div>
+      <div class="toggles">
+        <div class="seg" role="group" aria-label="Langue / Language">
+          <button type="button" data-lang="fr" aria-pressed="true">FR</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button type="button" class="icon-btn" id="theme-btn" data-i18n-title="theme" title="Thème">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+        </button>
+      </div>
+      <div class="version">v__VERSION__</div>
+    </div>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <div class="banner" id="tracker-banner" role="alert" hidden>
+      <div class="banner-text">
+        <strong data-i18n="tracker.down_title">Traqueur injoignable.</strong>
+        <span id="tracker-down-text"></span>
+      </div>
+      <button type="button" class="btn small" id="tracker-change-btn" data-i18n="tracker.change">Changer de traqueur</button>
+      <form class="banner-form" id="tracker-form" hidden>
+        <label class="sr-only" for="tracker-url" data-i18n="wz.tracker">Traqueur</label>
+        <input type="url" id="tracker-url" spellcheck="false" required>
+        <button type="submit" class="btn primary small" data-i18n="save">Enregistrer</button>
+      </form>
+    </div>
+    <!-- ======================= DASHBOARD ======================= -->
+    <section class="view active" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+      <header class="view-head">
+        <div>
+          <h1 data-i18n="dash.title">Le réseau en direct</h1>
+          <p class="lead" data-i18n="dash.lead">Votre ordinateur, au centre, prête sa puissance ; les autres pairs répondent à vos questions.</p>
+        </div>
+        <button type="button" class="btn pause-btn" id="pause-btn" aria-pressed="false">
+          <span class="pause-ico" aria-hidden="true"></span><span id="pause-label" data-i18n="pause">Mettre en pause</span>
+        </button>
+      </header>
+
+      <div class="counters" id="counters">
+        <div class="stat"><div class="stat-k" data-i18n="stat.peers">Pairs en ligne</div><div class="stat-v" id="s-peers">–</div><div class="stat-s" id="s-peers-sub"></div></div>
+        <div class="stat"><div class="stat-k" data-i18n="stat.families">Familles de modèles</div><div class="stat-v" id="s-fam">–</div><div class="stat-s" id="s-fam-sub"></div></div>
+        <div class="stat"><div class="stat-k" data-i18n="stat.net_tps">Débit du réseau</div><div class="stat-v"><span id="s-ntps">–</span><small> tok/s</small></div><div class="stat-s" id="s-ntps-sub"></div></div>
+        <div class="stat"><div class="stat-k" data-i18n="stat.my_tps">Votre débit</div><div class="stat-v"><span id="s-mtps">–</span><small> tok/s</small></div><div class="stat-s" id="s-mtps-sub"></div></div>
+        <div class="stat accent"><div class="stat-k" data-i18n="stat.earned">Crédits gagnés</div><div class="stat-v" id="s-earned">–</div><div class="stat-s" id="s-balance"></div></div>
+        <div class="stat"><div class="stat-k" data-i18n="stat.spent">Crédits dépensés</div><div class="stat-v" id="s-spent">–</div><div class="stat-s" id="s-spent-sub"></div></div>
+      </div>
+
+      <div class="grid-main">
+        <div class="card viz-card">
+          <canvas id="netviz" role="img" aria-label="Carte du réseau"></canvas>
+          <div class="viz-legend" id="legend" aria-hidden="true"></div>
+          <div class="viz-tip" id="viz-tip" hidden></div>
+          <div class="viz-empty" id="viz-empty" hidden data-i18n="viz.empty">En attente des pairs…</div>
+        </div>
+
+        <div class="card node-card" id="node-card">
+          <div class="node-head">
+            <div class="node-badge" id="node-badge"><span class="pulse-dot"></span><span id="node-state">…</span></div>
+            <h2 data-i18n="node.title">Mon nœud</h2>
+          </div>
+          <div class="node-model" id="node-model">…</div>
+          <div class="node-sub" id="node-sub"></div>
+          <dl class="kv">
+            <dt data-i18n="node.gpu">Matériel</dt><dd id="node-gpu">…</dd>
+            <dt data-i18n="node.engine">Moteur</dt><dd id="node-engine">…</dd>
+            <dt data-i18n="node.jobs">Jobs</dt><dd id="node-jobs">…</dd>
+            <dt data-i18n="node.served">Servis</dt><dd id="node-served">…</dd>
+            <dt data-i18n="node.id">Identifiant</dt><dd class="mono" id="node-id">…</dd>
+            <dt data-i18n="node.api">API locale</dt><dd class="mono" id="node-api">…</dd>
+          </dl>
+          <p class="error" id="node-error" hidden></p>
+
+          <form class="resources" id="limits">
+            <h3 data-i18n="res.title">Ressources partagées</h3>
+            <label class="switch-row">
+              <span data-i18n="res.share">Partager avec le réseau</span>
+              <input type="checkbox" id="accepting" class="switch" role="switch">
+            </label>
+            <label class="slider-row">
+              <span><span data-i18n="res.parallel">Jobs simultanés</span> <output id="mp-out">1</output></span>
+              <input type="range" id="max-parallel" min="0" max="8" step="1" value="1">
+            </label>
+            <div class="sched-row">
+              <label class="switch-row">
+                <span data-i18n="res.schedule">Seulement certaines heures</span>
+                <input type="checkbox" id="sched-on" class="switch" role="switch">
+              </label>
+              <div class="hours" id="hours" hidden>
+                <label><span data-i18n="res.from">de</span> <select id="h-from"></select></label>
+                <label><span data-i18n="res.to">à</span> <select id="h-to"></select></label>
+              </div>
+            </div>
+            <div class="form-foot">
+              <button type="submit" class="btn primary" data-i18n="save">Enregistrer</button>
+              <span class="hint" id="limits-msg" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+          <button type="button" class="btn ghost small" id="change-model" data-i18n="node.change">Changer de modèle…</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="activity.title">Activité récente</h2>
+        <ul class="activity" id="recent"></ul>
+      </div>
+    </section>
+
+    <!-- ======================= CHAT ======================= -->
+    <section class="view" id="view-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+      <header class="view-head">
+        <div>
+          <h1 data-i18n="chat.title">Demander à l'essaim</h1>
+          <p class="lead" data-i18n="chat.lead">La question part en même temps vers plusieurs pairs de familles différentes ; leurs réponses sont fusionnées par un vote pondéré.</p>
+        </div>
+      </header>
+      <form class="card ask" id="chat">
+        <label for="question" class="sr-only" data-i18n="chat.question">Question</label>
+        <textarea id="question" rows="3" data-i18n-ph="chat.ph" placeholder="Posez une question à l'essaim…"></textarea>
+        <div class="ask-row">
+          <label class="slider-row compact">
+            <span><span data-i18n="chat.k">Pairs</span> <output id="k-out">4</output></span>
+            <input type="range" id="k" min="1" max="8" step="1" value="4">
+          </label>
+          <div class="seg" role="radiogroup" aria-label="Type" id="hint-seg">
+            <button type="button" role="radio" aria-checked="true" data-hint="" data-i18n="hint.auto">auto</button>
+            <button type="button" role="radio" aria-checked="false" data-hint="math" data-i18n="hint.math">calcul</button>
+            <button type="button" role="radio" aria-checked="false" data-hint="mc" data-i18n="hint.mc">QCM</button>
+            <button type="button" role="radio" aria-checked="false" data-hint="free" data-i18n="hint.free">texte</button>
+          </div>
+          <button type="submit" class="btn primary" id="send"><span data-i18n="chat.send">Envoyer</span> <kbd>Ctrl ↵</kbd></button>
+        </div>
+        <div class="examples" id="examples"></div>
+      </form>
+
+      <div class="chat-grid" id="chat-out" hidden>
+        <div class="card answer-card">
+          <div class="answer-head">
+            <h2 data-i18n="chat.answer">Réponse</h2>
+            <div class="badges" id="answer-badges"></div>
+          </div>
+          <div class="answer-text" id="answer-text" aria-live="polite"></div>
+          <p class="hint" id="answer-meta"></p>
+          <p class="error" id="chat-error" hidden></p>
+        </div>
+        <div class="card vote-card">
+          <h2 data-i18n="chat.vote">Le vote</h2>
+          <div class="vote" id="vote"></div>
+          <div class="cert" id="cert"></div>
+        </div>
+        <div class="card peers-card">
+          <h2><span data-i18n="chat.peers">Les pairs interrogés</span> <span class="hint" id="peers-count"></span></h2>
+          <ol class="swarm" id="swarm"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= PEERS ======================= -->
+    <section class="view" id="view-peers" role="tabpanel" aria-labelledby="tab-peers" hidden>
+      <header class="view-head">
+        <div>
+          <h1 data-i18n="peers.title">Les pairs du réseau</h1>
+          <p class="lead" data-i18n="peers.lead">Chaque pair sert un petit modèle ouvert. La fiabilité vient des mesures et de l'accord avec les votes.</p>
+        </div>
+      </header>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th data-i18n="peers.node">Nœud</th><th data-i18n="peers.model">Modèle</th><th data-i18n="peers.family">Famille</th>
+              <th class="num" data-i18n="peers.rel">Fiabilité</th><th class="num" data-i18n="peers.rep">Réputation</th>
+              <th class="num" data-i18n="peers.load">Charge</th><th data-i18n="peers.state">État</th>
+            </tr></thead>
+            <tbody id="peers"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= ABOUT ======================= -->
+    <section class="view" id="view-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+      <header class="view-head"><div><h1 data-i18n="about.title">L'idée</h1></div></header>
+      <div class="card about">
+        <ol class="three">
+          <li><span class="n">1</span><p data-i18n="about.l1">Chaque ordinateur fait tourner un petit modèle ouvert et en prête la puissance au réseau.</p></li>
+          <li><span class="n">2</span><p data-i18n="about.l2">Votre question part en même temps vers plusieurs pairs de familles différentes (Qwen, Gemma, Granite, SmolLM…).</p></li>
+          <li><span class="n">3</span><p data-i18n="about.l3">Leurs réponses sont fusionnées par un vote pondéré : quatre petits modèles atteignent la précision d'un plus gros.</p></li>
+        </ol>
+        <p class="about-links">
+          <a id="research-link" href="#" target="_blank" rel="noopener" data-i18n="about.research">Lire la recherche</a>
+          <span class="sep">·</span><span data-i18n="about.licence">Logiciel libre, licence Apache-2.0</span>
+        </p>
+        <div class="api-box">
+          <h3 data-i18n="about.api">Votre API locale, compatible OpenAI</h3>
+          <pre class="mono" id="api-snippet"></pre>
+        </div>
+        <p class="hint" data-i18n="about.privacy">Les questions ne sont pas chiffrées de bout en bout : n'envoyez rien de confidentiel.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ======================= WIZARD ======================= -->
+<div class="wizard" id="wizard" hidden role="dialog" aria-modal="true" aria-labelledby="wz-title">
+  <div class="wz-backdrop"></div>
+  <div class="wz-panel">
+    <div class="wz-top">
+      <img src="/static/icon.svg" alt="" width="40" height="40">
+      <ol class="wz-steps" id="wz-steps" aria-label="Étapes">
+        <li data-step="0" data-i18n="wz.s0">Bienvenue</li>
+        <li data-step="1" data-i18n="wz.s1">Matériel</li>
+        <li data-step="2" data-i18n="wz.s2">Modèle</li>
+        <li data-step="3" data-i18n="wz.s3">Partage</li>
+        <li data-step="4" data-i18n="wz.s4">Installation</li>
+      </ol>
+      <div class="seg wz-lang" role="group" aria-label="Langue / Language">
+        <button type="button" data-lang="fr" aria-pressed="true">FR</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+
+    <div class="wz-body">
+      <section class="wz-page" data-page="0">
+        <canvas class="wz-hero" id="wz-hero" aria-hidden="true"></canvas>
+        <h2 id="wz-title" data-i18n="wz.welcome">Bienvenue dans Myriad</h2>
+        <p class="wz-lead" data-i18n="wz.welcome_lead">Une myriade de petits modèles, une seule réponse. Prêtez la puissance de votre ordinateur au réseau, et interrogez en échange l'intelligence de tous.</p>
+        <ul class="wz-points">
+          <li data-i18n="wz.p1">Un petit modèle ouvert tourne sur votre machine, quand vous le voulez.</li>
+          <li data-i18n="wz.p2">Vos questions sont confiées à plusieurs familles de modèles, puis fusionnées.</li>
+          <li data-i18n="wz.p3">Servir rapporte des crédits ; interroger en coûte.</li>
+        </ul>
+      </section>
+
+      <section class="wz-page" data-page="1" hidden>
+        <h2 data-i18n="wz.hw_title">Votre machine</h2>
+        <p class="wz-lead" data-i18n="wz.hw_lead">Détectée automatiquement, pour choisir un modèle adapté.</p>
+        <div class="hw-grid" id="hw-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+        <button type="button" class="btn ghost small" id="hw-refresh" data-i18n="wz.redetect">Détecter à nouveau</button>
+      </section>
+
+      <section class="wz-page" data-page="2" hidden>
+        <h2 data-i18n="wz.model_title">Choisissez votre modèle</h2>
+        <p class="wz-lead" data-i18n="wz.model_lead">Tous sont ouverts (Apache-2.0 ou MIT). Le débit est une estimation : bande passante mémoire ÷ taille du modèle.</p>
+        <div class="quant-row">
+          <div class="seg" role="radiogroup" aria-label="Quantification" id="quant-seg">
+            <button type="button" role="radio" aria-checked="true" data-quant="Q4_K_M">Q4_K_M <small data-i18n="wz.q4">rapide</small></button>
+            <button type="button" role="radio" aria-checked="false" data-quant="Q8_0">Q8_0 <small data-i18n="wz.q8">précis</small></button>
+          </div>
+          <label class="switch-row inline"><span data-i18n="wz.client_only">Client seulement (sans modèle)</span><input type="checkbox" id="client-only" class="switch" role="switch"></label>
+        </div>
+        <div class="models" id="models" role="radiogroup" aria-label="Modèles"></div>
+      </section>
+
+      <section class="wz-page" data-page="3" hidden>
+        <h2 data-i18n="wz.share_title">Ce que vous partagez</h2>
+        <p class="wz-lead" data-i18n="wz.share_lead">Modifiable à tout moment depuis le tableau de bord.</p>
+        <div class="share-form">
+          <label class="switch-row"><span data-i18n="res.share">Partager avec le réseau</span><input type="checkbox" id="wz-accepting" class="switch" role="switch" checked></label>
+          <label class="slider-row"><span><span data-i18n="res.parallel">Jobs simultanés</span> <output id="wz-mp-out">1</output></span><input type="range" id="wz-mp" min="1" max="8" step="1" value="1"></label>
+          <label class="switch-row"><span data-i18n="res.schedule">Seulement certaines heures</span><input type="checkbox" id="wz-sched" class="switch" role="switch"></label>
+          <div class="hours" id="wz-hours" hidden>
+            <label><span data-i18n="res.from">de</span> <select id="wz-from"></select></label>
+            <label><span data-i18n="res.to">à</span> <select id="wz-to"></select></label>
+          </div>
+          <details class="adv">
+            <summary data-i18n="wz.advanced">Réglages avancés</summary>
+            <label class="field"><span data-i18n="wz.tracker">Traqueur</span><input type="url" id="wz-tracker" spellcheck="false"></label>
+            <label class="field"><span data-i18n="wz.backend">Moteur llama.cpp</span><select id="wz-backend"></select></label>
+          </details>
+        </div>
+      </section>
+
+      <section class="wz-page" data-page="4" hidden>
+        <h2 data-i18n="wz.install_title">Installation</h2>
+        <p class="wz-lead" id="wz-install-lead" data-i18n="wz.install_lead">Téléchargement du moteur et du modèle. Vous pouvez fermer la fenêtre : le téléchargement reprendra là où il s'est arrêté.</p>
+        <div class="dl-list" id="dl-list"></div>
+        <p class="error" id="wz-error" hidden></p>
+        <div class="wz-done" id="wz-done" hidden>
+          <div class="done-mark" aria-hidden="true"></div>
+          <p data-i18n="wz.done">Votre nœud démarre. Bienvenue dans le réseau !</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="wz-foot">
+      <button type="button" class="btn ghost" id="wz-back" data-i18n="back">Retour</button>
+      <span class="wz-summary" id="wz-summary"></span>
+      <button type="button" class="btn ghost" id="wz-close" hidden data-i18n="close">Fermer</button>
+      <button type="button" class="btn primary" id="wz-next" data-i18n="next">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="/static/i18n.js"></script>
+<script src="/static/netviz.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

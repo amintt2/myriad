@@ -1,0 +1,35 @@
+{
+  "model": "HuggingFaceTB/SmolLM3-3B",
+  "revision": "a07cc9a04f16550a088caea529712d1d335b0ac1",
+  "backend": "llama.cpp",
+  "gguf": "SmolLM3-Q8_0.gguf",
+  "device": "gpu, all layers offloaded (-ngl 999)",
+  "dtype": "per GGUF file (see weights)",
+  "engine": {
+    "llama-server": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+    "transformers (tokenizer)": "5.19.0"
+  },
+  "weights": {
+    "name": "SmolLM3-Q8_0.gguf",
+    "size": 3275574624,
+    "sha256": "8aa8cc74656137174a1988d993b00828e65a86fd68773412b632a75aa1373248"
+  },
+  "data": {
+    "arc": {
+      "dataset": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+    },
+    "mmlupro": {
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+    }
+  },
+  "split": "test",
+  "n": 300,
+  "runs": 5,
+  "repetition": "balanced option order (balanced_perm)",
+  "prompt": "mc-v3",
+  "template_date": "2026-10-08"
+}

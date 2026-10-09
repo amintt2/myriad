@@ -1,0 +1,37 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+  "backend": "llama.cpp",
+  "gguf": "Qwen3-1.7B-Q8_0.gguf",
+  "device": "gpu, all layers offloaded (-ngl 999)",
+  "dtype": "per GGUF file (see weights)",
+  "engine": {
+    "llama-server": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+    "transformers (tokenizer)": "5.19.0"
+  },
+  "weights": {
+    "name": "Qwen3-1.7B-Q8_0.gguf",
+    "size": 1834426016,
+    "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a"
+  },
+  "data": {
+    "arc": {
+      "dataset": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+    },
+    "mmlupro": {
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+    }
+  },
+  "split": "dev",
+  "n": 100,
+  "runs": 3,
+  "budget": 768,
+  "temperature": 0.6,
+  "repetition": "sampling seed (original option order)",
+  "prompt": "mc-v3+think",
+  "template_date": "2026-10-08"
+}

@@ -1,0 +1,23 @@
+{
+  "source": "phase0/results/gen_summary_essaim4_colab_test.json : exactitude GSM8K (jeu test, 200 questions, réponse seule, 320 jetons au plus)",
+  "default": 0.6,
+  "prior_strength": 50,
+  "same_wrong_answer": {
+    "_doc": "c = probabilité que deux pairs qui se trompent donnent la MÊME mauvaise réponse ; poids = logit(p) - ln(c) ; QCM à K options : 1/(K-1)",
+    "math": 0.05,
+    "free": 1.0
+  },
+  "families": {
+    "qwen": 0.535,
+    "granite": 0.495,
+    "smollm": 0.865,
+    "gemma": 0.74
+  },
+  "models": {
+    "qwen3-1.7b": {"family": "qwen", "params_b": 1.7, "accuracy": 0.535},
+    "granite-3.3-2b-instruct": {"family": "granite", "params_b": 2.5, "accuracy": 0.495},
+    "smollm3-3b": {"family": "smollm", "params_b": 3.1, "accuracy": 0.865},
+    "gemma-4-e2b-it": {"family": "gemma", "params_b": 2.0, "accuracy": 0.74},
+    "qwen3-4b": {"family": "qwen", "params_b": 4.0, "accuracy": 0.91}
+  }
+}

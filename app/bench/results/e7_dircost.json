@@ -1,0 +1,243 @@
+{
+ "experiment": "E7",
+ "plan": "dircost",
+ "date": "2026-10-09 13:25:38",
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "dircost_n4",
+    "nodes": 4,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 5.0,
+   "directory_cost": {
+    "peers": 4,
+    "peers_view_ms": 0.07658499962417409,
+    "peers_encode_ms": 0.10019000037573278,
+    "peers_ms": 0.17677499999990687,
+    "reliability_ms": 0.13381500029936433,
+    "peers_cpu_ms": 0.78125,
+    "batch_cpu_s": 0.015625,
+    "http_peers_ms_p50": 1.36,
+    "http_peers_bytes": 1316
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 7.5
+  },
+  {
+   "scenario": {
+    "name": "dircost_n16",
+    "nodes": 16,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 4.9,
+   "directory_cost": {
+    "peers": 16,
+    "peers_view_ms": 0.28480500041041523,
+    "peers_encode_ms": 0.380849999783095,
+    "peers_ms": 0.6656550001935102,
+    "reliability_ms": 0.13059500051895157,
+    "peers_cpu_ms": 0.78125,
+    "batch_cpu_s": 0.015625,
+    "http_peers_ms_p50": 1.88,
+    "http_peers_bytes": 5231
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 7.0
+  },
+  {
+   "scenario": {
+    "name": "dircost_n64",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 5.0,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 1.1186350006028078,
+    "peers_encode_ms": 1.4991299991379492,
+    "peers_ms": 2.617764999740757,
+    "reliability_ms": 0.13668500032508746,
+    "peers_cpu_ms": 2.34375,
+    "batch_cpu_s": 0.046875,
+    "http_peers_ms_p50": 4.17,
+    "http_peers_bytes": 20891
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 7.1
+  },
+  {
+   "scenario": {
+    "name": "dircost_n256",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 5.4,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 4.683814999589231,
+    "peers_encode_ms": 6.08926500135567,
+    "peers_ms": 10.773080000944901,
+    "reliability_ms": 0.16077499894890934,
+    "peers_cpu_ms": 10.9375,
+    "batch_cpu_s": 0.21875,
+    "http_peers_ms_p50": 12.78,
+    "http_peers_bytes": 83531
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 8.3
+  },
+  {
+   "scenario": {
+    "name": "dircost_n1024",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 1.0,
+    "req_workers": 0,
+    "gateways_per_worker": 1,
+    "cost_reps": 20,
+    "http_probe": true
+   },
+   "setup_s": 7.6,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 18.63440999877639,
+    "peers_encode_ms": 24.325580000004265,
+    "peers_ms": 42.95998999878066,
+    "reliability_ms": 0.29326500080060214,
+    "peers_cpu_ms": 42.96875,
+    "batch_cpu_s": 0.859375,
+    "http_peers_ms_p50": 45.43,
+    "http_peers_bytes": 334091
+   },
+   "phases": [],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 12.2
+  }
+ ]
+}

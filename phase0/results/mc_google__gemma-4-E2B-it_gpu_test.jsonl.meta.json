@@ -1,0 +1,35 @@
+{
+  "model": "google/gemma-4-E2B-it",
+  "revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+  "backend": "llama.cpp",
+  "gguf": "gemma-4-E2B-it-Q8_0.gguf",
+  "device": "gpu, all layers offloaded (-ngl 999)",
+  "dtype": "per GGUF file (see weights)",
+  "engine": {
+    "llama-server": "version: 0.6.0 (build 11429, commit d81235049) | built with AppleClang 21.0.0.21000334 for Darwin arm64",
+    "transformers (tokenizer)": "5.19.0"
+  },
+  "weights": {
+    "name": "gemma-4-E2B-it-Q8_0.gguf",
+    "size": 4967497152,
+    "sha256": "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+  },
+  "data": {
+    "arc": {
+      "dataset": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+    },
+    "mmlupro": {
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "sha256": "9f4ad2851409a48f876563cee100d6d040a98f1a35b0cfe5dafb6d48ea15ec20"
+    }
+  },
+  "split": "test",
+  "n": 300,
+  "runs": 5,
+  "repetition": "balanced option order (balanced_perm)",
+  "prompt": "mc-v3",
+  "template_date": "2026-10-08"
+}

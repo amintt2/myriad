@@ -1,0 +1,4671 @@
+{
+ "experiment": "E7",
+ "plan": "throughput",
+ "date": "2026-10-09 12:59:51",
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "tput_n64_rtt0",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.025,
+    "peers_ttl_s": 2.0,
+    "req_workers": 3,
+    "gateways_per_worker": 8,
+    "pause_s": 5.0
+   },
+   "setup_s": 9.1,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 5.208333333333333,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 65,
+     "ok": 65,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9538,
+     "accuracy_all": 0.9538,
+     "latency_s": {
+      "p50": 0.141,
+      "p95": 0.234,
+      "p99": 0.281,
+      "mean": 0.144,
+      "max": 0.282
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3,
+     "peers_answered_hist": {
+      "2": 23,
+      "3": 19,
+      "4": 23
+     },
+     "early_stop_frac": 0.585,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 195,
+      "annulé": 60,
+      "erreur": 5
+     },
+     "peer_errors": {
+      "peer_busy": 5
+     },
+     "offered_rps": 4.333,
+     "goodput_rps": 4.333,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 0.766,
+      "wall_s": 15.954,
+      "cpu_util": 0.048,
+      "frames_in": 838,
+      "frames_out": 528,
+      "frames_in_by_type": {
+       "cancel": 60,
+       "job": 260,
+       "receipt": 209,
+       "result": 221,
+       "status": 88
+      },
+      "frames_per_request": 21.02,
+      "cpu_us_per_frame": 560.5,
+      "cpu_ms_per_request": 11.78,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 26,
+       "/v1/reliability": 26
+      },
+      "http_peers_per_s": 1.63,
+      "loop_lag_ms": {
+       "n": 594,
+       "p50": 10.737,
+       "p99": 20.748,
+       "max": 27.807
+      },
+      "jobs_retained": 267,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.018,
+     "requester_workers_cpu_util": 0.025,
+     "phase": {
+      "rate": 5,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.05,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.03,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.03,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.03,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 149,
+     "ok": 149,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9396,
+     "accuracy_all": 0.9396,
+     "latency_s": {
+      "p50": 0.127,
+      "p95": 0.234,
+      "p99": 0.293,
+      "mean": 0.14,
+      "max": 0.347
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.993,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 48,
+      "3": 51,
+      "4": 49
+     },
+     "early_stop_frac": 0.604,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 446,
+      "annulé": 133,
+      "erreur": 17
+     },
+     "peer_errors": {
+      "peer_busy": 17
+     },
+     "offered_rps": 9.933,
+     "goodput_rps": 9.887,
+     "drain_s": 0.07,
+     "tracker": {
+      "cpu_s": 1.562,
+      "wall_s": 16.09,
+      "cpu_util": 0.097,
+      "frames_in": 1805,
+      "frames_out": 1210,
+      "frames_in_by_type": {
+       "cancel": 133,
+       "job": 596,
+       "receipt": 477,
+       "result": 511,
+       "status": 88
+      },
+      "frames_per_request": 20.23,
+      "cpu_us_per_frame": 518.2,
+      "cpu_ms_per_request": 10.49,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 46,
+       "/v1/reliability": 46
+      },
+      "http_peers_per_s": 2.86,
+      "loop_lag_ms": {
+       "n": 664,
+       "p50": 9.963,
+       "p99": 20.057,
+       "max": 27.772
+      },
+      "jobs_retained": 880,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.031,
+     "requester_workers_cpu_util": 0.041,
+     "phase": {
+      "rate": 10,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.04,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.15,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.07,
+       "serving": 64
+      },
+      {
+       "t": 11.1,
+       "util": 0.1,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.12,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 223,
+     "ok": 223,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9148,
+     "accuracy_all": 0.9148,
+     "latency_s": {
+      "p50": 0.128,
+      "p95": 0.209,
+      "p99": 0.272,
+      "mean": 0.135,
+      "max": 0.324
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.879,
+     "peers_answered_hist": {
+      "1": 2,
+      "2": 85,
+      "3": 74,
+      "4": 62
+     },
+     "early_stop_frac": 0.547,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 642,
+      "annulé": 179,
+      "erreur": 71
+     },
+     "peer_errors": {
+      "peer_busy": 71
+     },
+     "offered_rps": 14.867,
+     "goodput_rps": 14.779,
+     "drain_s": 0.089,
+     "tracker": {
+      "cpu_s": 1.562,
+      "wall_s": 16.121,
+      "cpu_util": 0.097,
+      "frames_in": 2596,
+      "frames_out": 1766,
+      "frames_in_by_type": {
+       "cancel": 179,
+       "job": 892,
+       "receipt": 694,
+       "result": 743,
+       "status": 88
+      },
+      "frames_per_request": 19.56,
+      "cpu_us_per_frame": 358.2,
+      "cpu_ms_per_request": 7.01,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 55,
+       "/v1/reliability": 55
+      },
+      "http_peers_per_s": 3.41,
+      "loop_lag_ms": {
+       "n": 708,
+       "p50": 6.152,
+       "p99": 20.168,
+       "max": 24.162
+      },
+      "jobs_retained": 1750,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.032,
+     "requester_workers_cpu_util": 0.038,
+     "phase": {
+      "rate": 15,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.16,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.07,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.11,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 308,
+     "ok": 306,
+     "failed": 2,
+     "fail_codes": {
+      "no_answer": 2
+     },
+     "accuracy_ok": 0.902,
+     "accuracy_all": 0.8961,
+     "latency_s": {
+      "p50": 0.129,
+      "p95": 0.217,
+      "p99": 0.252,
+      "mean": 0.137,
+      "max": 0.284
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.804,
+     "peers_answered_hist": {
+      "1": 12,
+      "2": 103,
+      "3": 124,
+      "4": 67
+     },
+     "early_stop_frac": 0.608,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 858,
+      "annulé": 248,
+      "erreur": 118
+     },
+     "peer_errors": {
+      "peer_busy": 118
+     },
+     "offered_rps": 20.533,
+     "goodput_rps": 20.371,
+     "drain_s": 0.021,
+     "tracker": {
+      "cpu_s": 2.625,
+      "wall_s": 16.053,
+      "cpu_util": 0.164,
+      "frames_in": 3472,
+      "frames_out": 2414,
+      "frames_in_by_type": {
+       "cancel": 248,
+       "job": 1232,
+       "receipt": 918,
+       "result": 986,
+       "status": 88
+      },
+      "frames_per_request": 19.11,
+      "cpu_us_per_frame": 446.0,
+      "cpu_ms_per_request": 8.52,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 72,
+       "/v1/reliability": 72
+      },
+      "http_peers_per_s": 4.49,
+      "loop_lag_ms": {
+       "n": 723,
+       "p50": 2.766,
+       "p99": 22.783,
+       "max": 26.163
+      },
+      "jobs_retained": 2924,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.052,
+     "requester_workers_cpu_util": 0.052,
+     "phase": {
+      "rate": 20,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.15,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.25,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.1,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.17,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.2,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.15,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 384,
+     "ok": 383,
+     "failed": 1,
+     "fail_codes": {
+      "no_answer": 1
+     },
+     "accuracy_ok": 0.893,
+     "accuracy_all": 0.8906,
+     "latency_s": {
+      "p50": 0.129,
+      "p95": 0.218,
+      "p99": 0.279,
+      "mean": 0.136,
+      "max": 0.341
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.812,
+     "peers_answered_hist": {
+      "1": 17,
+      "2": 137,
+      "3": 130,
+      "4": 99
+     },
+     "early_stop_frac": 0.527,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1077,
+      "annulé": 267,
+      "erreur": 188
+     },
+     "peer_errors": {
+      "peer_busy": 188
+     },
+     "offered_rps": 25.6,
+     "goodput_rps": 25.286,
+     "drain_s": 0.147,
+     "tracker": {
+      "cpu_s": 3.281,
+      "wall_s": 16.172,
+      "cpu_util": 0.203,
+      "frames_in": 4246,
+      "frames_out": 2960,
+      "frames_in_by_type": {
+       "cancel": 267,
+       "job": 1536,
+       "receipt": 1141,
+       "result": 1214,
+       "status": 88
+      },
+      "frames_per_request": 18.77,
+      "cpu_us_per_frame": 455.3,
+      "cpu_ms_per_request": 8.54,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 87,
+       "/v1/reliability": 87
+      },
+      "http_peers_per_s": 5.38,
+      "loop_lag_ms": {
+       "n": 744,
+       "p50": 0.0,
+       "p99": 21.296,
+       "max": 27.264
+      },
+      "jobs_retained": 4341,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.064,
+     "requester_workers_cpu_util": 0.066,
+     "phase": {
+      "rate": 25,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.15,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.21,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.35,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.22,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.18,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.18,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 456,
+     "ok": 456,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9101,
+     "accuracy_all": 0.9101,
+     "latency_s": {
+      "p50": 0.127,
+      "p95": 0.219,
+      "p99": 0.281,
+      "mean": 0.134,
+      "max": 0.396
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.717,
+     "peers_answered_hist": {
+      "1": 43,
+      "2": 147,
+      "3": 162,
+      "4": 104
+     },
+     "early_stop_frac": 0.531,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1239,
+      "annulé": 320,
+      "erreur": 265
+     },
+     "peer_errors": {
+      "peer_busy": 265
+     },
+     "offered_rps": 30.4,
+     "goodput_rps": 30.183,
+     "drain_s": 0.108,
+     "tracker": {
+      "cpu_s": 3.656,
+      "wall_s": 16.129,
+      "cpu_util": 0.227,
+      "frames_in": 4962,
+      "frames_out": 3480,
+      "frames_in_by_type": {
+       "cancel": 320,
+       "job": 1824,
+       "receipt": 1326,
+       "result": 1404,
+       "status": 88
+      },
+      "frames_per_request": 18.51,
+      "cpu_us_per_frame": 433.1,
+      "cpu_ms_per_request": 8.02,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 93,
+       "/v1/reliability": 93
+      },
+      "http_peers_per_s": 5.77,
+      "loop_lag_ms": {
+       "n": 744,
+       "p50": 0.0,
+       "p99": 22.782,
+       "max": 25.845
+      },
+      "jobs_retained": 5978,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.079,
+     "requester_workers_cpu_util": 0.07,
+     "phase": {
+      "rate": 30,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.2,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.26,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.21,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.19,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.29,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.28,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 598,
+     "ok": 595,
+     "failed": 3,
+     "fail_codes": {
+      "no_answer": 3
+     },
+     "accuracy_ok": 0.8639,
+     "accuracy_all": 0.8595,
+     "latency_s": {
+      "p50": 0.125,
+      "p95": 0.218,
+      "p99": 0.269,
+      "mean": 0.132,
+      "max": 0.42
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.583,
+     "peers_answered_hist": {
+      "1": 59,
+      "2": 235,
+      "3": 196,
+      "4": 105
+     },
+     "early_stop_frac": 0.531,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1537,
+      "annulé": 412,
+      "erreur": 431
+     },
+     "peer_errors": {
+      "peer_busy": 431
+     },
+     "offered_rps": 39.867,
+     "goodput_rps": 39.067,
+     "drain_s": 0.23,
+     "tracker": {
+      "cpu_s": 4.109,
+      "wall_s": 16.251,
+      "cpu_util": 0.253,
+      "frames_in": 6299,
+      "frames_out": 4467,
+      "frames_in_by_type": {
+       "cancel": 412,
+       "job": 2392,
+       "receipt": 1649,
+       "result": 1758,
+       "status": 88
+      },
+      "frames_per_request": 18.0,
+      "cpu_us_per_frame": 381.7,
+      "cpu_ms_per_request": 6.87,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 114,
+       "/v1/reliability": 114
+      },
+      "http_peers_per_s": 7.02,
+      "loop_lag_ms": {
+       "n": 789,
+       "p50": 0.0,
+       "p99": 24.165,
+       "max": 54.401
+      },
+      "jobs_retained": 8036,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.078,
+     "requester_workers_cpu_util": 0.089,
+     "phase": {
+      "rate": 40,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.27,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.33,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.26,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.31,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.19,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.29,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 789,
+     "ok": 786,
+     "failed": 3,
+     "fail_codes": {
+      "no_answer": 3
+     },
+     "accuracy_ok": 0.8677,
+     "accuracy_all": 0.8644,
+     "latency_s": {
+      "p50": 0.125,
+      "p95": 0.219,
+      "p99": 0.279,
+      "mean": 0.13,
+      "max": 0.447
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.43,
+     "peers_answered_hist": {
+      "1": 127,
+      "2": 300,
+      "3": 253,
+      "4": 106
+     },
+     "early_stop_frac": 0.529,
+     "certified_frac": 1,
+     "peer_status": {
+      "erreur": 717,
+      "annulé": 517,
+      "ok": 1910
+     },
+     "peer_errors": {
+      "peer_busy": 717
+     },
+     "offered_rps": 52.6,
+     "goodput_rps": 51.93,
+     "drain_s": 0.136,
+     "tracker": {
+      "cpu_s": 5.719,
+      "wall_s": 16.186,
+      "cpu_util": 0.353,
+      "frames_in": 7964,
+      "frames_out": 5736,
+      "frames_in_by_type": {
+       "cancel": 517,
+       "job": 3156,
+       "receipt": 2029,
+       "result": 2166,
+       "status": 96
+      },
+      "frames_per_request": 17.36,
+      "cpu_us_per_frame": 417.4,
+      "cpu_ms_per_request": 7.25,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 130,
+       "/v1/reliability": 130
+      },
+      "http_peers_per_s": 8.03,
+      "loop_lag_ms": {
+       "n": 812,
+       "p50": 0.0,
+       "p99": 21.953,
+       "max": 26.089
+      },
+      "jobs_retained": 10600,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.111,
+     "requester_workers_cpu_util": 0.112,
+     "phase": {
+      "rate": 50,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.42,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.3,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.3,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.35,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.48,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.31,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 930,
+     "ok": 917,
+     "failed": 13,
+     "fail_codes": {
+      "no_answer": 13
+     },
+     "accuracy_ok": 0.8713,
+     "accuracy_all": 0.8591,
+     "latency_s": {
+      "p50": 0.127,
+      "p95": 0.219,
+      "p99": 0.283,
+      "mean": 0.133,
+      "max": 0.496
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.339,
+     "peers_answered_hist": {
+      "1": 173,
+      "2": 355,
+      "3": 294,
+      "4": 95
+     },
+     "early_stop_frac": 0.503,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2145,
+      "annulé": 570,
+      "erreur": 953
+     },
+     "peer_errors": {
+      "peer_busy": 953
+     },
+     "offered_rps": 62.0,
+     "goodput_rps": 60.678,
+     "drain_s": 0.113,
+     "tracker": {
+      "cpu_s": 5.969,
+      "wall_s": 16.139,
+      "cpu_util": 0.37,
+      "frames_in": 9124,
+      "frames_out": 6621,
+      "frames_in_by_type": {
+       "cancel": 570,
+       "job": 3720,
+       "receipt": 2301,
+       "result": 2445,
+       "status": 88
+      },
+      "frames_per_request": 16.93,
+      "cpu_us_per_frame": 379.1,
+      "cpu_ms_per_request": 6.42,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 142,
+       "/v1/reliability": 142
+      },
+      "http_peers_per_s": 8.8,
+      "loop_lag_ms": {
+       "n": 848,
+       "p50": 0.0,
+       "p99": 22.432,
+       "max": 28.616
+      },
+      "jobs_retained": 13459,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.107,
+     "requester_workers_cpu_util": 0.114,
+     "phase": {
+      "rate": 60,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.45,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.28,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.44,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.33,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.37,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.43,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 1170,
+     "ok": 1140,
+     "failed": 30,
+     "fail_codes": {
+      "no_answer": 30
+     },
+     "accuracy_ok": 0.8377,
+     "accuracy_all": 0.8162,
+     "latency_s": {
+      "p50": 0.129,
+      "p95": 0.24,
+      "p99": 0.342,
+      "mean": 0.138,
+      "max": 0.452
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.175,
+     "peers_answered_hist": {
+      "1": 317,
+      "2": 404,
+      "3": 322,
+      "4": 97
+     },
+     "early_stop_frac": 0.456,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2479,
+      "annulé": 615,
+      "erreur": 1466
+     },
+     "peer_errors": {
+      "peer_busy": 1465,
+      "busy": 1
+     },
+     "offered_rps": 78.0,
+     "goodput_rps": 75.172,
+     "drain_s": 0.165,
+     "tracker": {
+      "cpu_s": 7.312,
+      "wall_s": 16.191,
+      "cpu_util": 0.452,
+      "frames_in": 10926,
+      "frames_out": 7997,
+      "frames_in_by_type": {
+       "cancel": 615,
+       "job": 4680,
+       "job_error": 1,
+       "receipt": 2651,
+       "result": 2827,
+       "status": 152
+      },
+      "frames_per_request": 16.17,
+      "cpu_us_per_frame": 386.4,
+      "cpu_ms_per_request": 6.25,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 170,
+       "/v1/reliability": 170
+      },
+      "http_peers_per_s": 10.5,
+      "loop_lag_ms": {
+       "n": 844,
+       "p50": 0.0,
+       "p99": 23.206,
+       "max": 57.967
+      },
+      "jobs_retained": 16730,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.118,
+     "requester_workers_cpu_util": 0.126,
+     "phase": {
+      "rate": 80,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.51,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.58,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.42,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.41,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.51,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.38,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 1501,
+     "ok": 1444,
+     "failed": 57,
+     "fail_codes": {
+      "no_answer": 57
+     },
+     "accuracy_ok": 0.8054,
+     "accuracy_all": 0.7748,
+     "latency_s": {
+      "p50": 0.126,
+      "p95": 0.242,
+      "p99": 0.37,
+      "mean": 0.137,
+      "max": 0.527
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.039,
+     "peers_answered_hist": {
+      "1": 471,
+      "2": 533,
+      "3": 352,
+      "4": 88
+     },
+     "early_stop_frac": 0.437,
+     "certified_frac": 1,
+     "peer_status": {
+      "erreur": 2120,
+      "ok": 2945,
+      "annulé": 711
+     },
+     "peer_errors": {
+      "peer_busy": 2120
+     },
+     "offered_rps": 100.067,
+     "goodput_rps": 95.213,
+     "drain_s": 0.166,
+     "tracker": {
+      "cpu_s": 8.5,
+      "wall_s": 16.19,
+      "cpu_util": 0.525,
+      "frames_in": 13241,
+      "frames_out": 9869,
+      "frames_in_by_type": {
+       "cancel": 711,
+       "job": 6004,
+       "receipt": 3139,
+       "result": 3299,
+       "status": 88
+      },
+      "frames_per_request": 15.4,
+      "cpu_us_per_frame": 367.8,
+      "cpu_ms_per_request": 5.66,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 178,
+       "/v1/reliability": 178
+      },
+      "http_peers_per_s": 10.99,
+      "loop_lag_ms": {
+       "n": 840,
+       "p50": 0.0,
+       "p99": 23.91,
+       "max": 105.235
+      },
+      "jobs_retained": 20546,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.137,
+     "requester_workers_cpu_util": 0.144,
+     "phase": {
+      "rate": 100,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.52,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.52,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.51,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.59,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.54,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.6,
+       "serving": 64
+      }
+     ]
+    },
+    {
+     "requests": 1944,
+     "ok": 1833,
+     "failed": 111,
+     "fail_codes": {
+      "no_answer": 111
+     },
+     "accuracy_ok": 0.802,
+     "accuracy_all": 0.7562,
+     "latency_s": {
+      "p50": 0.127,
+      "p95": 0.249,
+      "p99": 0.313,
+      "mean": 0.139,
+      "max": 0.47
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 1.84,
+     "peers_answered_hist": {
+      "1": 796,
+      "2": 593,
+      "3": 385,
+      "4": 59
+     },
+     "early_stop_frac": 0.387,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 3373,
+      "erreur": 3183,
+      "annulé": 776
+     },
+     "peer_errors": {
+      "peer_busy": 3182,
+      "busy": 1
+     },
+     "offered_rps": 129.6,
+     "goodput_rps": 120.661,
+     "drain_s": 0.191,
+     "tracker": {
+      "cpu_s": 10.281,
+      "wall_s": 16.218,
+      "cpu_util": 0.634,
+      "frames_in": 16101,
+      "frames_out": 12208,
+      "frames_in_by_type": {
+       "cancel": 776,
+       "job": 7776,
+       "job_error": 1,
+       "receipt": 3625,
+       "result": 3835,
+       "status": 88
+      },
+      "frames_per_request": 14.56,
+      "cpu_us_per_frame": 363.2,
+      "cpu_ms_per_request": 5.29,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 194,
+       "/v1/reliability": 194
+      },
+      "http_peers_per_s": 11.96,
+      "loop_lag_ms": {
+       "n": 859,
+       "p50": 0.0,
+       "p99": 21.524,
+       "max": 92.211
+      },
+      "jobs_retained": 24906,
+      "conns": 88
+     },
+     "node_workers_cpu_util": 0.133,
+     "requester_workers_cpu_util": 0.178,
+     "phase": {
+      "rate": 130,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.68,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.63,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.63,
+       "serving": 64
+      },
+      {
+       "t": 9.1,
+       "util": 0.69,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.67,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.73,
+       "serving": 64
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 261.8
+  },
+  {
+   "scenario": {
+    "name": "tput_n256_rtt0",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.025,
+    "peers_ttl_s": 2.0,
+    "req_workers": 3,
+    "gateways_per_worker": 8,
+    "pause_s": 5.0
+   },
+   "setup_s": 9.6,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 5.208333333333333,
+    "peers_ms": 10.416666666666666,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 65,
+     "ok": 65,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9077,
+     "accuracy_all": 0.9077,
+     "latency_s": {
+      "p50": 0.141,
+      "p95": 0.247,
+      "p99": 0.31,
+      "mean": 0.147,
+      "max": 0.36
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.908,
+     "peers_answered_hist": {
+      "2": 29,
+      "3": 13,
+      "4": 23
+     },
+     "early_stop_frac": 0.646,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 189,
+      "annulé": 71
+     },
+     "peer_errors": {},
+     "offered_rps": 4.333,
+     "goodput_rps": 4.333,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 1.172,
+      "wall_s": 15.975,
+      "cpu_util": 0.073,
+      "frames_in": 1050,
+      "frames_out": 531,
+      "frames_in_by_type": {
+       "cancel": 71,
+       "job": 260,
+       "receipt": 214,
+       "result": 225,
+       "status": 280
+      },
+      "frames_per_request": 24.32,
+      "cpu_us_per_frame": 741.2,
+      "cpu_ms_per_request": 18.03,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 27,
+       "/v1/reliability": 27
+      },
+      "http_peers_per_s": 1.69,
+      "loop_lag_ms": {
+       "n": 596,
+       "p50": 10.747,
+       "p99": 15.957,
+       "max": 26.098
+      },
+      "jobs_retained": 271,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.024,
+     "requester_workers_cpu_util": 0.029,
+     "phase": {
+      "rate": 5,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.08,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.08,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.05,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.05,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.09,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 149,
+     "ok": 149,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.906,
+     "accuracy_all": 0.906,
+     "latency_s": {
+      "p50": 0.132,
+      "p95": 0.237,
+      "p99": 0.293,
+      "mean": 0.145,
+      "max": 0.349
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.027,
+     "peers_answered_hist": {
+      "2": 49,
+      "3": 47,
+      "4": 53
+     },
+     "early_stop_frac": 0.617,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 451,
+      "annulé": 136,
+      "erreur": 9
+     },
+     "peer_errors": {
+      "peer_busy": 9
+     },
+     "offered_rps": 9.933,
+     "goodput_rps": 9.877,
+     "drain_s": 0.085,
+     "tracker": {
+      "cpu_s": 2.359,
+      "wall_s": 16.107,
+      "cpu_util": 0.146,
+      "frames_in": 2036,
+      "frames_out": 1223,
+      "frames_in_by_type": {
+       "cancel": 136,
+       "job": 596,
+       "receipt": 494,
+       "result": 530,
+       "status": 280
+      },
+      "frames_per_request": 21.87,
+      "cpu_us_per_frame": 724.0,
+      "cpu_ms_per_request": 15.83,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 44,
+       "/v1/reliability": 44
+      },
+      "http_peers_per_s": 2.73,
+      "loop_lag_ms": {
+       "n": 689,
+       "p50": 8.788,
+       "p99": 20.579,
+       "max": 29.344
+      },
+      "jobs_retained": 894,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.044,
+     "requester_workers_cpu_util": 0.047,
+     "phase": {
+      "rate": 10,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.22,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.15,
+       "serving": 256
+      },
+      {
+       "t": 9.1,
+       "util": 0.11,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.21,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.15,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 223,
+     "ok": 223,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9238,
+     "accuracy_all": 0.9238,
+     "latency_s": {
+      "p50": 0.127,
+      "p95": 0.224,
+      "p99": 0.252,
+      "mean": 0.137,
+      "max": 0.296
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.982,
+     "peers_answered_hist": {
+      "2": 80,
+      "3": 67,
+      "4": 76
+     },
+     "early_stop_frac": 0.587,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 665,
+      "annulé": 207,
+      "erreur": 20
+     },
+     "peer_errors": {
+      "peer_busy": 20
+     },
+     "offered_rps": 14.867,
+     "goodput_rps": 14.867,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 2.594,
+      "wall_s": 15.986,
+      "cpu_util": 0.162,
+      "frames_in": 2870,
+      "frames_out": 1824,
+      "frames_in_by_type": {
+       "cancel": 207,
+       "job": 892,
+       "receipt": 719,
+       "result": 772,
+       "status": 280
+      },
+      "frames_per_request": 21.05,
+      "cpu_us_per_frame": 552.6,
+      "cpu_ms_per_request": 11.63,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 53,
+       "/v1/reliability": 53
+      },
+      "http_peers_per_s": 3.32,
+      "loop_lag_ms": {
+       "n": 684,
+       "p50": 7.352,
+       "p99": 22.704,
+       "max": 26.895
+      },
+      "jobs_retained": 1819,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.06,
+     "requester_workers_cpu_util": 0.045,
+     "phase": {
+      "rate": 15,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.18,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.23,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.08,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.14,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.21,
+       "serving": 256
+      },
+      {
+       "t": 13.3,
+       "util": 0.2,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 308,
+     "ok": 308,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9578,
+     "accuracy_all": 0.9578,
+     "latency_s": {
+      "p50": 0.141,
+      "p95": 0.247,
+      "p99": 0.293,
+      "mean": 0.145,
+      "max": 0.329
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 99,
+      "3": 107,
+      "4": 101
+     },
+     "early_stop_frac": 0.588,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 924,
+      "annulé": 262,
+      "erreur": 46
+     },
+     "peer_errors": {
+      "peer_busy": 46
+     },
+     "offered_rps": 20.533,
+     "goodput_rps": 20.533,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 3.484,
+      "wall_s": 16.001,
+      "cpu_util": 0.218,
+      "frames_in": 3862,
+      "frames_out": 2499,
+      "frames_in_by_type": {
+       "cancel": 262,
+       "job": 1232,
+       "receipt": 1010,
+       "result": 1078,
+       "status": 280
+      },
+      "frames_per_request": 20.65,
+      "cpu_us_per_frame": 547.8,
+      "cpu_ms_per_request": 11.31,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 74,
+       "/v1/reliability": 74
+      },
+      "http_peers_per_s": 4.62,
+      "loop_lag_ms": {
+       "n": 729,
+       "p50": 3.632,
+       "p99": 21.294,
+       "max": 25.755
+      },
+      "jobs_retained": 3074,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.051,
+     "requester_workers_cpu_util": 0.062,
+     "phase": {
+      "rate": 20,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.2,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.18,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.26,
+       "serving": 256
+      },
+      {
+       "t": 9.1,
+       "util": 0.22,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.28,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.24,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 384,
+     "ok": 384,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9323,
+     "accuracy_all": 0.9323,
+     "latency_s": {
+      "p50": 0.132,
+      "p95": 0.237,
+      "p99": 0.292,
+      "mean": 0.144,
+      "max": 0.42
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.945,
+     "peers_answered_hist": {
+      "1": 4,
+      "2": 125,
+      "3": 143,
+      "4": 112
+     },
+     "early_stop_frac": 0.641,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1131,
+      "annulé": 355,
+      "erreur": 50
+     },
+     "peer_errors": {
+      "peer_busy": 50
+     },
+     "offered_rps": 25.6,
+     "goodput_rps": 25.09,
+     "drain_s": 0.305,
+     "tracker": {
+      "cpu_s": 3.984,
+      "wall_s": 16.327,
+      "cpu_util": 0.244,
+      "frames_in": 4853,
+      "frames_out": 3122,
+      "frames_in_by_type": {
+       "cancel": 355,
+       "job": 1536,
+       "receipt": 1221,
+       "result": 1303,
+       "status": 438
+      },
+      "frames_per_request": 20.77,
+      "cpu_us_per_frame": 499.6,
+      "cpu_ms_per_request": 10.38,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 9,
+       "/v1/peers": 86,
+       "/v1/reliability": 86
+      },
+      "http_peers_per_s": 5.27,
+      "loop_lag_ms": {
+       "n": 749,
+       "p50": 0.657,
+       "p99": 24.362,
+       "max": 27.811
+      },
+      "jobs_retained": 4642,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.068,
+     "requester_workers_cpu_util": 0.069,
+     "phase": {
+      "rate": 25,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.27,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.3,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.28,
+       "serving": 256
+      },
+      {
+       "t": 9.1,
+       "util": 0.27,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.28,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.18,
+       "serving": 256
+      },
+      {
+       "t": 15.3,
+       "util": 0.21,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 456,
+     "ok": 456,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9079,
+     "accuracy_all": 0.9079,
+     "latency_s": {
+      "p50": 0.134,
+      "p95": 0.238,
+      "p99": 0.298,
+      "mean": 0.143,
+      "max": 0.353
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.989,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 150,
+      "3": 158,
+      "4": 147
+     },
+     "early_stop_frac": 0.583,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1363,
+      "annulé": 393,
+      "erreur": 68
+     },
+     "peer_errors": {
+      "peer_busy": 68
+     },
+     "offered_rps": 30.4,
+     "goodput_rps": 30.309,
+     "drain_s": 0.045,
+     "tracker": {
+      "cpu_s": 4.703,
+      "wall_s": 16.095,
+      "cpu_util": 0.292,
+      "frames_in": 5520,
+      "frames_out": 3677,
+      "frames_in_by_type": {
+       "cancel": 393,
+       "job": 1824,
+       "receipt": 1473,
+       "result": 1550,
+       "status": 280
+      },
+      "frames_per_request": 20.17,
+      "cpu_us_per_frame": 511.4,
+      "cpu_ms_per_request": 10.31,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 95,
+       "/v1/reliability": 95
+      },
+      "http_peers_per_s": 5.9,
+      "loop_lag_ms": {
+       "n": 758,
+       "p50": 0.037,
+       "p99": 22.469,
+       "max": 31.352
+      },
+      "jobs_retained": 6475,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.078,
+     "requester_workers_cpu_util": 0.073,
+     "phase": {
+      "rate": 30,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.27,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.33,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.29,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.31,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.35,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.28,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 598,
+     "ok": 598,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.913,
+     "accuracy_all": 0.913,
+     "latency_s": {
+      "p50": 0.14,
+      "p95": 0.266,
+      "p99": 0.34,
+      "mean": 0.151,
+      "max": 0.398
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.833,
+     "peers_answered_hist": {
+      "1": 8,
+      "2": 238,
+      "3": 198,
+      "4": 154
+     },
+     "early_stop_frac": 0.625,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1694,
+      "annulé": 554,
+      "erreur": 144
+     },
+     "peer_errors": {
+      "peer_busy": 144
+     },
+     "offered_rps": 39.867,
+     "goodput_rps": 39.327,
+     "drain_s": 0.206,
+     "tracker": {
+      "cpu_s": 5.906,
+      "wall_s": 16.254,
+      "cpu_util": 0.363,
+      "frames_in": 7090,
+      "frames_out": 4816,
+      "frames_in_by_type": {
+       "cancel": 554,
+       "job": 2392,
+       "receipt": 1867,
+       "result": 1997,
+       "status": 280
+      },
+      "frames_per_request": 19.91,
+      "cpu_us_per_frame": 496.1,
+      "cpu_ms_per_request": 9.88,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 125,
+       "/v1/reliability": 125
+      },
+      "http_peers_per_s": 7.69,
+      "loop_lag_ms": {
+       "n": 800,
+       "p50": 0.0,
+       "p99": 24.652,
+       "max": 48.936
+      },
+      "jobs_retained": 8853,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.092,
+     "requester_workers_cpu_util": 0.1,
+     "phase": {
+      "rate": 40,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.32,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.44,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.33,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.45,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.38,
+       "serving": 256
+      },
+      {
+       "t": 13.3,
+       "util": 0.46,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 789,
+     "ok": 789,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9075,
+     "accuracy_all": 0.9075,
+     "latency_s": {
+      "p50": 0.143,
+      "p95": 0.299,
+      "p99": 0.37,
+      "mean": 0.158,
+      "max": 0.424
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.858,
+     "peers_answered_hist": {
+      "1": 23,
+      "2": 272,
+      "3": 288,
+      "4": 206
+     },
+     "early_stop_frac": 0.587,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2255,
+      "annulé": 632,
+      "erreur": 269
+     },
+     "peer_errors": {
+      "peer_busy": 269
+     },
+     "offered_rps": 52.6,
+     "goodput_rps": 51.808,
+     "drain_s": 0.229,
+     "tracker": {
+      "cpu_s": 7.5,
+      "wall_s": 16.253,
+      "cpu_util": 0.461,
+      "frames_in": 9192,
+      "frames_out": 6263,
+      "frames_in_by_type": {
+       "cancel": 632,
+       "job": 3156,
+       "receipt": 2480,
+       "result": 2634,
+       "status": 290
+      },
+      "frames_per_request": 19.59,
+      "cpu_us_per_frame": 485.3,
+      "cpu_ms_per_request": 9.51,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 144,
+       "/v1/reliability": 144
+      },
+      "http_peers_per_s": 8.86,
+      "loop_lag_ms": {
+       "n": 788,
+       "p50": 0.0,
+       "p99": 28.566,
+       "max": 92.985
+      },
+      "jobs_retained": 11894,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.12,
+     "requester_workers_cpu_util": 0.13,
+     "phase": {
+      "rate": 50,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.57,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.39,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.55,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.38,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.55,
+       "serving": 256
+      },
+      {
+       "t": 13.3,
+       "util": 0.48,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 930,
+     "ok": 930,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9108,
+     "accuracy_all": 0.9108,
+     "latency_s": {
+      "p50": 0.154,
+      "p95": 0.388,
+      "p99": 0.461,
+      "mean": 0.182,
+      "max": 0.505
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.773,
+     "peers_answered_hist": {
+      "1": 37,
+      "2": 342,
+      "3": 346,
+      "4": 205
+     },
+     "early_stop_frac": 0.599,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2579,
+      "annulé": 761,
+      "erreur": 380
+     },
+     "peer_errors": {
+      "peer_busy": 380
+     },
+     "offered_rps": 62.0,
+     "goodput_rps": 61.188,
+     "drain_s": 0.199,
+     "tracker": {
+      "cpu_s": 8.719,
+      "wall_s": 16.248,
+      "cpu_util": 0.537,
+      "frames_in": 10796,
+      "frames_out": 7346,
+      "frames_in_by_type": {
+       "cancel": 761,
+       "job": 3720,
+       "receipt": 2921,
+       "result": 3114,
+       "status": 280
+      },
+      "frames_per_request": 19.51,
+      "cpu_us_per_frame": 480.6,
+      "cpu_ms_per_request": 9.38,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 167,
+       "/v1/reliability": 167
+      },
+      "http_peers_per_s": 10.28,
+      "loop_lag_ms": {
+       "n": 696,
+       "p50": 1.633,
+       "p99": 48.521,
+       "max": 97.589
+      },
+      "jobs_retained": 15427,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.133,
+     "requester_workers_cpu_util": 0.132,
+     "phase": {
+      "rate": 60,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.53,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.58,
+       "serving": 256
+      },
+      {
+       "t": 7.2,
+       "util": 0.53,
+       "serving": 256
+      },
+      {
+       "t": 9.2,
+       "util": 0.56,
+       "serving": 256
+      },
+      {
+       "t": 11.3,
+       "util": 0.57,
+       "serving": 256
+      },
+      {
+       "t": 13.4,
+       "util": 0.56,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 1170,
+     "ok": 1169,
+     "failed": 1,
+     "fail_codes": {
+      "no_answer": 1
+     },
+     "accuracy_ok": 0.9033,
+     "accuracy_all": 0.9026,
+     "latency_s": {
+      "p50": 0.173,
+      "p95": 0.509,
+      "p99": 0.786,
+      "mean": 0.22,
+      "max": 0.925
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.683,
+     "peers_answered_hist": {
+      "1": 67,
+      "2": 450,
+      "3": 439,
+      "4": 213
+     },
+     "early_stop_frac": 0.568,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 3136,
+      "annulé": 905,
+      "erreur": 635
+     },
+     "peer_errors": {
+      "peer_busy": 635
+     },
+     "offered_rps": 78.0,
+     "goodput_rps": 76.672,
+     "drain_s": 0.247,
+     "tracker": {
+      "cpu_s": 10.656,
+      "wall_s": 16.289,
+      "cpu_util": 0.654,
+      "frames_in": 13283,
+      "frames_out": 9022,
+      "frames_in_by_type": {
+       "cancel": 905,
+       "job": 4680,
+       "receipt": 3619,
+       "result": 3799,
+       "status": 280
+      },
+      "frames_per_request": 19.06,
+      "cpu_us_per_frame": 477.8,
+      "cpu_ms_per_request": 9.11,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 202,
+       "/v1/reliability": 202
+      },
+      "http_peers_per_s": 12.4,
+      "loop_lag_ms": {
+       "n": 634,
+       "p50": 3.069,
+       "p99": 69.982,
+       "max": 132.055
+      },
+      "jobs_retained": 19648,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.149,
+     "requester_workers_cpu_util": 0.167,
+     "phase": {
+      "rate": 80,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.69,
+       "serving": 256
+      },
+      {
+       "t": 5.3,
+       "util": 0.75,
+       "serving": 256
+      },
+      {
+       "t": 7.5,
+       "util": 0.7,
+       "serving": 256
+      },
+      {
+       "t": 9.6,
+       "util": 0.64,
+       "serving": 256
+      },
+      {
+       "t": 11.7,
+       "util": 0.65,
+       "serving": 256
+      },
+      {
+       "t": 13.8,
+       "util": 0.69,
+       "serving": 256
+      }
+     ]
+    },
+    {
+     "requests": 1501,
+     "ok": 1289,
+     "failed": 212,
+     "fail_codes": {
+      "no_answer": 29,
+      "tracker_unavailable": 183
+     },
+     "accuracy_ok": 0.8495,
+     "accuracy_all": 0.7295,
+     "latency_s": {
+      "p50": 1.369,
+      "p95": 9.322,
+      "p99": 9.637,
+      "mean": 2.756,
+      "max": 9.752
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.261,
+     "peers_answered_hist": {
+      "1": 307,
+      "2": 458,
+      "3": 405,
+      "4": 119
+     },
+     "early_stop_frac": 0.508,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2914,
+      "annulé": 803,
+      "erreur": 1439
+     },
+     "peer_errors": {
+      "peer_busy": 1439
+     },
+     "offered_rps": 100.067,
+     "goodput_rps": 58.811,
+     "drain_s": 6.918,
+     "tracker": {
+      "cpu_s": 19.859,
+      "wall_s": 22.942,
+      "cpu_util": 0.866,
+      "frames_in": 13909,
+      "frames_out": 9220,
+      "frames_in_by_type": {
+       "cancel": 803,
+       "job": 5272,
+       "receipt": 3680,
+       "result": 3874,
+       "status": 280
+      },
+      "frames_per_request": 15.41,
+      "cpu_us_per_frame": 858.6,
+      "cpu_ms_per_request": 13.23,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 6,
+       "/v1/peers": 722,
+       "/v1/reliability": 715
+      },
+      "http_peers_per_s": 31.47,
+      "loop_lag_ms": {
+       "n": 222,
+       "p50": 49.046,
+       "p99": 628.964,
+       "max": 717.241
+      },
+      "jobs_retained": 23559,
+      "conns": 280
+     },
+     "node_workers_cpu_util": 0.106,
+     "requester_workers_cpu_util": 0.289,
+     "phase": {
+      "rate": 100,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.7,
+       "util": 0.85,
+       "serving": 256
+      },
+      {
+       "t": 6.6,
+       "util": 0.87,
+       "serving": 256
+      },
+      {
+       "t": 16.3,
+       "util": 0.94,
+       "serving": 256
+      },
+      {
+       "t": 21.6,
+       "util": 0.92,
+       "serving": 256
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 248.5
+  },
+  {
+   "scenario": {
+    "name": "tput_n1024_rtt0",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.025,
+    "peers_ttl_s": 2.0,
+    "req_workers": 3,
+    "gateways_per_worker": 8,
+    "pause_s": 5.0
+   },
+   "setup_s": 12.4,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 15.625,
+    "peers_encode_ms": 26.041666666666668,
+    "peers_ms": 41.666666666666664,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 65,
+     "ok": 65,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9077,
+     "accuracy_all": 0.9077,
+     "latency_s": {
+      "p50": 0.159,
+      "p95": 0.298,
+      "p99": 0.37,
+      "mean": 0.179,
+      "max": 0.388
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.923,
+     "peers_answered_hist": {
+      "2": 22,
+      "3": 26,
+      "4": 17
+     },
+     "early_stop_frac": 0.738,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 190,
+      "annulé": 69,
+      "erreur": 1
+     },
+     "peer_errors": {
+      "peer_busy": 1
+     },
+     "offered_rps": 4.333,
+     "goodput_rps": 4.333,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 2.188,
+      "wall_s": 15.969,
+      "cpu_util": 0.137,
+      "frames_in": 1794,
+      "frames_out": 532,
+      "frames_in_by_type": {
+       "cancel": 69,
+       "job": 260,
+       "receipt": 203,
+       "result": 214,
+       "status": 1048
+      },
+      "frames_per_request": 35.78,
+      "cpu_us_per_frame": 940.5,
+      "cpu_ms_per_request": 33.65,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 27,
+       "/v1/reliability": 27
+      },
+      "http_peers_per_s": 1.69,
+      "loop_lag_ms": {
+       "n": 588,
+       "p50": 10.572,
+       "p99": 39.555,
+       "max": 96.222
+      },
+      "jobs_retained": 270,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.01,
+     "requester_workers_cpu_util": 0.032,
+     "phase": {
+      "rate": 5,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.15,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.2,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.11,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.17,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.13,
+       "serving": 1024
+      },
+      {
+       "t": 13.2,
+       "util": 0.19,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 149,
+     "ok": 149,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9799,
+     "accuracy_all": 0.9799,
+     "latency_s": {
+      "p50": 0.172,
+      "p95": 0.407,
+      "p99": 0.459,
+      "mean": 0.189,
+      "max": 0.468
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.879,
+     "peers_answered_hist": {
+      "2": 61,
+      "3": 45,
+      "4": 43
+     },
+     "early_stop_frac": 0.705,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 429,
+      "annulé": 166,
+      "erreur": 1
+     },
+     "peer_errors": {
+      "peer_busy": 1
+     },
+     "offered_rps": 9.933,
+     "goodput_rps": 9.904,
+     "drain_s": 0.044,
+     "tracker": {
+      "cpu_s": 4.047,
+      "wall_s": 16.078,
+      "cpu_util": 0.252,
+      "frames_in": 2816,
+      "frames_out": 1243,
+      "frames_in_by_type": {
+       "cancel": 166,
+       "job": 596,
+       "receipt": 484,
+       "result": 522,
+       "status": 1048
+      },
+      "frames_per_request": 27.24,
+      "cpu_us_per_frame": 997.0,
+      "cpu_ms_per_request": 27.16,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 51,
+       "/v1/reliability": 51
+      },
+      "http_peers_per_s": 3.17,
+      "loop_lag_ms": {
+       "n": 610,
+       "p50": 9.185,
+       "p99": 52.099,
+       "max": 144.529
+      },
+      "jobs_retained": 903,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.019,
+     "requester_workers_cpu_util": 0.046,
+     "phase": {
+      "rate": 10,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.12,
+       "serving": 1024
+      },
+      {
+       "t": 7.2,
+       "util": 0.14,
+       "serving": 1024
+      },
+      {
+       "t": 9.3,
+       "util": 0.21,
+       "serving": 1024
+      },
+      {
+       "t": 11.3,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.31,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 223,
+     "ok": 223,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9238,
+     "accuracy_all": 0.9238,
+     "latency_s": {
+      "p50": 0.174,
+      "p95": 0.362,
+      "p99": 0.42,
+      "mean": 0.193,
+      "max": 0.484
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.919,
+     "peers_answered_hist": {
+      "2": 79,
+      "3": 83,
+      "4": 61
+     },
+     "early_stop_frac": 0.695,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 651,
+      "annulé": 233,
+      "erreur": 8
+     },
+     "peer_errors": {
+      "peer_busy": 8
+     },
+     "offered_rps": 14.867,
+     "goodput_rps": 14.66,
+     "drain_s": 0.212,
+     "tracker": {
+      "cpu_s": 5.281,
+      "wall_s": 16.243,
+      "cpu_util": 0.325,
+      "frames_in": 3678,
+      "frames_out": 1836,
+      "frames_in_by_type": {
+       "cancel": 233,
+       "job": 892,
+       "receipt": 726,
+       "result": 776,
+       "status": 1051
+      },
+      "frames_per_request": 24.73,
+      "cpu_us_per_frame": 957.8,
+      "cpu_ms_per_request": 23.68,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 62,
+       "/v1/reliability": 62
+      },
+      "http_peers_per_s": 3.82,
+      "loop_lag_ms": {
+       "n": 631,
+       "p50": 4.707,
+       "p99": 88.745,
+       "max": 127.762
+      },
+      "jobs_retained": 1837,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.023,
+     "requester_workers_cpu_util": 0.059,
+     "phase": {
+      "rate": 15,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.28,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.36,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.22,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.3,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.45,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.34,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 308,
+     "ok": 308,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8961,
+     "accuracy_all": 0.8961,
+     "latency_s": {
+      "p50": 0.941,
+      "p95": 4.236,
+      "p99": 4.57,
+      "mean": 1.58,
+      "max": 4.741
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.782,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 136,
+      "3": 94,
+      "4": 75
+     },
+     "early_stop_frac": 0.685,
+     "certified_frac": 1,
+     "peer_status": {
+      "erreur": 45,
+      "ok": 857,
+      "annulé": 330
+     },
+     "peer_errors": {
+      "peer_busy": 45
+     },
+     "offered_rps": 20.533,
+     "goodput_rps": 17.669,
+     "drain_s": 2.432,
+     "tracker": {
+      "cpu_s": 13.391,
+      "wall_s": 18.457,
+      "cpu_util": 0.726,
+      "frames_in": 4872,
+      "frames_out": 2502,
+      "frames_in_by_type": {
+       "cancel": 330,
+       "job": 1232,
+       "receipt": 1096,
+       "result": 1166,
+       "status": 1048
+      },
+      "frames_per_request": 23.94,
+      "cpu_us_per_frame": 1815.9,
+      "cpu_ms_per_request": 43.48,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 7,
+       "/v1/peers": 181,
+       "/v1/reliability": 181
+      },
+      "http_peers_per_s": 9.81,
+      "loop_lag_ms": {
+       "n": 332,
+       "p50": 6.68,
+       "p99": 512.593,
+       "max": 1079.023
+      },
+      "jobs_retained": 3094,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.017,
+     "requester_workers_cpu_util": 0.121,
+     "phase": {
+      "rate": 20,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.9,
+       "util": 0.67,
+       "serving": 1024
+      },
+      {
+       "t": 6.0,
+       "util": 0.57,
+       "serving": 1024
+      },
+      {
+       "t": 8.0,
+       "util": 0.39,
+       "serving": 1024
+      },
+      {
+       "t": 11.0,
+       "util": 0.81,
+       "serving": 1024
+      },
+      {
+       "t": 15.3,
+       "util": 0.89,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 98.8
+  },
+  {
+   "scenario": {
+    "name": "tput_n1024_rtt100",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.025,
+    "peers_ttl_s": 2.0,
+    "req_workers": 3,
+    "gateways_per_worker": 8,
+    "pause_s": 5.0
+   },
+   "setup_s": 14.1,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 15.625,
+    "peers_encode_ms": 26.041666666666668,
+    "peers_ms": 41.666666666666664,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 65,
+     "ok": 65,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8615,
+     "accuracy_all": 0.8615,
+     "latency_s": {
+      "p50": 0.627,
+      "p95": 1.256,
+      "p99": 1.484,
+      "mean": 0.646,
+      "max": 1.569
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.185,
+     "peers_answered_hist": {
+      "2": 15,
+      "3": 23,
+      "4": 27
+     },
+     "early_stop_frac": 0.569,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 207,
+      "annulé": 52,
+      "erreur": 1
+     },
+     "peer_errors": {
+      "peer_busy": 1
+     },
+     "offered_rps": 4.333,
+     "goodput_rps": 4.257,
+     "drain_s": 0.268,
+     "tracker": {
+      "cpu_s": 3.188,
+      "wall_s": 16.473,
+      "cpu_util": 0.194,
+      "frames_in": 1889,
+      "frames_out": 532,
+      "frames_in_by_type": {
+       "cancel": 52,
+       "job": 260,
+       "receipt": 259,
+       "result": 270,
+       "status": 1048
+      },
+      "frames_per_request": 37.25,
+      "cpu_us_per_frame": 1316.6,
+      "cpu_ms_per_request": 49.04,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 39,
+       "/v1/reliability": 39
+      },
+      "http_peers_per_s": 2.37,
+      "loop_lag_ms": {
+       "n": 586,
+       "p50": 10.201,
+       "p99": 78.85,
+       "max": 365.338
+      },
+      "jobs_retained": 270,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.01,
+     "requester_workers_cpu_util": 0.044,
+     "phase": {
+      "rate": 5,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.18,
+       "serving": 1024
+      },
+      {
+       "t": 5.4,
+       "util": 0.3,
+       "serving": 1024
+      },
+      {
+       "t": 7.7,
+       "util": 0.25,
+       "serving": 1024
+      },
+      {
+       "t": 9.9,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 12.0,
+       "util": 0.18,
+       "serving": 1024
+      },
+      {
+       "t": 14.1,
+       "util": 0.17,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 149,
+     "ok": 149,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9329,
+     "accuracy_all": 0.9329,
+     "latency_s": {
+      "p50": 0.764,
+      "p95": 2.744,
+      "p99": 3.61,
+      "mean": 1.106,
+      "max": 3.933
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.859,
+     "peers_answered_hist": {
+      "2": 62,
+      "3": 46,
+      "4": 41
+     },
+     "early_stop_frac": 0.658,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 426,
+      "annulé": 152,
+      "erreur": 18
+     },
+     "peer_errors": {
+      "peer_busy": 18
+     },
+     "offered_rps": 9.933,
+     "goodput_rps": 9.606,
+     "drain_s": 0.511,
+     "tracker": {
+      "cpu_s": 7.328,
+      "wall_s": 16.681,
+      "cpu_util": 0.439,
+      "frames_in": 3715,
+      "frames_out": 1219,
+      "frames_in_by_type": {
+       "cancel": 152,
+       "job": 596,
+       "receipt": 578,
+       "result": 614,
+       "status": 1775
+      },
+      "frames_per_request": 33.11,
+      "cpu_us_per_frame": 1485.2,
+      "cpu_ms_per_request": 49.18,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 95,
+       "/v1/reliability": 95
+      },
+      "http_peers_per_s": 5.7,
+      "loop_lag_ms": {
+       "n": 490,
+       "p50": 7.49,
+       "p99": 202.649,
+       "max": 860.256
+      },
+      "jobs_retained": 884,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.017,
+     "requester_workers_cpu_util": 0.065,
+     "phase": {
+      "rate": 10,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.5,
+       "util": 0.68,
+       "serving": 1024
+      },
+      {
+       "t": 5.7,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 7.9,
+       "util": 0.17,
+       "serving": 1024
+      },
+      {
+       "t": 10.5,
+       "util": 0.39,
+       "serving": 1024
+      },
+      {
+       "t": 13.2,
+       "util": 0.85,
+       "serving": 1024
+      },
+      {
+       "t": 15.3,
+       "util": 0.3,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 223,
+     "ok": 223,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9417,
+     "accuracy_all": 0.9417,
+     "latency_s": {
+      "p50": 0.687,
+      "p95": 1.323,
+      "p99": 1.385,
+      "mean": 0.707,
+      "max": 1.418
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.969,
+     "peers_answered_hist": {
+      "2": 76,
+      "3": 78,
+      "4": 69
+     },
+     "early_stop_frac": 0.65,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 662,
+      "erreur": 21,
+      "annulé": 209
+     },
+     "peer_errors": {
+      "peer_busy": 21
+     },
+     "offered_rps": 14.867,
+     "goodput_rps": 14.213,
+     "drain_s": 0.69,
+     "tracker": {
+      "cpu_s": 8.484,
+      "wall_s": 16.817,
+      "cpu_util": 0.505,
+      "frames_in": 3957,
+      "frames_out": 1827,
+      "frames_in_by_type": {
+       "cancel": 209,
+       "job": 892,
+       "receipt": 869,
+       "result": 922,
+       "status": 1065
+      },
+      "frames_per_request": 25.94,
+      "cpu_us_per_frame": 1466.9,
+      "cpu_ms_per_request": 38.05,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 111,
+       "/v1/reliability": 111
+      },
+      "http_peers_per_s": 6.6,
+      "loop_lag_ms": {
+       "n": 565,
+       "p50": 4.387,
+       "p99": 107.946,
+       "max": 177.67
+      },
+      "jobs_retained": 1806,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.022,
+     "requester_workers_cpu_util": 0.094,
+     "phase": {
+      "rate": 15,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.4,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 5.5,
+       "util": 0.56,
+       "serving": 1024
+      },
+      {
+       "t": 7.7,
+       "util": 0.44,
+       "serving": 1024
+      },
+      {
+       "t": 9.8,
+       "util": 0.53,
+       "serving": 1024
+      },
+      {
+       "t": 12.1,
+       "util": 0.74,
+       "serving": 1024
+      },
+      {
+       "t": 14.4,
+       "util": 0.61,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 308,
+     "ok": 308,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9091,
+     "accuracy_all": 0.9091,
+     "latency_s": {
+      "p50": 6.338,
+      "p95": 8.621,
+      "p99": 8.768,
+      "mean": 5.563,
+      "max": 8.804
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.942,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 101,
+      "3": 115,
+      "4": 89
+     },
+     "early_stop_frac": 0.607,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 906,
+      "erreur": 58,
+      "annulé": 268
+     },
+     "peer_errors": {
+      "peer_busy": 58
+     },
+     "offered_rps": 20.533,
+     "goodput_rps": 15.213,
+     "drain_s": 5.246,
+     "tracker": {
+      "cpu_s": 18.875,
+      "wall_s": 21.379,
+      "cpu_util": 0.883,
+      "frames_in": 5983,
+      "frames_out": 2477,
+      "frames_in_by_type": {
+       "cancel": 268,
+       "job": 1232,
+       "receipt": 1169,
+       "result": 1242,
+       "status": 2072
+      },
+      "frames_per_request": 27.47,
+      "cpu_us_per_frame": 2231.1,
+      "cpu_ms_per_request": 61.28,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 6,
+       "/v1/peers": 282,
+       "/v1/reliability": 282
+      },
+      "http_peers_per_s": 13.19,
+      "loop_lag_ms": {
+       "n": 171,
+       "p50": 11.872,
+       "p99": 604.939,
+       "max": 790.987
+      },
+      "jobs_retained": 3049,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.017,
+     "requester_workers_cpu_util": 0.147,
+     "phase": {
+      "rate": 20,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 4.9,
+       "util": 0.94,
+       "serving": 1024
+      },
+      {
+       "t": 8.5,
+       "util": 0.96,
+       "serving": 1024
+      },
+      {
+       "t": 17.0,
+       "util": 0.95,
+       "serving": 1024
+      },
+      {
+       "t": 19.8,
+       "util": 0.88,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 105.7
+  },
+  {
+   "scenario": {
+    "name": "tput_n1024_rtt0_ttl30",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.025,
+    "peers_ttl_s": 30.0,
+    "req_workers": 3,
+    "gateways_per_worker": 8,
+    "pause_s": 5.0
+   },
+   "setup_s": 12.4,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 20.833333333333332,
+    "peers_encode_ms": 20.833333333333332,
+    "peers_ms": 41.666666666666664,
+    "reliability_ms": 5.208333333333333
+   },
+   "phases": [
+    {
+     "requests": 65,
+     "ok": 65,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9385,
+     "accuracy_all": 0.9385,
+     "latency_s": {
+      "p50": 0.138,
+      "p95": 0.276,
+      "p99": 0.328,
+      "mean": 0.155,
+      "max": 0.386
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.123,
+     "peers_answered_hist": {
+      "2": 16,
+      "3": 25,
+      "4": 24
+     },
+     "early_stop_frac": 0.631,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 203,
+      "annulé": 57
+     },
+     "peer_errors": {},
+     "offered_rps": 4.333,
+     "goodput_rps": 4.332,
+     "drain_s": 0.003,
+     "tracker": {
+      "cpu_s": 1.203,
+      "wall_s": 16.039,
+      "cpu_util": 0.075,
+      "frames_in": 1812,
+      "frames_out": 534,
+      "frames_in_by_type": {
+       "cancel": 57,
+       "job": 260,
+       "receipt": 218,
+       "result": 229,
+       "status": 1048
+      },
+      "frames_per_request": 36.09,
+      "cpu_us_per_frame": 512.8,
+      "cpu_ms_per_request": 18.51,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 7,
+       "/v1/reliability": 7
+      },
+      "http_peers_per_s": 0.44,
+      "loop_lag_ms": {
+       "n": 619,
+       "p50": 10.491,
+       "p99": 25.448,
+       "max": 32.398
+      },
+      "jobs_retained": 271,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.011,
+     "requester_workers_cpu_util": 0.019,
+     "phase": {
+      "rate": 5,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.14,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.15,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.03,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.08,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.01,
+       "serving": 1024
+      },
+      {
+       "t": 13.2,
+       "util": 0.13,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 149,
+     "ok": 149,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.953,
+     "accuracy_all": 0.953,
+     "latency_s": {
+      "p50": 0.135,
+      "p95": 0.249,
+      "p99": 0.298,
+      "mean": 0.145,
+      "max": 0.333
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.067,
+     "peers_answered_hist": {
+      "2": 42,
+      "3": 55,
+      "4": 52
+     },
+     "early_stop_frac": 0.651,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 457,
+      "annulé": 138,
+      "erreur": 1
+     },
+     "peer_errors": {
+      "peer_busy": 1
+     },
+     "offered_rps": 9.933,
+     "goodput_rps": 9.922,
+     "drain_s": 0.017,
+     "tracker": {
+      "cpu_s": 1.859,
+      "wall_s": 16.04,
+      "cpu_util": 0.116,
+      "frames_in": 2770,
+      "frames_out": 1231,
+      "frames_in_by_type": {
+       "cancel": 138,
+       "job": 596,
+       "receipt": 475,
+       "result": 513,
+       "status": 1048
+      },
+      "frames_per_request": 26.85,
+      "cpu_us_per_frame": 464.7,
+      "cpu_ms_per_request": 12.48,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 10,
+       "/v1/reliability": 10
+      },
+      "http_peers_per_s": 0.62,
+      "loop_lag_ms": {
+       "n": 668,
+       "p50": 8.148,
+       "p99": 40.857,
+       "max": 58.174
+      },
+      "jobs_retained": 904,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.016,
+     "requester_workers_cpu_util": 0.028,
+     "phase": {
+      "rate": 10,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.05,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.05,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.12,
+       "serving": 1024
+      },
+      {
+       "t": 9.1,
+       "util": 0.05,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.25,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.17,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 223,
+     "ok": 223,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9417,
+     "accuracy_all": 0.9417,
+     "latency_s": {
+      "p50": 0.134,
+      "p95": 0.22,
+      "p99": 0.275,
+      "mean": 0.139,
+      "max": 0.29
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.031,
+     "peers_answered_hist": {
+      "2": 75,
+      "3": 66,
+      "4": 82
+     },
+     "early_stop_frac": 0.619,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 676,
+      "annulé": 210,
+      "erreur": 6
+     },
+     "peer_errors": {
+      "peer_busy": 6
+     },
+     "offered_rps": 14.867,
+     "goodput_rps": 14.859,
+     "drain_s": 0.008,
+     "tracker": {
+      "cpu_s": 2.531,
+      "wall_s": 16.03,
+      "cpu_util": 0.158,
+      "frames_in": 3648,
+      "frames_out": 1836,
+      "frames_in_by_type": {
+       "cancel": 210,
+       "job": 892,
+       "receipt": 724,
+       "result": 774,
+       "status": 1048
+      },
+      "frames_per_request": 24.59,
+      "cpu_us_per_frame": 461.6,
+      "cpu_ms_per_request": 11.35,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 6,
+       "/v1/reliability": 6
+      },
+      "http_peers_per_s": 0.37,
+      "loop_lag_ms": {
+       "n": 723,
+       "p50": 3.169,
+       "p99": 24.457,
+       "max": 57.718
+      },
+      "jobs_retained": 1840,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.025,
+     "requester_workers_cpu_util": 0.036,
+     "phase": {
+      "rate": 15,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.09,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.14,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.1,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.09,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.43,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.11,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 308,
+     "ok": 308,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9416,
+     "accuracy_all": 0.9416,
+     "latency_s": {
+      "p50": 0.129,
+      "p95": 0.256,
+      "p99": 0.446,
+      "mean": 0.146,
+      "max": 0.563
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.003,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 109,
+      "3": 86,
+      "4": 112
+     },
+     "early_stop_frac": 0.623,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 925,
+      "erreur": 12,
+      "annulé": 295
+     },
+     "peer_errors": {
+      "peer_busy": 12
+     },
+     "offered_rps": 20.533,
+     "goodput_rps": 20.42,
+     "drain_s": 0.084,
+     "tracker": {
+      "cpu_s": 3.141,
+      "wall_s": 16.107,
+      "cpu_util": 0.195,
+      "frames_in": 4653,
+      "frames_out": 2541,
+      "frames_in_by_type": {
+       "cancel": 295,
+       "job": 1232,
+       "receipt": 1003,
+       "result": 1075,
+       "status": 1048
+      },
+      "frames_per_request": 23.36,
+      "cpu_us_per_frame": 436.6,
+      "cpu_ms_per_request": 10.2,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 12,
+       "/v1/reliability": 12
+      },
+      "http_peers_per_s": 0.75,
+      "loop_lag_ms": {
+       "n": 744,
+       "p50": 0.0,
+       "p99": 46.308,
+       "max": 71.869
+      },
+      "jobs_retained": 3132,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.02,
+     "requester_workers_cpu_util": 0.047,
+     "phase": {
+      "rate": 20,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.14,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.17,
+       "serving": 1024
+      },
+      {
+       "t": 7.2,
+       "util": 0.17,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.18,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.26,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.07,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 384,
+     "ok": 384,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9505,
+     "accuracy_all": 0.9505,
+     "latency_s": {
+      "p50": 0.126,
+      "p95": 0.234,
+      "p99": 0.318,
+      "mean": 0.139,
+      "max": 0.372
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.938,
+     "peers_answered_hist": {
+      "2": 132,
+      "3": 144,
+      "4": 108
+     },
+     "early_stop_frac": 0.69,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1128,
+      "annulé": 388,
+      "erreur": 20
+     },
+     "peer_errors": {
+      "peer_busy": 20
+     },
+     "offered_rps": 25.6,
+     "goodput_rps": 25.449,
+     "drain_s": 0.089,
+     "tracker": {
+      "cpu_s": 3.859,
+      "wall_s": 16.113,
+      "cpu_util": 0.24,
+      "frames_in": 5629,
+      "frames_out": 3152,
+      "frames_in_by_type": {
+       "cancel": 388,
+       "job": 1536,
+       "receipt": 1212,
+       "result": 1294,
+       "status": 1199
+      },
+      "frames_per_request": 22.87,
+      "cpu_us_per_frame": 439.5,
+      "cpu_ms_per_request": 10.05,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 14,
+       "/v1/reliability": 14
+      },
+      "http_peers_per_s": 0.87,
+      "loop_lag_ms": {
+       "n": 773,
+       "p50": 0.0,
+       "p99": 41.009,
+       "max": 77.173
+      },
+      "jobs_retained": 4732,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.029,
+     "requester_workers_cpu_util": 0.058,
+     "phase": {
+      "rate": 25,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.32,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.32,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.2,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.22,
+       "serving": 1024
+      },
+      {
+       "t": 11.3,
+       "util": 0.28,
+       "serving": 1024
+      },
+      {
+       "t": 13.3,
+       "util": 0.19,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 456,
+     "ok": 456,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9232,
+     "accuracy_all": 0.9232,
+     "latency_s": {
+      "p50": 0.126,
+      "p95": 0.235,
+      "p99": 0.298,
+      "mean": 0.136,
+      "max": 0.404
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.002,
+     "peers_answered_hist": {
+      "2": 152,
+      "3": 151,
+      "4": 153
+     },
+     "early_stop_frac": 0.647,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1369,
+      "annulé": 439,
+      "erreur": 16
+     },
+     "peer_errors": {
+      "peer_busy": 16
+     },
+     "offered_rps": 30.4,
+     "goodput_rps": 30.049,
+     "drain_s": 0.175,
+     "tracker": {
+      "cpu_s": 3.938,
+      "wall_s": 16.197,
+      "cpu_util": 0.243,
+      "frames_in": 6303,
+      "frames_out": 3728,
+      "frames_in_by_type": {
+       "cancel": 439,
+       "job": 1824,
+       "receipt": 1458,
+       "result": 1534,
+       "status": 1048
+      },
+      "frames_per_request": 22.0,
+      "cpu_us_per_frame": 392.5,
+      "cpu_ms_per_request": 8.63,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 10,
+       "/v1/reliability": 10
+      },
+      "http_peers_per_s": 0.62,
+      "loop_lag_ms": {
+       "n": 778,
+       "p50": 0.0,
+       "p99": 40.76,
+       "max": 55.135
+      },
+      "jobs_retained": 6616,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.034,
+     "requester_workers_cpu_util": 0.064,
+     "phase": {
+      "rate": 30,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.0,
+       "util": 0.31,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.25,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.27,
+       "serving": 1024
+      },
+      {
+       "t": 9.1,
+       "util": 0.26,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.25,
+       "serving": 1024
+      },
+      {
+       "t": 13.2,
+       "util": 0.2,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 598,
+     "ok": 598,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9365,
+     "accuracy_all": 0.9365,
+     "latency_s": {
+      "p50": 0.132,
+      "p95": 0.278,
+      "p99": 0.598,
+      "mean": 0.15,
+      "max": 0.736
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.992,
+     "peers_answered_hist": {
+      "1": 2,
+      "2": 198,
+      "3": 201,
+      "4": 197
+     },
+     "early_stop_frac": 0.622,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 1789,
+      "annulé": 557,
+      "erreur": 46
+     },
+     "peer_errors": {
+      "peer_busy": 46
+     },
+     "offered_rps": 39.867,
+     "goodput_rps": 39.28,
+     "drain_s": 0.224,
+     "tracker": {
+      "cpu_s": 5.562,
+      "wall_s": 16.248,
+      "cpu_util": 0.342,
+      "frames_in": 8232,
+      "frames_out": 4909,
+      "frames_in_by_type": {
+       "cancel": 557,
+       "job": 2392,
+       "receipt": 1951,
+       "result": 2087,
+       "status": 1245
+      },
+      "frames_per_request": 21.97,
+      "cpu_us_per_frame": 423.3,
+      "cpu_ms_per_request": 9.3,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 16,
+       "/v1/reliability": 16
+      },
+      "http_peers_per_s": 0.98,
+      "loop_lag_ms": {
+       "n": 792,
+       "p50": 0.0,
+       "p99": 51.298,
+       "max": 157.74
+      },
+      "jobs_retained": 9098,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.045,
+     "requester_workers_cpu_util": 0.093,
+     "phase": {
+      "rate": 40,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.37,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.31,
+       "serving": 1024
+      },
+      {
+       "t": 9.2,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 11.2,
+       "util": 0.31,
+       "serving": 1024
+      },
+      {
+       "t": 13.2,
+       "util": 0.3,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 789,
+     "ok": 789,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9176,
+     "accuracy_all": 0.9176,
+     "latency_s": {
+      "p50": 0.147,
+      "p95": 0.662,
+      "p99": 1.409,
+      "mean": 0.219,
+      "max": 1.601
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.949,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 278,
+      "3": 264,
+      "4": 244
+     },
+     "early_stop_frac": 0.645,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2327,
+      "annulé": 742,
+      "erreur": 87
+     },
+     "peer_errors": {
+      "peer_busy": 87
+     },
+     "offered_rps": 52.6,
+     "goodput_rps": 51.761,
+     "drain_s": 0.243,
+     "tracker": {
+      "cpu_s": 7.984,
+      "wall_s": 16.267,
+      "cpu_util": 0.491,
+      "frames_in": 10342,
+      "frames_out": 6433,
+      "frames_in_by_type": {
+       "cancel": 742,
+       "job": 3156,
+       "receipt": 2609,
+       "result": 2771,
+       "status": 1064
+      },
+      "frames_per_request": 21.26,
+      "cpu_us_per_frame": 476.0,
+      "cpu_ms_per_request": 10.12,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 29,
+       "/v1/reliability": 29
+      },
+      "http_peers_per_s": 1.78,
+      "loop_lag_ms": {
+       "n": 701,
+       "p50": 0.0,
+       "p99": 115.663,
+       "max": 229.887
+      },
+      "jobs_retained": 12329,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.052,
+     "requester_workers_cpu_util": 0.121,
+     "phase": {
+      "rate": 50,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.46,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.49,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.37,
+       "serving": 1024
+      },
+      {
+       "t": 9.3,
+       "util": 0.52,
+       "serving": 1024
+      },
+      {
+       "t": 11.4,
+       "util": 0.88,
+       "serving": 1024
+      },
+      {
+       "t": 13.4,
+       "util": 0.38,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 930,
+     "ok": 930,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9237,
+     "accuracy_all": 0.9237,
+     "latency_s": {
+      "p50": 0.14,
+      "p95": 0.258,
+      "p99": 0.365,
+      "mean": 0.151,
+      "max": 0.54
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.97,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 317,
+      "3": 315,
+      "4": 295
+     },
+     "early_stop_frac": 0.634,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 2762,
+      "annulé": 869,
+      "erreur": 89
+     },
+     "peer_errors": {
+      "peer_busy": 89
+     },
+     "offered_rps": 62.0,
+     "goodput_rps": 61.539,
+     "drain_s": 0.112,
+     "tracker": {
+      "cpu_s": 8.234,
+      "wall_s": 16.137,
+      "cpu_util": 0.51,
+      "frames_in": 11921,
+      "frames_out": 7642,
+      "frames_in_by_type": {
+       "cancel": 869,
+       "job": 3720,
+       "receipt": 3042,
+       "result": 3242,
+       "status": 1048
+      },
+      "frames_per_request": 21.04,
+      "cpu_us_per_frame": 420.9,
+      "cpu_ms_per_request": 8.85,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 8,
+       "/v1/peers": 12,
+       "/v1/reliability": 12
+      },
+      "http_peers_per_s": 0.74,
+      "loop_lag_ms": {
+       "n": 802,
+       "p50": 0.0,
+       "p99": 55.107,
+       "max": 141.622
+      },
+      "jobs_retained": 16160,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.058,
+     "requester_workers_cpu_util": 0.125,
+     "phase": {
+      "rate": 60,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.5,
+       "serving": 1024
+      },
+      {
+       "t": 5.1,
+       "util": 0.65,
+       "serving": 1024
+      },
+      {
+       "t": 7.1,
+       "util": 0.48,
+       "serving": 1024
+      },
+      {
+       "t": 9.3,
+       "util": 0.53,
+       "serving": 1024
+      },
+      {
+       "t": 11.4,
+       "util": 0.65,
+       "serving": 1024
+      },
+      {
+       "t": 13.4,
+       "util": 0.49,
+       "serving": 1024
+      }
+     ]
+    },
+    {
+     "requests": 1170,
+     "ok": 1170,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9,
+     "accuracy_all": 0.9,
+     "latency_s": {
+      "p50": 0.943,
+      "p95": 1.857,
+      "p99": 6.892,
+      "mean": 1.084,
+      "max": 7.385
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.726,
+     "peers_answered_hist": {
+      "1": 62,
+      "2": 437,
+      "3": 430,
+      "4": 241
+     },
+     "early_stop_frac": 0.597,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 3190,
+      "annulé": 953,
+      "erreur": 537
+     },
+     "peer_errors": {
+      "peer_busy": 537
+     },
+     "offered_rps": 78.0,
+     "goodput_rps": 77.102,
+     "drain_s": 0.175,
+     "tracker": {
+      "cpu_s": 11.922,
+      "wall_s": 16.202,
+      "cpu_util": 0.736,
+      "frames_in": 14889,
+      "frames_out": 9035,
+      "frames_in_by_type": {
+       "cancel": 953,
+       "job": 4680,
+       "receipt": 4008,
+       "result": 4200,
+       "status": 1048
+      },
+      "frames_per_request": 20.45,
+      "cpu_us_per_frame": 498.3,
+      "cpu_ms_per_request": 10.19,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 6,
+       "/v1/peers": 62,
+       "/v1/reliability": 62
+      },
+      "http_peers_per_s": 3.83,
+      "loop_lag_ms": {
+       "n": 239,
+       "p50": 5.947,
+       "p99": 488.011,
+       "max": 512.593
+      },
+      "jobs_retained": 20495,
+      "conns": 1048
+     },
+     "node_workers_cpu_util": 0.06,
+     "requester_workers_cpu_util": 0.179,
+     "phase": {
+      "rate": 80,
+      "duration": 15,
+      "early_stop": true,
+      "stop_if_saturated": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 8.4,
+       "util": 0.8,
+       "serving": 1024
+      },
+      {
+       "t": 10.8,
+       "util": 0.82,
+       "serving": 1024
+      },
+      {
+       "t": 13.0,
+       "util": 0.74,
+       "serving": 1024
+      },
+      {
+       "t": 15.1,
+       "util": 0.48,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 226.1
+  }
+ ]
+}

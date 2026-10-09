@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Myriad
+GenericName=Decentralised LLM
+GenericName[fr]=LLM décentralisé
+Comment=A myriad of small models, one answer
+Comment[fr]=Une myriade de petits modèles, une seule réponse
+Exec=myriad
+Icon=myriad
+Terminal=false
+Categories=Network;Science;Utility;
+StartupWMClass=Myriad

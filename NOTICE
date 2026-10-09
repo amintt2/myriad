@@ -1,0 +1,19 @@
+Myriad
+Copyright 2026 Myriad contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes the following third-party material:
+
+- Inter (https://rsms.me/inter/) and JetBrains Mono (https://www.jetbrains.com/lp/mono/) fonts,
+  in app/myriad/web/fonts/, under the SIL Open Font License 1.1 (see the OFL-*.txt files there).
+
+The desktop app downloads, at the user's request and after checking their SHA-256 digests:
+
+- the llama.cpp server (https://github.com/ggml-org/llama.cpp), MIT License;
+- open-weight models in GGUF format from Hugging Face, each under its own licence
+  (Apache-2.0 or MIT only; listed in app/myriad/catalog.py).
+
+The packaged applications bundle a Python runtime and Python packages (FastAPI, Starlette, uvicorn,
+httpx, websockets, pydantic, cryptography, huggingface_hub, pywebview, pystray, Pillow and their
+dependencies), each under its own open-source licence.

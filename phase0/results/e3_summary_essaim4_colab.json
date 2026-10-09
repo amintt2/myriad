@@ -1,0 +1,81 @@
+{
+ "peers": [
+  "Qwen/Qwen3-1.7B",
+  "ibm-granite/granite-3.3-2b-instruct",
+  "HuggingFaceTB/SmolLM3-3B",
+  "google/gemma-4-E2B-it"
+ ],
+ "p_dev": [
+  0.68,
+  0.69,
+  0.82,
+  0.7
+ ],
+ "collision": 0.08860759493670886,
+ "weights": {
+  "logodds": [
+   0.7537718023763803,
+   0.8001193001121129,
+   1.5163474893680882,
+   0.8472978603872034
+  ],
+  "logodds_K": [
+   3.1773095057880885,
+   3.223657003523821,
+   3.939885192779796,
+   3.2708355637989115
+  ]
+ },
+ "rules": {
+  "best": {
+   "accuracy": 86.5,
+   "gain_vs_best": "—",
+   "gain_vs_ref": "-4.5 [-10.0 ; +1.0]"
+  },
+  "vote": {
+   "accuracy": 89.0,
+   "gain_vs_best": "+2.5 [-1.5 ; +6.5]",
+   "gain_vs_ref": "-2.0 [-6.5 ; +2.0]"
+  },
+  "logodds": {
+   "accuracy": 89.0,
+   "gain_vs_best": "+2.5 [+0.5 ; +5.0]",
+   "gain_vs_ref": "-2.0 [-6.5 ; +2.5]"
+  },
+  "logodds_K": {
+   "accuracy": 89.0,
+   "gain_vs_best": "+2.5 [+0.0 ; +5.0]",
+   "gain_vs_ref": "-2.0 [-7.0 ; +3.0]"
+  }
+ },
+ "certificate": {
+  "vote": {
+   "waited": 3.305,
+   "peers": 4,
+   "t_cert_s": 4.643992,
+   "t_all_s": 5.131295,
+   "same": 200,
+   "n": 200
+  },
+  "logodds": {
+   "waited": 2.54,
+   "peers": 4,
+   "t_cert_s": 4.334981,
+   "t_all_s": 5.131295,
+   "same": 200,
+   "n": 200
+  },
+  "logodds_K": {
+   "waited": 2.54,
+   "peers": 4,
+   "t_cert_s": 4.334981,
+   "t_all_s": 5.131295,
+   "same": 200,
+   "n": 200
+  }
+ },
+ "reference": {
+  "model": "Qwen/Qwen3-4B",
+  "accuracy": 91.0
+ }
+}

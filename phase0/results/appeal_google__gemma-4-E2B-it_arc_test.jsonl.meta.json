@@ -1,0 +1,41 @@
+{
+  "model": "google/gemma-4-E2B-it",
+  "revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+  "backend": "llama.cpp",
+  "gguf": "gemma-4-E2B-it-Q8_0.gguf",
+  "device": "gpu, all layers offloaded (-ngl 999)",
+  "dtype": "per GGUF file (see weights)",
+  "engine": {
+    "llama-server": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with Clang 20.1.8 for Windows x86_64",
+    "transformers (tokenizer)": "5.19.0"
+  },
+  "weights": {
+    "name": "gemma-4-E2B-it-Q8_0.gguf",
+    "size": 4967497152,
+    "sha256": "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+  },
+  "data": {
+    "dataset": "allenai/ai2_arc",
+    "revision": "210d026faf9955653af8916fad021475a3f00453",
+    "sha256": "5e15b43fbc0c3640414796f28d3e73abc6c6f58863511afbb539857c139b133e"
+  },
+  "bench": "arc",
+  "split": "test",
+  "prompt": "appeal-v1",
+  "template_date": "2026-10-08",
+  "temperatures": [
+    5.6582487129588035,
+    3.9030419656222852,
+    2.0003286646888854,
+    4.5280868258506946
+  ],
+  "temperatures_from": "mc_summary_test.json (fitted on dev)",
+  "pass": 0,
+  "experts": [
+    "Qwen/Qwen3-1.7B@_gpu",
+    "ibm-granite/granite-3.3-2b-instruct@_gpu",
+    "HuggingFaceTB/SmolLM3-3B@_colab",
+    "google/gemma-4-E2B-it@_gpu"
+  ],
+  "questions_total": 300
+}

@@ -1,0 +1,9 @@
+{
+  "_source": "measured single-stream decoding speed (llama-bench tg128), Q8_0, AMD RX 6650 XT 8 GB (the project PC), tokens per second; models absent here use --default-speed",
+  "Qwen/Qwen3-1.7B": 93,
+  "ibm-granite/granite-4.2-3b": 56,
+  "google/gemma-4-E2B-it": 53,
+  "Qwen/Qwen3-4B": 46,
+  "HuggingFaceTB/SmolLM3-3B": 37,
+  "Qwen/Qwen3.5-2B": 36
+}

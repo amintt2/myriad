@@ -1,0 +1,3837 @@
+{
+ "experiment": "E7",
+ "plan": "scale",
+ "date": "2026-10-09 12:44:10",
+ "machine": {
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+  "cpus": 12
+ },
+ "settings": {
+  "gateway_timeout_s": 60.0,
+  "starter_credit": 1000000000.0,
+  "answer_model": {
+   "collision": 0.09,
+   "popular_share": 0.3
+  },
+  "compute_model": {
+   "median_s": 4.06,
+   "sigma": 0.36,
+   "per_family_medians": {
+    "smollm": 3.54,
+    "gemma": 5.02,
+    "qwen": 3.91,
+    "granite": 3.91
+   }
+  },
+  "families": [
+   {
+    "family": "smollm",
+    "model": "HuggingFaceTB/SmolLM3-3B-GGUF",
+    "accuracy": 0.865,
+    "median_s": 3.54,
+    "params_b": 3.1,
+    "measured": true
+   },
+   {
+    "family": "gemma",
+    "model": "ggml-org/gemma-4-E2B-it-GGUF",
+    "accuracy": 0.74,
+    "median_s": 5.02,
+    "params_b": 2.0,
+    "measured": true
+   },
+   {
+    "family": "qwen",
+    "model": "Qwen/Qwen3-1.7B-GGUF",
+    "accuracy": 0.535,
+    "median_s": 3.91,
+    "params_b": 1.7,
+    "measured": true
+   },
+   {
+    "family": "granite",
+    "model": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+    "accuracy": 0.495,
+    "median_s": 3.91,
+    "params_b": 2.5,
+    "measured": true
+   },
+   {
+    "family": "synth5",
+    "model": "bench/synth5-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth6",
+    "model": "bench/synth6-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   },
+   {
+    "family": "synth7",
+    "model": "bench/synth7-2b",
+    "accuracy": 0.45,
+    "median_s": 4.06,
+    "params_b": 2.0,
+    "measured": false
+   }
+  ],
+  "node_max_parallel": 1,
+  "wan_sigma": 0.25,
+  "gateway_peers_ttl_s": 2.0,
+  "tracker": "production defaults (spot_rate 0.05, sweep 0.25 s, job TTL 600 s), SQLite on disk"
+ },
+ "scenarios": [
+  {
+   "scenario": {
+    "name": "scale_n4_rtt0",
+    "nodes": 4,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.7,
+   "directory_cost": {
+    "peers": 4,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 46,
+     "failed": 4,
+     "fail_codes": {
+      "no_peers": 4
+     },
+     "accuracy_ok": 1,
+     "accuracy_all": 0.92,
+     "latency_s": {
+      "p50": 0.49,
+      "p95": 0.77,
+      "p99": 0.992,
+      "mean": 0.516,
+      "max": 1.077
+     },
+     "peers_asked_mean": 3.978,
+     "peers_answered_mean": 2.935,
+     "peers_answered_hist": {
+      "2": 17,
+      "3": 15,
+      "4": 14
+     },
+     "early_stop_frac": 0.674,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 135,
+      "annulé": 48
+     },
+     "peer_errors": {},
+     "offered_rps": 0.5,
+     "goodput_rps": 0.46,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 0.953,
+      "wall_s": 99.814,
+      "cpu_util": 0.01,
+      "frames_in": 583,
+      "frames_out": 366,
+      "frames_in_by_type": {
+       "cancel": 48,
+       "job": 183,
+       "receipt": 140,
+       "result": 140,
+       "status": 72
+      },
+      "frames_per_request": 18.98,
+      "cpu_us_per_frame": 1004.3,
+      "cpu_ms_per_request": 19.06,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 50,
+       "/v1/peers": 33,
+       "/v1/reliability": 33
+      },
+      "http_peers_per_s": 0.33,
+      "loop_lag_ms": {
+       "n": 3335,
+       "p50": 10.985,
+       "p99": 12.496,
+       "max": 23.514
+      },
+      "jobs_retained": 183,
+      "conns": 12
+     },
+     "node_workers_cpu_util": 0.002,
+     "requester_workers_cpu_util": 0.009,
+     "phase": {
+      "rate": 0.6,
+      "duration": 100.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 5.1,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 7.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 9.1,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 11.2,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 13.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 15.2,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 17.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 19.3,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 21.4,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 23.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 25.4,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 27.4,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 29.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 31.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 33.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 35.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 37.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 39.6,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 41.6,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 43.7,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 45.7,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 47.7,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 49.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 51.8,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 53.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 55.8,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 57.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 59.9,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 61.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 63.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 66.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 68.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 70.0,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 72.0,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 74.1,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 76.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 78.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 80.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 82.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 84.2,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 86.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 88.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 90.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 92.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 94.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 96.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 98.4,
+       "util": 0.02,
+       "serving": 4
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 118.2
+  },
+  {
+   "scenario": {
+    "name": "scale_n4_rtt50",
+    "nodes": 4,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.1,
+   "directory_cost": {
+    "peers": 4,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 44,
+     "failed": 6,
+     "fail_codes": {
+      "no_peers": 5,
+      "no_answer": 1
+     },
+     "accuracy_ok": 1,
+     "accuracy_all": 0.88,
+     "latency_s": {
+      "p50": 0.708,
+      "p95": 1.102,
+      "p99": 1.269,
+      "mean": 0.732,
+      "max": 1.333
+     },
+     "peers_asked_mean": 3.795,
+     "peers_answered_mean": 2.773,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 16,
+      "3": 13,
+      "4": 12
+     },
+     "early_stop_frac": 0.636,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 122,
+      "annulé": 43,
+      "erreur": 2
+     },
+     "peer_errors": {
+      "peer_busy": 2
+     },
+     "offered_rps": 0.5,
+     "goodput_rps": 0.44,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 1.188,
+      "wall_s": 100.108,
+      "cpu_util": 0.012,
+      "frames_in": 568,
+      "frames_out": 343,
+      "frames_in_by_type": {
+       "cancel": 43,
+       "job": 171,
+       "receipt": 141,
+       "result": 141,
+       "status": 72
+      },
+      "frames_per_request": 18.22,
+      "cpu_us_per_frame": 1303.5,
+      "cpu_ms_per_request": 23.75,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 48,
+       "/v1/peers": 38,
+       "/v1/reliability": 38
+      },
+      "http_peers_per_s": 0.38,
+      "loop_lag_ms": {
+       "n": 3361,
+       "p50": 11.023,
+       "p99": 13.152,
+       "max": 26.697
+      },
+      "jobs_retained": 165,
+      "conns": 12
+     },
+     "node_workers_cpu_util": 0.002,
+     "requester_workers_cpu_util": 0.01,
+     "phase": {
+      "rate": 0.6,
+      "duration": 100.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 5.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 7.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 9.4,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 11.5,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 13.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 15.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 17.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 19.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 22.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 24.0,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 26.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 28.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 30.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 32.4,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 34.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 36.6,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 38.7,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 40.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 42.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 45.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 47.1,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 49.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 51.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 53.3,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 55.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 57.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 59.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 61.7,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 63.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 65.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 67.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 70.0,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 72.1,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 74.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 76.3,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 78.4,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 80.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 82.6,
+       "util": 0.12,
+       "serving": 4
+      },
+      {
+       "t": 84.7,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 86.8,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 88.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 91.0,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 93.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 95.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 97.2,
+       "util": 0.0,
+       "serving": 4
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 118.0
+  },
+  {
+   "scenario": {
+    "name": "scale_n4_rtt100",
+    "nodes": 4,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.2,
+   "directory_cost": {
+    "peers": 4,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 43,
+     "failed": 7,
+     "fail_codes": {
+      "no_peers": 6,
+      "no_answer": 1
+     },
+     "accuracy_ok": 0.9302,
+     "accuracy_all": 0.8,
+     "latency_s": {
+      "p50": 0.898,
+      "p95": 1.231,
+      "p99": 1.453,
+      "mean": 0.9,
+      "max": 1.479
+     },
+     "peers_asked_mean": 3.674,
+     "peers_answered_mean": 2.791,
+     "peers_answered_hist": {
+      "1": 4,
+      "2": 12,
+      "3": 16,
+      "4": 11
+     },
+     "early_stop_frac": 0.558,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 120,
+      "annulé": 35,
+      "erreur": 3
+     },
+     "peer_errors": {
+      "peer_busy": 3
+     },
+     "offered_rps": 0.5,
+     "goodput_rps": 0.43,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 1.406,
+      "wall_s": 100.208,
+      "cpu_util": 0.014,
+      "frames_in": 557,
+      "frames_out": 328,
+      "frames_in_by_type": {
+       "cancel": 35,
+       "job": 162,
+       "receipt": 141,
+       "result": 144,
+       "status": 75
+      },
+      "frames_per_request": 17.7,
+      "cpu_us_per_frame": 1589.0,
+      "cpu_ms_per_request": 28.12,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 47,
+       "/v1/peers": 39,
+       "/v1/reliability": 39
+      },
+      "http_peers_per_s": 0.39,
+      "loop_lag_ms": {
+       "n": 3365,
+       "p50": 10.975,
+       "p99": 12.701,
+       "max": 26.606
+      },
+      "jobs_retained": 155,
+      "conns": 12
+     },
+     "node_workers_cpu_util": 0.003,
+     "requester_workers_cpu_util": 0.01,
+     "phase": {
+      "rate": 0.6,
+      "duration": 100.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 5.4,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 7.5,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 9.7,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 11.8,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 13.9,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 16.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 18.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 20.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 22.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 24.7,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 26.8,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 29.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 31.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 33.2,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 35.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 37.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 39.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 41.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 43.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 46.0,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 48.1,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 50.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 52.4,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 54.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 56.7,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 58.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 60.9,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 63.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 65.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 67.3,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 69.4,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 71.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 73.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 75.8,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 77.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 80.0,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 82.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 84.3,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 86.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 88.5,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 90.7,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 92.8,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 94.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 97.1,
+       "util": 0.01,
+       "serving": 4
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 119.2
+  },
+  {
+   "scenario": {
+    "name": "scale_n4_rtt150",
+    "nodes": 4,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 150,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.0,
+   "directory_cost": {
+    "peers": 4,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 5.208333333333333
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 40,
+     "failed": 10,
+     "fail_codes": {
+      "no_peers": 7,
+      "no_answer": 3
+     },
+     "accuracy_ok": 0.925,
+     "accuracy_all": 0.74,
+     "latency_s": {
+      "p50": 1.125,
+      "p95": 1.439,
+      "p99": 1.614,
+      "mean": 1.086,
+      "max": 1.659
+     },
+     "peers_asked_mean": 3.75,
+     "peers_answered_mean": 2.75,
+     "peers_answered_hist": {
+      "1": 5,
+      "2": 10,
+      "3": 15,
+      "4": 10
+     },
+     "early_stop_frac": 0.65,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 110,
+      "annulé": 35,
+      "erreur": 5
+     },
+     "peer_errors": {
+      "peer_busy": 5
+     },
+     "offered_rps": 0.5,
+     "goodput_rps": 0.4,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 1.047,
+      "wall_s": 100.595,
+      "cpu_util": 0.01,
+      "frames_in": 554,
+      "frames_out": 318,
+      "frames_in_by_type": {
+       "cancel": 35,
+       "job": 161,
+       "receipt": 139,
+       "result": 143,
+       "status": 76
+      },
+      "frames_per_request": 17.44,
+      "cpu_us_per_frame": 1200.5,
+      "cpu_ms_per_request": 20.94,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 46,
+       "/v1/peers": 39,
+       "/v1/reliability": 39
+      },
+      "http_peers_per_s": 0.39,
+      "loop_lag_ms": {
+       "n": 3390,
+       "p50": 10.889,
+       "p99": 14.933,
+       "max": 26.639
+      },
+      "jobs_retained": 145,
+      "conns": 12
+     },
+     "node_workers_cpu_util": 0.003,
+     "requester_workers_cpu_util": 0.011,
+     "phase": {
+      "rate": 0.6,
+      "duration": 100.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 5.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 7.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 9.8,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 12.0,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 14.2,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 16.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 18.6,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 20.7,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 23.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 25.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 27.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 29.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 31.8,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 34.0,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 36.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 38.4,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 40.7,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 42.9,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 45.1,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 47.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 49.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 51.6,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 53.8,
+       "util": 0.04,
+       "serving": 4
+      },
+      {
+       "t": 56.0,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 58.2,
+       "util": 0.03,
+       "serving": 4
+      },
+      {
+       "t": 60.4,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 62.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 64.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 66.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 69.1,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 71.3,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 73.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 75.7,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 78.0,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 80.2,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 82.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 84.6,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 86.7,
+       "util": 0.02,
+       "serving": 4
+      },
+      {
+       "t": 88.9,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 91.2,
+       "util": 0.0,
+       "serving": 4
+      },
+      {
+       "t": 93.3,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 95.5,
+       "util": 0.01,
+       "serving": 4
+      },
+      {
+       "t": 97.7,
+       "util": 0.0,
+       "serving": 4
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 119.7
+  },
+  {
+   "scenario": {
+    "name": "scale_n16_rtt0",
+    "nodes": 16,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.4,
+   "directory_cost": {
+    "peers": 16,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 50,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.98,
+     "accuracy_all": 0.98,
+     "latency_s": {
+      "p50": 0.453,
+      "p95": 0.75,
+      "p99": 0.961,
+      "mean": 0.478,
+      "max": 1.067
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.74,
+     "peers_answered_hist": {
+      "1": 1,
+      "2": 23,
+      "3": 14,
+      "4": 12
+     },
+     "early_stop_frac": 0.62,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 137,
+      "annulé": 47,
+      "erreur": 16
+     },
+     "peer_errors": {
+      "peer_busy": 16
+     },
+     "offered_rps": 2.0,
+     "goodput_rps": 2.0,
+     "drain_s": 0.0,
+     "tracker": {
+      "cpu_s": 0.562,
+      "wall_s": 25.831,
+      "cpu_util": 0.022,
+      "frames_in": 558,
+      "frames_out": 391,
+      "frames_in_by_type": {
+       "cancel": 47,
+       "job": 200,
+       "receipt": 140,
+       "result": 147,
+       "status": 24
+      },
+      "frames_per_request": 18.98,
+      "cpu_us_per_frame": 592.7,
+      "cpu_ms_per_request": 11.25,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 13,
+       "/v1/peers": 22,
+       "/v1/reliability": 22
+      },
+      "http_peers_per_s": 0.85,
+      "loop_lag_ms": {
+       "n": 919,
+       "p50": 10.785,
+       "p99": 15.162,
+       "max": 23.336
+      },
+      "jobs_retained": 191,
+      "conns": 24
+     },
+     "node_workers_cpu_util": 0.005,
+     "requester_workers_cpu_util": 0.028,
+     "phase": {
+      "rate": 2.4,
+      "duration": 25.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 5.1,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 7.1,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 9.2,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 11.2,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 13.3,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 15.3,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 17.3,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 19.3,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 21.4,
+       "util": 0.0,
+       "serving": 16
+      },
+      {
+       "t": 23.4,
+       "util": 0.03,
+       "serving": 16
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 44.2
+  },
+  {
+   "scenario": {
+    "name": "scale_n16_rtt50",
+    "nodes": 16,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.6,
+   "directory_cost": {
+    "peers": 16,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 50,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9,
+     "accuracy_all": 0.9,
+     "latency_s": {
+      "p50": 0.651,
+      "p95": 0.999,
+      "p99": 1.189,
+      "mean": 0.685,
+      "max": 1.242
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.68,
+     "peers_answered_hist": {
+      "1": 4,
+      "2": 19,
+      "3": 16,
+      "4": 11
+     },
+     "early_stop_frac": 0.66,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 134,
+      "annulé": 46,
+      "erreur": 20
+     },
+     "peer_errors": {
+      "peer_busy": 20
+     },
+     "offered_rps": 2.0,
+     "goodput_rps": 1.985,
+     "drain_s": 0.187,
+     "tracker": {
+      "cpu_s": 0.906,
+      "wall_s": 26.294,
+      "cpu_util": 0.034,
+      "frames_in": 600,
+      "frames_out": 394,
+      "frames_in_by_type": {
+       "cancel": 46,
+       "job": 200,
+       "receipt": 154,
+       "result": 160,
+       "status": 40
+      },
+      "frames_per_request": 19.88,
+      "cpu_us_per_frame": 911.7,
+      "cpu_ms_per_request": 18.12,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 13,
+       "/v1/peers": 24,
+       "/v1/reliability": 24
+      },
+      "http_peers_per_s": 0.91,
+      "loop_lag_ms": {
+       "n": 940,
+       "p50": 10.744,
+       "p99": 21.357,
+       "max": 26.055
+      },
+      "jobs_retained": 186,
+      "conns": 24
+     },
+     "node_workers_cpu_util": 0.008,
+     "requester_workers_cpu_util": 0.033,
+     "phase": {
+      "rate": 2.4,
+      "duration": 25.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.06,
+       "serving": 16
+      },
+      {
+       "t": 5.2,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 7.3,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 9.4,
+       "util": 0.06,
+       "serving": 16
+      },
+      {
+       "t": 11.5,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 13.6,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 15.6,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 17.7,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 19.8,
+       "util": 0.1,
+       "serving": 16
+      },
+      {
+       "t": 21.9,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 24.0,
+       "util": 0.02,
+       "serving": 16
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 45.9
+  },
+  {
+   "scenario": {
+    "name": "scale_n16_rtt100",
+    "nodes": 16,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.7,
+   "directory_cost": {
+    "peers": 16,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 49,
+     "failed": 1,
+     "fail_codes": {
+      "no_answer": 1
+     },
+     "accuracy_ok": 0.898,
+     "accuracy_all": 0.88,
+     "latency_s": {
+      "p50": 0.807,
+      "p95": 1.138,
+      "p99": 1.201,
+      "mean": 0.806,
+      "max": 1.203
+     },
+     "peers_asked_mean": 3.959,
+     "peers_answered_mean": 2.49,
+     "peers_answered_hist": {
+      "1": 5,
+      "2": 24,
+      "3": 11,
+      "4": 9
+     },
+     "early_stop_frac": 0.612,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 122,
+      "annulé": 43,
+      "erreur": 29
+     },
+     "peer_errors": {
+      "peer_busy": 29
+     },
+     "offered_rps": 2.0,
+     "goodput_rps": 1.956,
+     "drain_s": 0.048,
+     "tracker": {
+      "cpu_s": 0.875,
+      "wall_s": 26.194,
+      "cpu_util": 0.033,
+      "frames_in": 589,
+      "frames_out": 376,
+      "frames_in_by_type": {
+       "cancel": 43,
+       "job": 198,
+       "receipt": 151,
+       "result": 157,
+       "status": 40
+      },
+      "frames_per_request": 19.3,
+      "cpu_us_per_frame": 906.7,
+      "cpu_ms_per_request": 17.5,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 13,
+       "/v1/peers": 27,
+       "/v1/reliability": 27
+      },
+      "http_peers_per_s": 1.03,
+      "loop_lag_ms": {
+       "n": 933,
+       "p50": 10.803,
+       "p99": 16.139,
+       "max": 26.461
+      },
+      "jobs_retained": 170,
+      "conns": 24
+     },
+     "node_workers_cpu_util": 0.01,
+     "requester_workers_cpu_util": 0.036,
+     "phase": {
+      "rate": 2.4,
+      "duration": 25.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.07,
+       "serving": 16
+      },
+      {
+       "t": 5.4,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 7.5,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 9.7,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 11.8,
+       "util": 0.04,
+       "serving": 16
+      },
+      {
+       "t": 14.0,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 16.1,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 18.2,
+       "util": 0.05,
+       "serving": 16
+      },
+      {
+       "t": 20.4,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 22.5,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 24.7,
+       "util": 0.02,
+       "serving": 16
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 45.8
+  },
+  {
+   "scenario": {
+    "name": "scale_n16_rtt150",
+    "nodes": 16,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 150,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.2,
+   "directory_cost": {
+    "peers": 16,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 50,
+     "ok": 49,
+     "failed": 1,
+     "fail_codes": {
+      "no_answer": 1
+     },
+     "accuracy_ok": 0.9592,
+     "accuracy_all": 0.94,
+     "latency_s": {
+      "p50": 0.979,
+      "p95": 1.375,
+      "p99": 1.456,
+      "mean": 0.985,
+      "max": 1.507
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.469,
+     "peers_answered_hist": {
+      "1": 10,
+      "2": 18,
+      "3": 9,
+      "4": 12
+     },
+     "early_stop_frac": 0.49,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 121,
+      "annulé": 34,
+      "erreur": 41
+     },
+     "peer_errors": {
+      "peer_busy": 41
+     },
+     "offered_rps": 2.0,
+     "goodput_rps": 1.946,
+     "drain_s": 0.177,
+     "tracker": {
+      "cpu_s": 0.75,
+      "wall_s": 26.316,
+      "cpu_util": 0.029,
+      "frames_in": 568,
+      "frames_out": 365,
+      "frames_in_by_type": {
+       "cancel": 33,
+       "job": 200,
+       "receipt": 144,
+       "result": 151,
+       "status": 40
+      },
+      "frames_per_request": 18.66,
+      "cpu_us_per_frame": 803.9,
+      "cpu_ms_per_request": 15.0,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 13,
+       "/v1/peers": 29,
+       "/v1/reliability": 29
+      },
+      "http_peers_per_s": 1.1,
+      "loop_lag_ms": {
+       "n": 953,
+       "p50": 10.799,
+       "p99": 18.585,
+       "max": 27.042
+      },
+      "jobs_retained": 159,
+      "conns": 24
+     },
+     "node_workers_cpu_util": 0.005,
+     "requester_workers_cpu_util": 0.037,
+     "phase": {
+      "rate": 2.4,
+      "duration": 25.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.05,
+       "serving": 16
+      },
+      {
+       "t": 5.4,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 7.5,
+       "util": 0.05,
+       "serving": 16
+      },
+      {
+       "t": 9.8,
+       "util": 0.03,
+       "serving": 16
+      },
+      {
+       "t": 12.0,
+       "util": 0.02,
+       "serving": 16
+      },
+      {
+       "t": 14.2,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 16.4,
+       "util": 0.05,
+       "serving": 16
+      },
+      {
+       "t": 18.6,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 20.7,
+       "util": 0.06,
+       "serving": 16
+      },
+      {
+       "t": 22.9,
+       "util": 0.01,
+       "serving": 16
+      },
+      {
+       "t": 25.1,
+       "util": 0.03,
+       "serving": 16
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 45.8
+  },
+  {
+   "scenario": {
+    "name": "scale_n64_rtt0",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.4,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 5.208333333333333,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 179,
+     "ok": 179,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8994,
+     "accuracy_all": 0.8994,
+     "latency_s": {
+      "p50": 0.483,
+      "p95": 0.794,
+      "p99": 0.963,
+      "mean": 0.505,
+      "max": 1.239
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.749,
+     "peers_answered_hist": {
+      "1": 15,
+      "2": 58,
+      "3": 63,
+      "4": 43
+     },
+     "early_stop_frac": 0.587,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 492,
+      "annulé": 138,
+      "erreur": 86
+     },
+     "peer_errors": {
+      "peer_busy": 86
+     },
+     "offered_rps": 8.95,
+     "goodput_rps": 8.818,
+     "drain_s": 0.299,
+     "tracker": {
+      "cpu_s": 2.125,
+      "wall_s": 21.33,
+      "cpu_util": 0.1,
+      "frames_in": 1963,
+      "frames_out": 1378,
+      "frames_in_by_type": {
+       "cancel": 138,
+       "job": 716,
+       "receipt": 503,
+       "result": 534,
+       "status": 72
+      },
+      "frames_per_request": 18.66,
+      "cpu_us_per_frame": 636.0,
+      "cpu_ms_per_request": 11.87,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 63,
+       "/v1/reliability": 63
+      },
+      "http_peers_per_s": 2.95,
+      "loop_lag_ms": {
+       "n": 887,
+       "p50": 9.479,
+       "p99": 22.069,
+       "max": 26.751
+      },
+      "jobs_retained": 661,
+      "conns": 72
+     },
+     "node_workers_cpu_util": 0.038,
+     "requester_workers_cpu_util": 0.1,
+     "phase": {
+      "rate": 9.6,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 5.1,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 7.1,
+       "util": 0.1,
+       "serving": 64
+      },
+      {
+       "t": 9.2,
+       "util": 0.15,
+       "serving": 64
+      },
+      {
+       "t": 11.2,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 13.2,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 15.3,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 17.3,
+       "util": 0.14,
+       "serving": 64
+      },
+      {
+       "t": 19.3,
+       "util": 0.13,
+       "serving": 64
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 40.6
+  },
+  {
+   "scenario": {
+    "name": "scale_n64_rtt50",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.6,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 5.208333333333333,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 179,
+     "ok": 179,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8827,
+     "accuracy_all": 0.8827,
+     "latency_s": {
+      "p50": 0.656,
+      "p95": 1.065,
+      "p99": 1.236,
+      "mean": 0.67,
+      "max": 1.467
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.559,
+     "peers_answered_hist": {
+      "1": 19,
+      "2": 73,
+      "3": 55,
+      "4": 32
+     },
+     "early_stop_frac": 0.531,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 458,
+      "annulé": 127,
+      "erreur": 131
+     },
+     "peer_errors": {
+      "peer_busy": 131
+     },
+     "offered_rps": 8.95,
+     "goodput_rps": 8.67,
+     "drain_s": 0.647,
+     "tracker": {
+      "cpu_s": 2.656,
+      "wall_s": 21.739,
+      "cpu_util": 0.122,
+      "frames_in": 1991,
+      "frames_out": 1363,
+      "frames_in_by_type": {
+       "cancel": 127,
+       "job": 716,
+       "receipt": 521,
+       "result": 555,
+       "status": 72
+      },
+      "frames_per_request": 18.74,
+      "cpu_us_per_frame": 792.0,
+      "cpu_ms_per_request": 14.84,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 68,
+       "/v1/reliability": 68
+      },
+      "http_peers_per_s": 3.13,
+      "loop_lag_ms": {
+       "n": 886,
+       "p50": 9.73,
+       "p99": 22.628,
+       "max": 27.641
+      },
+      "jobs_retained": 619,
+      "conns": 72
+     },
+     "node_workers_cpu_util": 0.039,
+     "requester_workers_cpu_util": 0.128,
+     "phase": {
+      "rate": 9.6,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.13,
+       "serving": 64
+      },
+      {
+       "t": 5.3,
+       "util": 0.2,
+       "serving": 64
+      },
+      {
+       "t": 7.3,
+       "util": 0.13,
+       "serving": 64
+      },
+      {
+       "t": 9.4,
+       "util": 0.02,
+       "serving": 64
+      },
+      {
+       "t": 11.5,
+       "util": 0.06,
+       "serving": 64
+      },
+      {
+       "t": 13.7,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 15.8,
+       "util": 0.11,
+       "serving": 64
+      },
+      {
+       "t": 17.8,
+       "util": 0.22,
+       "serving": 64
+      },
+      {
+       "t": 19.9,
+       "util": 0.09,
+       "serving": 64
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 41.4
+  },
+  {
+   "scenario": {
+    "name": "scale_n64_rtt100",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.0,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 0.0,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 0.0,
+    "reliability_ms": 5.208333333333333
+   },
+   "phases": [
+    {
+     "requests": 179,
+     "ok": 179,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8883,
+     "accuracy_all": 0.8883,
+     "latency_s": {
+      "p50": 0.774,
+      "p95": 1.132,
+      "p99": 1.228,
+      "mean": 0.776,
+      "max": 1.267
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.43,
+     "peers_answered_hist": {
+      "1": 28,
+      "2": 75,
+      "3": 47,
+      "4": 29
+     },
+     "early_stop_frac": 0.536,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 435,
+      "annulé": 121,
+      "erreur": 160
+     },
+     "peer_errors": {
+      "peer_busy": 160
+     },
+     "offered_rps": 8.95,
+     "goodput_rps": 8.575,
+     "drain_s": 0.874,
+     "tracker": {
+      "cpu_s": 1.969,
+      "wall_s": 22.02,
+      "cpu_util": 0.089,
+      "frames_in": 1983,
+      "frames_out": 1335,
+      "frames_in_by_type": {
+       "cancel": 121,
+       "job": 716,
+       "receipt": 522,
+       "result": 552,
+       "status": 72
+      },
+      "frames_per_request": 18.54,
+      "cpu_us_per_frame": 593.4,
+      "cpu_ms_per_request": 11.0,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 68,
+       "/v1/reliability": 68
+      },
+      "http_peers_per_s": 3.09,
+      "loop_lag_ms": {
+       "n": 901,
+       "p50": 9.934,
+       "p99": 22.4,
+       "max": 26.742
+      },
+      "jobs_retained": 586,
+      "conns": 72
+     },
+     "node_workers_cpu_util": 0.03,
+     "requester_workers_cpu_util": 0.096,
+     "phase": {
+      "rate": 9.6,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.13,
+       "serving": 64
+      },
+      {
+       "t": 5.4,
+       "util": 0.04,
+       "serving": 64
+      },
+      {
+       "t": 7.5,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 9.7,
+       "util": 0.08,
+       "serving": 64
+      },
+      {
+       "t": 11.8,
+       "util": 0.04,
+       "serving": 64
+      },
+      {
+       "t": 14.0,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 16.1,
+       "util": 0.15,
+       "serving": 64
+      },
+      {
+       "t": 18.3,
+       "util": 0.09,
+       "serving": 64
+      },
+      {
+       "t": 20.4,
+       "util": 0.11,
+       "serving": 64
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 40.9
+  },
+  {
+   "scenario": {
+    "name": "scale_n64_rtt150",
+    "nodes": 64,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 150,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.5,
+   "directory_cost": {
+    "peers": 64,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 0.0,
+    "peers_ms": 5.208333333333333,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 179,
+     "ok": 176,
+     "failed": 3,
+     "fail_codes": {
+      "no_answer": 3
+     },
+     "accuracy_ok": 0.8693,
+     "accuracy_all": 0.8547,
+     "latency_s": {
+      "p50": 0.939,
+      "p95": 1.389,
+      "p99": 1.564,
+      "mean": 0.955,
+      "max": 1.681
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.489,
+     "peers_answered_hist": {
+      "1": 28,
+      "2": 61,
+      "3": 60,
+      "4": 27
+     },
+     "early_stop_frac": 0.517,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 438,
+      "annulé": 109,
+      "erreur": 157
+     },
+     "peer_errors": {
+      "peer_busy": 157
+     },
+     "offered_rps": 8.95,
+     "goodput_rps": 8.44,
+     "drain_s": 0.853,
+     "tracker": {
+      "cpu_s": 1.922,
+      "wall_s": 22.028,
+      "cpu_util": 0.087,
+      "frames_in": 2001,
+      "frames_out": 1329,
+      "frames_in_by_type": {
+       "cancel": 109,
+       "job": 716,
+       "receipt": 535,
+       "result": 569,
+       "status": 72
+      },
+      "frames_per_request": 18.6,
+      "cpu_us_per_frame": 577.1,
+      "cpu_ms_per_request": 10.74,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 75,
+       "/v1/reliability": 75
+      },
+      "http_peers_per_s": 3.4,
+      "loop_lag_ms": {
+       "n": 884,
+       "p50": 10.183,
+       "p99": 21.966,
+       "max": 26.275
+      },
+      "jobs_retained": 581,
+      "conns": 72
+     },
+     "node_workers_cpu_util": 0.023,
+     "requester_workers_cpu_util": 0.122,
+     "phase": {
+      "rate": 9.6,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 5.4,
+       "util": 0.12,
+       "serving": 64
+      },
+      {
+       "t": 7.6,
+       "util": 0.04,
+       "serving": 64
+      },
+      {
+       "t": 9.8,
+       "util": 0.14,
+       "serving": 64
+      },
+      {
+       "t": 11.9,
+       "util": 0.06,
+       "serving": 64
+      },
+      {
+       "t": 14.1,
+       "util": 0.09,
+       "serving": 64
+      },
+      {
+       "t": 16.3,
+       "util": 0.11,
+       "serving": 64
+      },
+      {
+       "t": 18.5,
+       "util": 0.09,
+       "serving": 64
+      },
+      {
+       "t": 20.7,
+       "util": 0.11,
+       "serving": 64
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 40.4
+  },
+  {
+   "scenario": {
+    "name": "scale_n256_rtt0",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.3,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 5.208333333333333,
+    "peers_ms": 10.416666666666666,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.8894,
+     "accuracy_all": 0.8894,
+     "latency_s": {
+      "p50": 0.466,
+      "p95": 0.771,
+      "p99": 1.158,
+      "mean": 0.495,
+      "max": 1.284
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.858,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 90,
+      "3": 69,
+      "4": 64
+     },
+     "early_stop_frac": 0.628,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 646,
+      "annulé": 214,
+      "erreur": 44
+     },
+     "peer_errors": {
+      "peer_busy": 44
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.973,
+     "drain_s": 0.597,
+     "tracker": {
+      "cpu_s": 2.969,
+      "wall_s": 21.645,
+      "cpu_util": 0.137,
+      "frames_in": 2771,
+      "frames_out": 1813,
+      "frames_in_by_type": {
+       "cancel": 214,
+       "job": 904,
+       "receipt": 670,
+       "result": 719,
+       "status": 264
+      },
+      "frames_per_request": 20.28,
+      "cpu_us_per_frame": 647.6,
+      "cpu_ms_per_request": 13.14,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 70,
+       "/v1/reliability": 70
+      },
+      "http_peers_per_s": 3.23,
+      "loop_lag_ms": {
+       "n": 910,
+       "p50": 8.771,
+       "p99": 21.131,
+       "max": 27.451
+      },
+      "jobs_retained": 909,
+      "conns": 264
+     },
+     "node_workers_cpu_util": 0.031,
+     "requester_workers_cpu_util": 0.115,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.14,
+       "serving": 256
+      },
+      {
+       "t": 5.1,
+       "util": 0.12,
+       "serving": 256
+      },
+      {
+       "t": 7.1,
+       "util": 0.15,
+       "serving": 256
+      },
+      {
+       "t": 9.1,
+       "util": 0.12,
+       "serving": 256
+      },
+      {
+       "t": 11.2,
+       "util": 0.16,
+       "serving": 256
+      },
+      {
+       "t": 13.2,
+       "util": 0.16,
+       "serving": 256
+      },
+      {
+       "t": 15.2,
+       "util": 0.12,
+       "serving": 256
+      },
+      {
+       "t": 17.2,
+       "util": 0.17,
+       "serving": 256
+      },
+      {
+       "t": 19.3,
+       "util": 0.12,
+       "serving": 256
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 39.7
+  },
+  {
+   "scenario": {
+    "name": "scale_n256_rtt50",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 10.3,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 5.208333333333333,
+    "peers_ms": 10.416666666666666,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9381,
+     "accuracy_all": 0.9381,
+     "latency_s": {
+      "p50": 0.63,
+      "p95": 0.993,
+      "p99": 1.225,
+      "mean": 0.659,
+      "max": 1.479
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.845,
+     "peers_answered_hist": {
+      "1": 4,
+      "2": 87,
+      "3": 75,
+      "4": 60
+     },
+     "early_stop_frac": 0.602,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 643,
+      "annulé": 199,
+      "erreur": 62
+     },
+     "peer_errors": {
+      "peer_busy": 62
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.733,
+     "drain_s": 1.056,
+     "tracker": {
+      "cpu_s": 3.031,
+      "wall_s": 22.151,
+      "cpu_util": 0.137,
+      "frames_in": 2859,
+      "frames_out": 1830,
+      "frames_in_by_type": {
+       "cancel": 199,
+       "job": 904,
+       "receipt": 723,
+       "result": 769,
+       "status": 264
+      },
+      "frames_per_request": 20.75,
+      "cpu_us_per_frame": 646.5,
+      "cpu_ms_per_request": 13.41,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 72,
+       "/v1/reliability": 72
+      },
+      "http_peers_per_s": 3.25,
+      "loop_lag_ms": {
+       "n": 932,
+       "p50": 8.395,
+       "p99": 23.566,
+       "max": 31.204
+      },
+      "jobs_retained": 888,
+      "conns": 264
+     },
+     "node_workers_cpu_util": 0.033,
+     "requester_workers_cpu_util": 0.114,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.11,
+       "serving": 256
+      },
+      {
+       "t": 5.2,
+       "util": 0.14,
+       "serving": 256
+      },
+      {
+       "t": 7.3,
+       "util": 0.16,
+       "serving": 256
+      },
+      {
+       "t": 9.4,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 11.5,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 13.6,
+       "util": 0.15,
+       "serving": 256
+      },
+      {
+       "t": 15.7,
+       "util": 0.15,
+       "serving": 256
+      },
+      {
+       "t": 17.8,
+       "util": 0.25,
+       "serving": 256
+      },
+      {
+       "t": 19.9,
+       "util": 0.1,
+       "serving": 256
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 40.3
+  },
+  {
+   "scenario": {
+    "name": "scale_n256_rtt100",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.2,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 5.208333333333333,
+    "peers_ms": 10.416666666666666,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9292,
+     "accuracy_all": 0.9292,
+     "latency_s": {
+      "p50": 0.744,
+      "p95": 1.122,
+      "p99": 1.27,
+      "mean": 0.774,
+      "max": 1.317
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.85,
+     "peers_answered_hist": {
+      "1": 3,
+      "2": 80,
+      "3": 91,
+      "4": 52
+     },
+     "early_stop_frac": 0.668,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 644,
+      "annulé": 202,
+      "erreur": 58
+     },
+     "peer_errors": {
+      "peer_busy": 58
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.804,
+     "drain_s": 0.918,
+     "tracker": {
+      "cpu_s": 3.141,
+      "wall_s": 22.073,
+      "cpu_util": 0.142,
+      "frames_in": 2986,
+      "frames_out": 1854,
+      "frames_in_by_type": {
+       "cancel": 202,
+       "job": 904,
+       "receipt": 785,
+       "result": 831,
+       "status": 264
+      },
+      "frames_per_request": 21.42,
+      "cpu_us_per_frame": 648.9,
+      "cpu_ms_per_request": 13.9,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 77,
+       "/v1/reliability": 77
+      },
+      "http_peers_per_s": 3.49,
+      "loop_lag_ms": {
+       "n": 900,
+       "p50": 9.385,
+       "p99": 23.41,
+       "max": 61.246
+      },
+      "jobs_retained": 892,
+      "conns": 264
+     },
+     "node_workers_cpu_util": 0.028,
+     "requester_workers_cpu_util": 0.126,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 5.3,
+       "util": 0.21,
+       "serving": 256
+      },
+      {
+       "t": 7.4,
+       "util": 0.16,
+       "serving": 256
+      },
+      {
+       "t": 9.5,
+       "util": 0.12,
+       "serving": 256
+      },
+      {
+       "t": 11.7,
+       "util": 0.13,
+       "serving": 256
+      },
+      {
+       "t": 13.8,
+       "util": 0.17,
+       "serving": 256
+      },
+      {
+       "t": 16.0,
+       "util": 0.17,
+       "serving": 256
+      },
+      {
+       "t": 18.1,
+       "util": 0.17,
+       "serving": 256
+      },
+      {
+       "t": 20.3,
+       "util": 0.13,
+       "serving": 256
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 41.3
+  },
+  {
+   "scenario": {
+    "name": "scale_n256_rtt150",
+    "nodes": 256,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 150,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.6,
+   "directory_cost": {
+    "peers": 256,
+    "peers_view_ms": 5.208333333333333,
+    "peers_encode_ms": 10.416666666666666,
+    "peers_ms": 15.625,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9159,
+     "accuracy_all": 0.9159,
+     "latency_s": {
+      "p50": 0.905,
+      "p95": 1.48,
+      "p99": 1.631,
+      "mean": 0.967,
+      "max": 1.753
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.81,
+     "peers_answered_hist": {
+      "1": 10,
+      "2": 76,
+      "3": 87,
+      "4": 53
+     },
+     "early_stop_frac": 0.597,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 635,
+      "annulé": 184,
+      "erreur": 85
+     },
+     "peer_errors": {
+      "peer_busy": 85
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.813,
+     "drain_s": 0.901,
+     "tracker": {
+      "cpu_s": 4.047,
+      "wall_s": 22.119,
+      "cpu_util": 0.183,
+      "frames_in": 2975,
+      "frames_out": 1812,
+      "frames_in_by_type": {
+       "cancel": 184,
+       "job": 904,
+       "receipt": 789,
+       "result": 834,
+       "status": 264
+      },
+      "frames_per_request": 21.18,
+      "cpu_us_per_frame": 845.4,
+      "cpu_ms_per_request": 17.91,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 86,
+       "/v1/reliability": 86
+      },
+      "http_peers_per_s": 3.89,
+      "loop_lag_ms": {
+       "n": 917,
+       "p50": 8.844,
+       "p99": 22.741,
+       "max": 31.071
+      },
+      "jobs_retained": 862,
+      "conns": 264
+     },
+     "node_workers_cpu_util": 0.045,
+     "requester_workers_cpu_util": 0.141,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.3,
+       "util": 0.11,
+       "serving": 256
+      },
+      {
+       "t": 5.5,
+       "util": 0.22,
+       "serving": 256
+      },
+      {
+       "t": 7.6,
+       "util": 0.23,
+       "serving": 256
+      },
+      {
+       "t": 9.8,
+       "util": 0.17,
+       "serving": 256
+      },
+      {
+       "t": 12.0,
+       "util": 0.2,
+       "serving": 256
+      },
+      {
+       "t": 14.1,
+       "util": 0.22,
+       "serving": 256
+      },
+      {
+       "t": 16.4,
+       "util": 0.24,
+       "serving": 256
+      },
+      {
+       "t": 18.6,
+       "util": 0.15,
+       "serving": 256
+      },
+      {
+       "t": 20.8,
+       "util": 0.16,
+       "serving": 256
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 41.7
+  },
+  {
+   "scenario": {
+    "name": "scale_n1024_rtt0",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 0,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 14.2,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 20.833333333333332,
+    "peers_encode_ms": 31.25,
+    "peers_ms": 52.083333333333336,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9115,
+     "accuracy_all": 0.9115,
+     "latency_s": {
+      "p50": 0.564,
+      "p95": 0.893,
+      "p99": 1.066,
+      "mean": 0.581,
+      "max": 1.86
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.119,
+     "peers_answered_hist": {
+      "2": 57,
+      "3": 85,
+      "4": 84
+     },
+     "early_stop_frac": 0.597,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 705,
+      "annulé": 189,
+      "erreur": 10
+     },
+     "peer_errors": {
+      "peer_busy": 10
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 11.045,
+     "drain_s": 0.462,
+     "tracker": {
+      "cpu_s": 6.828,
+      "wall_s": 21.491,
+      "cpu_util": 0.318,
+      "frames_in": 3620,
+      "frames_out": 1852,
+      "frames_in_by_type": {
+       "cancel": 189,
+       "job": 904,
+       "receipt": 722,
+       "result": 773,
+       "status": 1032
+      },
+      "frames_per_request": 24.21,
+      "cpu_us_per_frame": 1247.8,
+      "cpu_ms_per_request": 30.21,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 72,
+       "/v1/reliability": 72
+      },
+      "http_peers_per_s": 3.35,
+      "loop_lag_ms": {
+       "n": 813,
+       "p50": 5.955,
+       "p99": 62.649,
+       "max": 150.733
+      },
+      "jobs_retained": 945,
+      "conns": 1032
+     },
+     "node_workers_cpu_util": 0.017,
+     "requester_workers_cpu_util": 0.16,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.1,
+       "util": 0.34,
+       "serving": 1024
+      },
+      {
+       "t": 5.2,
+       "util": 0.26,
+       "serving": 1024
+      },
+      {
+       "t": 7.3,
+       "util": 0.25,
+       "serving": 1024
+      },
+      {
+       "t": 9.3,
+       "util": 0.34,
+       "serving": 1024
+      },
+      {
+       "t": 11.4,
+       "util": 0.3,
+       "serving": 1024
+      },
+      {
+       "t": 13.4,
+       "util": 0.49,
+       "serving": 1024
+      },
+      {
+       "t": 15.5,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 17.5,
+       "util": 0.38,
+       "serving": 1024
+      },
+      {
+       "t": 19.5,
+       "util": 0.17,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 44.4
+  },
+  {
+   "scenario": {
+    "name": "scale_n1024_rtt50",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 50,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 13.9,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 20.833333333333332,
+    "peers_encode_ms": 31.25,
+    "peers_ms": 52.083333333333336,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9204,
+     "accuracy_all": 0.9204,
+     "latency_s": {
+      "p50": 0.732,
+      "p95": 1.401,
+      "p99": 1.68,
+      "mean": 0.8,
+      "max": 2.051
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.885,
+     "peers_answered_hist": {
+      "2": 89,
+      "3": 74,
+      "4": 63
+     },
+     "early_stop_frac": 0.686,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 652,
+      "annulé": 231,
+      "erreur": 21
+     },
+     "peer_errors": {
+      "peer_busy": 21
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.822,
+     "drain_s": 0.883,
+     "tracker": {
+      "cpu_s": 7.844,
+      "wall_s": 21.993,
+      "cpu_util": 0.357,
+      "frames_in": 3780,
+      "frames_out": 1906,
+      "frames_in_by_type": {
+       "cancel": 231,
+       "job": 904,
+       "receipt": 781,
+       "result": 832,
+       "status": 1032
+      },
+      "frames_per_request": 25.16,
+      "cpu_us_per_frame": 1379.5,
+      "cpu_ms_per_request": 34.71,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 92,
+       "/v1/reliability": 92
+      },
+      "http_peers_per_s": 4.18,
+      "loop_lag_ms": {
+       "n": 794,
+       "p50": 7.238,
+       "p99": 98.814,
+       "max": 236.751
+      },
+      "jobs_retained": 934,
+      "conns": 1032
+     },
+     "node_workers_cpu_util": 0.018,
+     "requester_workers_cpu_util": 0.169,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.3,
+       "util": 0.38,
+       "serving": 1024
+      },
+      {
+       "t": 5.4,
+       "util": 0.21,
+       "serving": 1024
+      },
+      {
+       "t": 7.5,
+       "util": 0.32,
+       "serving": 1024
+      },
+      {
+       "t": 9.6,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 11.6,
+       "util": 0.47,
+       "serving": 1024
+      },
+      {
+       "t": 13.8,
+       "util": 0.54,
+       "serving": 1024
+      },
+      {
+       "t": 15.9,
+       "util": 0.44,
+       "serving": 1024
+      },
+      {
+       "t": 18.1,
+       "util": 0.38,
+       "serving": 1024
+      },
+      {
+       "t": 20.2,
+       "util": 0.27,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 44.4
+  },
+  {
+   "scenario": {
+    "name": "scale_n1024_rtt100",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 100,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.5,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 20.833333333333332,
+    "peers_encode_ms": 20.833333333333332,
+    "peers_ms": 41.666666666666664,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9336,
+     "accuracy_all": 0.9336,
+     "latency_s": {
+      "p50": 0.846,
+      "p95": 1.372,
+      "p99": 1.521,
+      "mean": 0.9,
+      "max": 2.043
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 2.951,
+     "peers_answered_hist": {
+      "2": 76,
+      "3": 85,
+      "4": 65
+     },
+     "early_stop_frac": 0.642,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 667,
+      "annulé": 212,
+      "erreur": 25
+     },
+     "peer_errors": {
+      "peer_busy": 25
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.756,
+     "drain_s": 1.012,
+     "tracker": {
+      "cpu_s": 7.078,
+      "wall_s": 22.123,
+      "cpu_util": 0.32,
+      "frames_in": 3844,
+      "frames_out": 1885,
+      "frames_in_by_type": {
+       "cancel": 212,
+       "job": 904,
+       "receipt": 823,
+       "result": 873,
+       "status": 1032
+      },
+      "frames_per_request": 25.35,
+      "cpu_us_per_frame": 1235.5,
+      "cpu_ms_per_request": 31.32,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 89,
+       "/v1/reliability": 89
+      },
+      "http_peers_per_s": 4.02,
+      "loop_lag_ms": {
+       "n": 842,
+       "p50": 7.037,
+       "p99": 78.643,
+       "max": 154.373
+      },
+      "jobs_retained": 929,
+      "conns": 1032
+     },
+     "node_workers_cpu_util": 0.015,
+     "requester_workers_cpu_util": 0.149,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.2,
+       "util": 0.23,
+       "serving": 1024
+      },
+      {
+       "t": 5.6,
+       "util": 0.33,
+       "serving": 1024
+      },
+      {
+       "t": 7.8,
+       "util": 0.35,
+       "serving": 1024
+      },
+      {
+       "t": 9.9,
+       "util": 0.27,
+       "serving": 1024
+      },
+      {
+       "t": 12.0,
+       "util": 0.38,
+       "serving": 1024
+      },
+      {
+       "t": 14.2,
+       "util": 0.38,
+       "serving": 1024
+      },
+      {
+       "t": 16.3,
+       "util": 0.43,
+       "serving": 1024
+      },
+      {
+       "t": 18.5,
+       "util": 0.41,
+       "serving": 1024
+      },
+      {
+       "t": 20.7,
+       "util": 0.2,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 42.2
+  },
+  {
+   "scenario": {
+    "name": "scale_n1024_rtt150",
+    "nodes": 1024,
+    "families": 4,
+    "k": 4,
+    "rtt_ms": 150,
+    "scale": 0.1,
+    "req_workers": 1,
+    "gateways_per_worker": 8
+   },
+   "setup_s": 11.7,
+   "directory_cost": {
+    "peers": 1024,
+    "peers_view_ms": 15.625,
+    "peers_encode_ms": 26.041666666666668,
+    "peers_ms": 41.666666666666664,
+    "reliability_ms": 0.0
+   },
+   "phases": [
+    {
+     "requests": 226,
+     "ok": 226,
+     "failed": 0,
+     "fail_codes": {},
+     "accuracy_ok": 0.9115,
+     "accuracy_all": 0.9115,
+     "latency_s": {
+      "p50": 1.08,
+      "p95": 1.663,
+      "p99": 2.003,
+      "mean": 1.108,
+      "max": 2.295
+     },
+     "peers_asked_mean": 4,
+     "peers_answered_mean": 3.08,
+     "peers_answered_hist": {
+      "2": 72,
+      "3": 64,
+      "4": 90
+     },
+     "early_stop_frac": 0.566,
+     "certified_frac": 1,
+     "peer_status": {
+      "ok": 696,
+      "annulé": 193,
+      "erreur": 15
+     },
+     "peer_errors": {
+      "peer_busy": 15
+     },
+     "offered_rps": 11.3,
+     "goodput_rps": 10.732,
+     "drain_s": 1.059,
+     "tracker": {
+      "cpu_s": 7.625,
+      "wall_s": 22.261,
+      "cpu_util": 0.343,
+      "frames_in": 3900,
+      "frames_out": 1896,
+      "frames_in_by_type": {
+       "cancel": 193,
+       "job": 904,
+       "receipt": 860,
+       "result": 911,
+       "status": 1032
+      },
+      "frames_per_request": 25.65,
+      "cpu_us_per_frame": 1315.6,
+      "cpu_ms_per_request": 33.74,
+      "http_calls": {
+       "/v1/health": 0,
+       "/bench/peers_cost": 0,
+       "/bench/stats": 11,
+       "/v1/peers": 99,
+       "/v1/reliability": 99
+      },
+      "http_peers_per_s": 4.45,
+      "loop_lag_ms": {
+       "n": 829,
+       "p50": 7.172,
+       "p99": 90.602,
+       "max": 163.712
+      },
+      "jobs_retained": 940,
+      "conns": 1032
+     },
+     "node_workers_cpu_util": 0.019,
+     "requester_workers_cpu_util": 0.156,
+     "phase": {
+      "rate": 12.0,
+      "duration": 20.0,
+      "early_stop": true
+     },
+     "timeline_cpu_util": [
+      {
+       "t": 3.3,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 5.5,
+       "util": 0.33,
+       "serving": 1024
+      },
+      {
+       "t": 7.9,
+       "util": 0.34,
+       "serving": 1024
+      },
+      {
+       "t": 10.1,
+       "util": 0.29,
+       "serving": 1024
+      },
+      {
+       "t": 12.2,
+       "util": 0.46,
+       "serving": 1024
+      },
+      {
+       "t": 14.4,
+       "util": 0.51,
+       "serving": 1024
+      },
+      {
+       "t": 16.6,
+       "util": 0.41,
+       "serving": 1024
+      },
+      {
+       "t": 18.8,
+       "util": 0.36,
+       "serving": 1024
+      },
+      {
+       "t": 21.1,
+       "util": 0.24,
+       "serving": 1024
+      }
+     ]
+    }
+   ],
+   "expected_full_vote_accuracy": 0.9329,
+   "best_single_accuracy": 0.865,
+   "elapsed_s": 42.7
+  }
+ ]
+}

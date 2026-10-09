@@ -1,0 +1,372 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[numbers]{natbib}
+\usepackage{xcolor}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\input{numbers}
+
+\title{One Round Trip Is Enough: Decentralised Inference with Swarms of\\
+Small Heterogeneous Language Models on Consumer Hardware}
+\author{Anonymous authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Decentralised LLM inference usually splits one large model across volunteer machines, which puts the
+wide-area network inside every decoding step and caps throughput at a few tokens per second. We study the
+opposite design: every consumer device runs a \emph{whole} small open model of a \emph{different} family,
+and a request costs a single network round trip, after which the answers are fused locally. We give exact
+guarantees for this protocol: a stop certificate that returns the fused decision as soon as the missing
+peers can no longer change it, which we prove exact and optimal; the Bayes-optimal $K$-class vote weights;
+an identity for the gain of a minority appeal; and incentive conditions for a credit system, including an
+impossibility result for naive duplicate-and-compare audits. Empirically, on GSM8K a swarm of four
+1.7--3B models from four families reaches \eTwoVote\% with one round trip, against \eTwoBest\% for its
+best member and \eTwoRef\% for a 4B model, while collaborative token-level writing costs
+\eTwoCroiseTrips{} round trips for no gain. We show why voting works where moment-based theory predicts it
+should not: wrong answers of different families \emph{disperse}, so two agreeing peers almost always beat
+two disagreeing ones. We
+release an open application that turns any PC into a node of such a swarm, behind NAT, with an
+OpenAI-compatible endpoint.
+\end{abstract}
+
+\section{Introduction}
+Running large language models without a data centre is attractive for cost, privacy and resilience. The
+dominant decentralised approach, pipeline-parallel serving of one large model over volunteers
+\cite{borzunov2023petals,ryabinin2023swarm}, is bounded by latency: every generated token crosses the
+network, so wide-area round-trip times of 50--150\,ms limit decoding to a few tokens per second.
+
+We take the opposite stance. Each participant runs a complete small model ($\le$4B parameters) that fits
+on a consumer GPU, and participants deliberately run \emph{different} model families (Qwen, Gemma,
+Granite, SmolLM, Mistral, Phi, OLMo). A request is broadcast once; peers answer independently; the
+requester fuses the answers. The network appears once per request, not once per token.
+
+This design raises three questions that we answer in this paper:
+\begin{enumerate}
+\item \textbf{Quality.} Can a swarm of small heterogeneous models rival a single model several times
+larger? (\S\ref{sec:e4})
+\item \textbf{Protocol.} Is a single round trip enough, or does fine-grained collaboration (writing the
+answer together, block by block) pay for its extra round trips? (\S\ref{sec:e2})
+\item \textbf{Guarantees.} What can be proved about early decisions, vote weights, appeals and incentives
+in such a swarm? (\S\ref{sec:theory})
+\end{enumerate}
+
+\paragraph{Contributions.}
+(i) A one-round-trip protocol for heterogeneous swarms with an \emph{exact and optimal stop certificate}
+(Theorem~\ref{thm:cert}) and latency formulas. (ii) $K$-class Nitzan--Paroush weights for open answers,
+with $K$ estimated from the collision rate of wrong answers, which keep weak peers useful where the
+textbook binary weights silence them (\S\ref{sec:e3}). (iii) A negative result for moment-based ensemble
+theory: accuracies and error correlations do not determine the vote's accuracy, and the observed gain is
+explained by error dispersion (Theorem~\ref{thm:nonid}, \S\ref{sec:why}). (iv) Incentive conditions for
+paid peers and an impossibility result for duplicate-and-compare audits (Theorem~\ref{thm:audit}).
+(v) An open application implementing the protocol (\S\ref{sec:system}).
+
+\section{Related work}
+\paragraph{Decentralised inference.} Petals \cite{borzunov2023petals} and SWARM parallelism
+\cite{ryabinin2023swarm} split one model across volunteers; we instead replicate whole small models and
+communicate once per request.
+\paragraph{Ensembles of LLMs.} Self-consistency \cite{wang2023selfconsistency} votes over samples of one
+model; ``more agents'' \cite{li2024moreagents} scales sampling and voting; LLM-Blender
+\cite{jiang2023llmblender} and Mixture-of-Agents \cite{wang2024moa} fuse heterogeneous models with extra
+learned or LLM-based aggregation stages. Our setting adds the network and its round trips as a first-class
+cost, and asks what can be decided \emph{early} and \emph{exactly}.
+\paragraph{Voting theory.} Optimal weights for independent voters are due to Nitzan and Paroush
+\cite{nitzan1982optimal}; correlated voters are studied by Ladha \cite{ladha1992condorcet}. We give
+$K$-class weights for open answers and show why second-order moments cannot settle the question.
+\paragraph{Speculative decoding} \cite{leviathan2023speculative} reduces the number of sequential large-model
+calls; our appeal and certificate reduce waiting in a broadcast protocol.
+
+\section{Protocol}\label{sec:protocol}
+A requester holds a prompt $x$. It selects $n$ peers of distinct families, sends $x$ to all of them in one
+message, and receives answers $A_i$ (with a confidence, the mean token log-probability) as they arrive.
+Answers are normalised (final number, \texttt{\textbackslash boxed\{\}} content with the standard MATH
+normalisation \cite{hendrycks2021math}, or option letter). The decision is a weighted plurality
+\begin{equation}
+\hat Y=\arg\max_c \sum_i w_i \mathbf 1\{A_i=c\},\label{eq:vote}
+\end{equation}
+with ties broken by confidence. The weights $w_i$ are fitted once on a development split.
+
+\section{Theory}\label{sec:theory}
+\subsection{An exact and optimal stop certificate}
+\begin{theorem}[Stop certificate]\label{thm:cert}
+Let the weights $w_i\ge0$ and a total order $\prec$ for ties be fixed in advance, and let each peer
+contribute a vector $v_i$ (a unit vector for a vote, a distribution for a linear pool). After receiving the
+peers in $S$, let $L_c=\sum_{i\in S}w_iv_i(c)$, $R=\sum_{i\notin S}w_i$ and $a$ the first maximiser of
+$L$. The full decision is necessarily $a$ if and only if, for every $b\neq a$, $L_a-L_b\ge R$ when $a\prec
+b$ and $L_a-L_b>R$ when $b\prec a$. No exact procedure can stop earlier.
+\end{theorem}
+\begin{proof}
+For any $b$, $\sum_i w_i[v_i(a)-v_i(b)]\ge L_a-L_b-R$, so the conditions make $a$ win against every $b$.
+Conversely, if the condition fails for some $b$, the completion in which every missing peer answers $b$
+makes $b$ win, while the completion in which they all answer $a$ makes $a$ win; two consistent completions
+disagree, so no exact rule can decide.
+\end{proof}
+With latencies $T_i$ independent of the answers, the expected decision time is
+$\mathbb E[\tau]=\int_0^\infty\sum_{S}h(S)\prod_{i\in S}F_i(t)\prod_{i\notin S}(1-F_i(t))\,dt\le\mathbb
+E[\max_iT_i]$, where $h(S)$ is the probability that $S$ does not yet certify; for i.i.d.\ exponential
+latencies $\mathbb E[\tau]=\lambda^{-1}\sum_{k<n}\Pr(J>k)/(n-k)$ against $H_n/\lambda$ for waiting for all,
+$J$ being the arrival rank at which the certificate holds. These formulas were checked by simulation
+(appendix).
+
+\subsection{Vote weights for open answers}
+\begin{theorem}[$K$-class weights {\cite{nitzan1982optimal}}]\label{thm:np}
+If, given $Y$, the answers are independent, correct with probability $p_i$ and otherwise uniform over
+$K-1$ wrong answers, the error-minimising rule is \eqref{eq:vote} with
+$w_i=\log\frac{(K-1)p_i}{1-p_i}$ (plus $\log$ priors).
+\end{theorem}
+For open answers $K$ is not given. Under the model, two wrong peers coincide with probability
+$c=1/(K-1)$, so we estimate $c$ on the development split and use $w_i=\operatorname{logit}(p_i)-\log c$.
+On GSM8K, $c=\eThreeCollision$: agreement between two peers is strong evidence even when each is weak.
+The binary weights $\operatorname{logit}(p_i)$ ignore this and give zero weight to any peer below $1/2$.
+The shift $-\log c$ is common to all peers but still changes decisions, because an answer's score adds
+one shift per supporter: with accuracies $(0.9,0.6,0.6,0.6)$, answers $(A,B,B,B)$ and $c=0.1$, binary
+weights choose $A$ and $K$-class weights choose $B$.
+
+\subsection{Why moments cannot explain the vote}\label{sec:why}
+\begin{theorem}[Cantelli bound]\label{thm:cantelli}
+Let $X_i=\mathbf 1\{A_i=Y\}$ with $\mathbb E X_i=p_i$, weights $a_i\ge0$, $W=\sum a_i$,
+$d=\sum a_ip_i-W/2>0$ and $V=\operatorname{Var}(\sum a_iX_i)$. Then the vote is correct with probability at
+least $d^2/(V+d^2)$, for any number of classes.
+\end{theorem}
+\begin{theorem}[Non-identification]\label{thm:nonid}
+Even with two classes, the accuracies and all pairwise error correlations determine neither the accuracy
+of the majority vote nor whether it beats the best voter.
+\end{theorem}
+\begin{proof}[Proof sketch]
+Two exchangeable laws of three voters with $p_i=0.6$ and zero correlations give majority accuracies
+$0.84$ and $0.52$ (appendix).
+\end{proof}
+On our GSM8K data a binary model with the measured accuracies and independent errors predicts
+\eTwoBinaryPred\% for the vote, against \eTwoVote\% observed, and the Cantelli bound is vacuous. The gap
+comes from what the correct/incorrect indicators discard: wrong numeric answers spread over many values.
+When two peers are right and two wrong, a binary model can only flip a coin, yet the vote was right in
+\eTwoSplitTwoWon{} of \eTwoSplitTwoN{} such questions; a lone correct peer still won
+\eTwoSplitOneWon{} of \eTwoSplitOneN{} times.
+
+\subsection{Minority appeal}
+\begin{theorem}[Appeal identity]\label{thm:appeal}
+Let a second round on an event $E$ replace the fused answer $a$ by the runner-up $b$ with decision $D$.
+With $B=\Pr(E,Y=b)$, $C=\Pr(E,Y=a)$, $r=\Pr(D=1\mid E,Y=b)$ and $h=\Pr(D=1\mid E,Y=a)$, the accuracy
+gain is exactly $Br-Ch$, without any independence assumption; the optimal rule thresholds the likelihood
+ratio of the appeal evidence at $C/B$.
+\end{theorem}
+
+\subsection{Incentives and audits}
+\begin{theorem}[Honest serving]\label{thm:incentive}
+If a fraction $q$ of jobs is audited, an audit sanctions an honest peer with probability $\alpha$ and a
+deviation $d$ with probability $\beta_d$, and a sanction costs $P+R$ (penalty plus reputation), honest
+serving is a best response iff $q(\beta_d-\alpha)(P+R)\ge g_H-g_d$ for every deviation, where $g_H-g_d$ is
+the cost saved by deviating.
+\end{theorem}
+\begin{theorem}[Duplicate-and-compare fails]\label{thm:audit}
+If an audit compares an honest sampled answer with an independent honest sample and sanctions on
+disagreement, a peer that always returns the modal answer is sanctioned with probability
+$\beta=1-\max_yr(y)\le\alpha=1-\sum_yr(y)^2$, so no audit rate or penalty makes honesty preferable.
+\end{theorem}
+Audits must therefore use reproducible greedy decoding and verifiable answers, with a measured baseline
+$\alpha$; this is what our application does.
+
+\section{Experiments}
+All models are open-weight with permissive licences (Apache-2.0 or MIT), served in 8-bit GGUF by
+llama.cpp, fully offloaded to the GPU. Questions are split once into a development half (choices,
+weights) and a test half (reported numbers). Intervals are paired bootstrap 95\% intervals over questions.
+
+\subsection{E1: fusing four families on multiple choice}
+Four 1.7--3B models (Qwen3, Granite~3.3, SmolLM3, Gemma~4~E2B) answer ARC-Challenge and MMLU-Pro with
+exact letter probabilities over five balanced option orders; a calibrated linear pool (one temperature per
+model, fitted on dev) gives \eOneArcFusion\% on ARC against \eOneArcBest\% for the best member
+(\eOneArcGain{} points, \eOneArcGainCI) and \eOneArcRef\% for Qwen3-4B; on MMLU-Pro \eOneMmluFusion\% vs
+\eOneMmluBest\% (\eOneMmluGain, \eOneMmluGainCI). With a 768-token thinking budget the fusion reaches
+\eOneThinkArcFusion\% on ARC (best member \eOneThinkArcBest\%, Qwen3-4B \eOneThinkArcRef\%).
+
+\subsection{E2: writing together does not pay}\label{sec:e2}
+\begin{table}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+System (GSM8K test, $n=\eTwoN$) & Accuracy (\%) & Round trips & Time at 100\,ms RTT (s)\\
+\midrule
+Best single peer (SmolLM3-3B) & \eTwoBest & 1 & --\\
+Swarm, vote & \textbf{\eTwoVote} & \textbf{1} & \eTwoVoteWan\\
+Swarm, cross-scored blocks & \eTwoCroise & \eTwoCroiseTrips & \eTwoCroiseWan\\
+Swarm, majority prefix & \eTwoAccord & \eTwoAccordTrips & \eTwoAccordWan\\
+Qwen3-4B alone & \eTwoRef & 1 & --\\
+\midrule
+Oracle (some peer correct) & \eTwoCeiling & & \\
+\bottomrule
+\end{tabular}
+\caption{Four families on GSM8K. Voting costs one round trip; writing the answer together block by block
+costs tens of round trips and does not improve accuracy.}
+\label{tab:e2}
+\end{table}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\linewidth]{fig_protocol.pdf}
+\caption{Accuracy against WAN round trips per question for the same four peers on GSM8K.}
+\label{fig:protocol}
+\end{figure}
+Table~\ref{tab:e2} and Figure~\ref{fig:protocol} compare three ways for the same four peers to answer
+GSM8K. Voting gains
+\eTwoVoteGain{} points over the best member (\eTwoVoteGainCI) and is statistically indistinguishable from
+Qwen3-4B (\eTwoVoteRefGain{} points, \eTwoVoteRefGainCI). Writing together with cross-scored 16-token
+blocks matches the vote but needs \eTwoCroiseTrips{} round trips; a majority prefix needs
+\eTwoAccordTrips{} and does not beat the best member (\eTwoAccordGain{} points, \eTwoAccordGainCI).
+All answers are graded from the stored texts with the final grader (Appendix~\ref{app:grader}).
+
+\subsection{E3: weights and early stopping}\label{sec:e3}
+Replaying E2 with weights fitted on dev, $K$-class weights reach \eThreeKclassAcc\% (\eThreeKclassGain{}
+points over the best peer, \eThreeKclassGainCI). On this data, binary weights happen to give the same
+accuracy (\eThreeBinaryAcc\%); this is an empirical observation, not a general equivalence. The weights
+also matter for latency: with the stop
+certificate, the requester waits for \eThreeKclassWaited{} of 4 peers on average with weights, against
+\eThreeVoteWaited{} with an unweighted vote, and the decisions are identical to waiting for all in
+\eThreeKclassSame{} questions.
+
+\subsection{E5: the minority appeal does not pay with peer-sized judges}\label{sec:e5}
+We tested the appeal of Theorem~\ref{thm:appeal} on the E1 multiple-choice data: when the runner-up of
+the calibrated mixture is some expert's first choice, the most confident proposer is set aside and the
+other three experts judge ``$a$ or $b$?'' blind, in both display orders; the answer is replaced when the
+median order-averaged log-ratio exceeds a threshold chosen on dev. On MMLU-Pro test the appeal fires on
+\eFiveMmluAppeals{} of 300 questions ($B=\eFiveMmluB\%$, $C=\eFiveMmluC\%$); judges recover
+$r=\eFiveMmluR\%$ of the correct runners-up but break $h=\eFiveMmluH\%$ of the correct answers, for a gain
+of \eFiveMmluGain{} points (\eFiveMmluGainCI), not significant. On ARC the dev-chosen threshold is so
+conservative that only \eFiveArcFlips{} answer changes on test (\eFiveArcGain{} points). By
+Theorem~\ref{thm:appeal}, an appeal pays only if $r>(C/B)\,h$; judges of the same size as the experts do
+not separate the two cases well enough. A stronger judge, or a verifiable check, would be needed.
+
+\subsection{E4: seven families against models 2--7$\times$ larger}\label{sec:e4}
+\textit{[In progress: seven $\le$4B models of seven families (Qwen3.5-4B, Gemma-4-E4B, Granite-4.2-3B,
+SmolLM3-3B, Ministral-3-3B, Phi-4-mini, OLMo-2-1B) against Qwen3.5-9B, Gemma-4-12B, Ministral-3-14B and
+Qwen3.8-27B on GSM8K, MATH-500, ARC and MMLU-Pro, with equivalence tests and scaling curves over all
+subsets.]}
+
+\section{System}\label{sec:system}
+We release an implementation of the protocol as a desktop application (Python, llama.cpp).
+\paragraph{Roles.} Every participant runs a \emph{node}: it serves one GGUF model chosen by the user with
+llama-server, within user-set limits (concurrent jobs, pause/resume), and embeds a local
+OpenAI-compatible \emph{gateway} (\texttt{/v1/chat/completions}) and a web interface, both bound to the
+loopback interface. A \emph{tracker} acts as rendezvous, relay and credit ledger; it runs no model.
+\paragraph{NAT traversal.} Nodes open a single outbound WebSocket to the tracker, so no inbound port is
+needed on consumer connections; jobs and results are relayed over these sockets. A request therefore costs
+one relayed round trip to each selected peer, in parallel.
+\paragraph{Identity and integrity.} Each node holds an ed25519 key; its identifier is a hash of the public
+key. Login is a signed challenge; jobs are signed by the requester, results by the serving node, and
+receipts by the requester, over canonical JSON with a message-type and protocol-version domain separator.
+All fields are size-bounded and every job has a deadline.
+\paragraph{Fusion.} The gateway selects $k$ peers of distinct families by reliability, broadcasts the
+request, extracts answers when the task allows it (final number, boxed expression, option letter), and
+applies the $K$-class weighted vote with the stop certificate of Theorem~\ref{thm:cert}; stragglers are
+cancelled. Free-form answers fall back to a weighted medoid. The response carries the per-peer answers,
+weights, decision rule and latency.
+\paragraph{Credits and audits.} A served job earns completion tokens times a size factor; the requester pays
+the sum over answering peers on a signed receipt. Following Theorem~\ref{thm:audit}, spot checks duplicate
+a small fraction of \emph{greedy} jobs with extractable answers to another node serving the same weights and
+compare extracted answers; the honest disagreement rate $\alpha$ is measured per model, and a node's
+reputation drops only when its disagreement exceeds $\alpha$ by more than three standard deviations.
+\paragraph{Limitations of v1.} The tracker is a single point of failure and sees request contents; token
+counts are bounded but not verified; Sybil identities can collect the starter credit. The roadmap replaces
+the central ledger by peer-verified receipts and the tracker by a federation, then a DHT with direct
+NAT traversal.
+\paragraph{Scalability (E7).} We ran the real tracker in its own process with up to 4{,}096 simulated nodes
+(real WebSocket clients, signatures and gateways; answers drawn from the measured per-family accuracies
+with collision rate $c=0.09$; compute times drawn from the measured GSM8K timings) and a lognormal
+wide-area delay injected on every relayed message. With the measured compute times, 256 nodes and a
+100\,ms RTT, the stop certificate lowers the median decision latency from \eSevenCertWaitAll{}\,s to
+\eSevenCertCert{}\,s (\eSevenCertGain\%; \eSevenCertGainHetero\% with heterogeneous node speeds). With
+compute times scaled down to load the tracker, a single tracker core sustains
+\eSevenRpsSixtyFour{}, \eSevenRpsTwoFiftySix{}, \eSevenRpsOneK{} and \eSevenRpsFourK{} requests/s at
+64, 256, 1{,}024 and 4{,}096 nodes (RTT 100\,ms; p95 \eSevenPninetyfiveOneK\,s at 1{,}024 nodes). A first
+version that let every gateway download the $O(N)$ directory capped at \eSevenRpsBeforeOneK{} requests/s at
+1{,}024 nodes; selecting peers on the tracker in $O(k)$ from per-family indexes removed this bottleneck.
+Hung nodes are detected by application-level pings and deadline misses and suspended with exponential
+backoff. Beyond one core, trackers could be sharded by request hash (not evaluated), since selection needs no global state
+beyond per-family indexes.
+
+\section{Limitations}
+Our swarm uses more total compute than one model of a single member's size; the claim is about what
+consumer devices can achieve \emph{together} at one round trip, not about compute efficiency. Voting needs
+extractable answers; free-form text requires a similarity-based medoid whose quality we have not
+evaluated. A non-significant difference is not equivalence; we use equivalence tests with an explicit
+margin where we claim parity. The credit ledger is centralised in v1.
+
+\section{Conclusion}
+A single round trip, a vote with the right weights and an exact stop certificate let a swarm of small
+heterogeneous models on consumer devices match larger models on verifiable tasks, without putting the
+network in the decoding loop.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\section{Proofs and numerical checks}
+All numerical checks below were run with exact enumeration or 400{,}000 Monte-Carlo draws; the scripts are
+in the repository.
+
+\paragraph{Latency of the certificate.}
+The certificate is persistent: once the received answers certify $a$, any further answer keeps $a$
+certified. Hence $\{\tau>t\}$ is the event that the set $S_t$ of peers arrived before $t$ does not
+certify, and with latencies independent of the answers,
+$\Pr(\tau>t)=\sum_S h(S)\prod_{i\in S}F_i(t)\prod_{i\notin S}(1-F_i(t))$; integrating gives
+$\mathbb E[\tau]$. Since $\tau\le\max_iT_i$ almost surely, $\mathbb E[\tau]\le\mathbb E[\max_i T_i]$,
+strictly iff $\Pr(\tau<\max_iT_i)>0$. For i.i.d.\ continuous latencies the arrival order is a uniform
+permutation independent of the order statistics, so $\mathbb E[\tau]=\sum_j\Pr(J=j)\,\mathbb E[T_{(j)}]$,
+and exponential spacings have means $1/(\lambda(n-k))$. Check: five unanimous equal-weight peers certify at
+$J=3$; theory gives $0.7833$ vs simulated $0.7835$ for $\mathrm{Exp}(1)$ (waiting for all: $2.2833$ vs
+$2.2824$), and $1.1543$ vs $1.1535$ for $\mathrm{Lognormal}(0,1)$.
+
+\paragraph{Theorem~\ref{thm:np}.}
+By conditional independence, $\Pr(Y=c\mid A)\propto\eta_c\prod_ip_i^{\mathbf 1\{A_i=c\}}
+\bigl((1-p_i)/(K-1)\bigr)^{\mathbf 1\{A_i\ne c\}}$; its logarithm equals the weighted score plus a term
+independent of $c$, and the posterior mode minimises the zero-one risk. Exhaustive checks for three voters
+($K=2$ and $K=3$) found no disagreement with the exact Bayes rule.
+
+\paragraph{Theorem~\ref{thm:cantelli}.}
+If $Z=\sum_ia_iX_i>W/2$ the correct answer holds more weight than all wrong answers together and wins,
+so the vote is correct with probability at least $\Pr(Z>W/2)$. Since $\mathbb E Z-W/2=d$ and
+$\operatorname{Var}Z=V$, Cantelli's inequality gives $\Pr(Z\le W/2)\le V/(V+d^2)$. The vote beats the best
+voter (accuracy $p_\star$) as soon as $d^2>p_\star V/(1-p_\star)$.
+
+\paragraph{Theorem~\ref{thm:nonid}.}
+Take three exchangeable indicators and the two laws of $N=\sum X_i$:
+$\mathcal L_1=(0.16,0,0.72,0.12)$ and $\mathcal L_2=(0,0.48,0.24,0.28)$ on $N=0,\dots,3$, with successes
+placed uniformly. Both give $\mathbb E X_i=0.6$ and $\mathbb E X_iX_j=0.36$, i.e.\ zero correlations, but
+$\Pr(N\ge2)=0.84$ under $\mathcal L_1$ and $0.52$ under $\mathcal L_2$. Taking $Y$ uniform on $\{0,1\}$ and
+$A_i=Y$ if $X_i=1$, $A_i=1-Y$ otherwise realises both as symmetric binary channels.
+
+\paragraph{Theorem~\ref{thm:appeal}.}
+Per question the change in correctness is $D(\mathbf 1\{Y=b\}-\mathbf 1\{Y=a\})$; taking expectations gives
+$Br-Ch$, questions where neither $a$ nor $b$ is correct contributing zero. For a randomised rule $d(z)$ the
+gain is $\int d(z)\,[Bf_b(z)-Cf_a(z)]\,dz$, maximised pointwise by $d=\mathbf 1\{Bf_b>Cf_a\}$, i.e.\ a
+likelihood-ratio threshold at $C/B$; the maximal gain is $\int(Bf_b-Cf_a)_+$. A Gaussian check with
+$B=0.1$, $C=0.3$ gives the predicted optimum $t^*=\tfrac12\log3$ and gain $0.0492$ (simulated $0.0490$).
+
+\paragraph{Grading.}\label{app:grader}
+Generated answers are graded from the stored texts. For GSM8K the last answer statement wins, whatever
+its form (including ``\textbf{The answer is 16.}'' and ``The answer is $N=195$''); MATH-500 answers are the
+last \texttt{\textbackslash boxed\{\}}, normalised with Hendrycks' \texttt{strip\_string} (units after a
+number removed, canonical numbers); option letters come from an explicit answer statement or a line
+holding only the letter. An earlier, stricter GSM8K grader missed the first two forms; all GSM8K numbers
+in this paper use the final grader, re-applied to the stored texts without new inference.
+
+\paragraph{Theorems~\ref{thm:incentive} and~\ref{thm:audit}.}
+The expected utilities are $U_H=cL-g_H-q\alpha(P+R)$ and $U_d=cL-g_d-q\beta_d(P+R)$, whose difference
+gives the condition; participation additionally needs $U_H\ge0$. For the audit, two honest samples agree
+with probability $\sum_yr(y)^2$ while the modal answer matches the reference with probability $\max_yr(y)
+\ge\sum_yr(y)^2$, so $\beta\le\alpha$ and the left-hand side of the incentive condition is non-positive.
+Example: with $q=5\%$, $\alpha=1\%$, $\beta=95\%$, $P=12{,}000$ credits and a 1{,}000-token job paying one
+credit per token, honest serving earns 394 credits against 330 for cheating (simulated: 393.6 and 333.4).
+
+\end{document}
