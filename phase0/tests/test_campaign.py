@@ -168,12 +168,16 @@ session = {'schema': 1, 'phase0': {'fingerprint': 'a' * 64, 'hardware': 'A100'}}
 active = root / 'active'
 if operation == 'sessions-json':
     print(json.dumps(session if active.exists() or mode == 'existing' else {'schema': 1, 'phase0': None}))
+elif operation == 'usage-json':
+    print(json.dumps({'schema': 1, 'balance_units': 100, 'rate_units_hour': 5.3, 'assignments': 1}))
 elif operation == 'up':
     if mode == 'up-refused': sys.exit(23)
     if mode == 'bootstrap-refused': sys.exit(73)
     active.touch()
     Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({**session, 'status': 'owned',
-        'campaign_id': os.environ['DLLM_CAMPAIGN_ID']}))
+        'campaign_id': os.environ['DLLM_CAMPAIGN_ID'],
+        'usage_before': {'balance_units': 100}, 'budget_policy': {'budget': 20, 'minimum': 15,
+            'rate': 5.3, 'hours': .002, 'cleanup': 3, 'margin': 1}}))
     if mode in ('refused-without-bootstrap', 'foreign-receipt-dns'):
         if mode == 'foreign-receipt-dns':
             Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({**session,
@@ -240,7 +244,8 @@ if args[0] == 'sessions':
     print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU'
           if (root / 'allocated').exists() else '[colab] No active sessions found on server.')
 elif args[0] == 'usage':
-    print('Current balance: 100.00 compute units\nUsage rate: 0.00/hr\nActive assignments: 0')
+    print('Current balance: 100.00 compute units\nUsage rate: ' + ('5.30/hr\nActive assignments: 1'
+          if (root / 'allocated').exists() else '0.00/hr\nActive assignments: 0'))
 elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'upload': pass
 elif args[0] == 'exec':
@@ -298,10 +303,10 @@ else: sys.exit(81)
                 runner = root / "runner.py"
                 runner.write_text(RUNNER)
                 env = {**os.environ, "HOME": d, "TEST_ROOT": d, "MODE": mode, "DLLM_REPO": d,
-                       "FAKE_WRAPPER": str(root / "phase0" / "colab" / "colab_phase0.sh"), "DLLM_BUDGET_UNITS": "20"}
+                       "FAKE_WRAPPER": str(root / "phase0" / "colab" / "colab_phase0.sh"), "DLLM_BUDGET_UNITS": "20", "DLLM_HOURS": ".01"}
                 cmd = [sys.executable, str(runner), str(COLAB), "--lock", str(root / "lock"),
                        "--receipt", str(root / "receipt.json"), "--budget-units", "20",
-                       "--read-seconds", "3", "--up-seconds", "10", "--transfer-seconds", "2",
+                       "--hours", ".01", "--read-seconds", "3", "--up-seconds", "10", "--transfer-seconds", "2",
                        "--cleanup-seconds", "10", "--grace", ".1"]
                 p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                 pids = []
@@ -395,7 +400,8 @@ if args[0] == 'sessions':
         print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU')
     else: print('[colab] No active sessions found on server.')
 elif args[0] == 'usage':
-    print('Current balance: 100.00 compute units\\nUsage rate: 0.00/hr\\nActive assignments: 0')
+    print('Current balance: 100.00 compute units\\nUsage rate: ' + ('5.30/hr\\nActive assignments: 1'
+          if (root / 'allocated').exists() else '0.00/hr\\nActive assignments: 0'))
 elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'exec':
     if args[-1].endswith('capacity.py'):
@@ -429,7 +435,7 @@ else: sys.exit(81)
                 fake.chmod(0o755)
                 receipt = root / "receipt.json"
                 env = {**os.environ, "HOME": d, "TEST_ROOT": d, "DLLM_REPO": d, "MODE": mode,
-                       "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": "synthetic", "DLLM_BUDGET_UNITS": "20"}
+                       "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": "synthetic", "DLLM_BUDGET_UNITS": "20", "DLLM_HOURS": ".01"}
                 result = subprocess.run(["bash", str(root / "phase0" / "colab" / "colab_phase0.sh"),
                                          "up", "aa-1", "A100"], env=env, capture_output=True, text=True, timeout=10)
                 code = 0 if mode == "success" else 65 if mode == "connection" else 73

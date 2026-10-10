@@ -8,6 +8,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 
 
 def killgroup(pid, sig):
@@ -17,13 +18,35 @@ def killgroup(pid, sig):
         pass
 
 
-def run(cmd, seconds=90, grace=5, interrupt_term=True, **streams):
+def run(cmd, seconds=90, grace=5, interrupt_term=True, monitor=None, deadline=None, **streams):
     if not all(math.isfinite(v) and v > 0 for v in (seconds, grace)):
         raise ValueError("invalid process deadline")
+    if deadline is not None and not math.isfinite(deadline):
+        raise ValueError("invalid absolute deadline")
+    deadline = min(time.monotonic() + seconds, deadline if deadline is not None else math.inf)
+    if time.monotonic() >= deadline:
+        return 124
     p = subprocess.Popen(cmd, start_new_session=True, **streams)
     try:
         try:
-            code = p.wait(timeout=seconds)
+            while True:
+                limit = deadline
+                if time.monotonic() >= deadline:
+                    raise subprocess.TimeoutExpired(cmd, seconds)
+                if monitor is not None:
+                    available = monitor(deadline)
+                    limit = min(deadline, time.monotonic() + available)
+                remaining = limit - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(cmd, seconds)
+                try:
+                    code = p.wait(timeout=min(1, remaining) if monitor is not None else remaining)
+                    if time.monotonic() >= limit:
+                        raise subprocess.TimeoutExpired(cmd, seconds)
+                    break
+                except subprocess.TimeoutExpired:
+                    if time.monotonic() >= limit or monitor is None:
+                        raise
             killgroup(p.pid, signal.SIGKILL)  # reap descendants even after an early successful parent exit
             return code if code >= 0 else 128 - code
         except subprocess.TimeoutExpired:

@@ -115,6 +115,13 @@ try:
     groups = ["--group", "scicode"] if PLAN.startswith("aa-") else []  # E12: h5py, scipy, sympy for the SciCode tests
     run(["uv", "sync", "-q", *groups], cwd=f"{WORK}/phase0", env=env)
 
+    if PLAN.startswith("aa-"):
+        status("préparation SciCode vérifiée côté VM")
+        run(["uv", "pip", "install", "--python", f"{WORK}/phase0/.venv/bin/python", "gdown==5.2.0"],
+            env=env, timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        run([f"{WORK}/phase0/.venv/bin/python", "colab/prepare_scicode.py"], cwd=f"{WORK}/phase0", env=env,
+            timeout=1200, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     log = open(f"{RESULTS}/colab_launcher.log", "a")
     p = subprocess.Popen(["uv", "run", *groups, "python", "colab_jobs.py", "--plan", PLAN], cwd=f"{WORK}/phase0", env=env,
                          stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -128,5 +135,5 @@ try:
 except SystemExit:
     raise
 except Exception as e:
-    status("ÉCHEC", erreur=f"{type(e).__name__}: {e}"[:800])
+    status("ÉCHEC", erreur=type(e).__name__)
     raise

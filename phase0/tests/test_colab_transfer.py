@@ -222,7 +222,8 @@ if args[0] == 'sessions':
     print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU'
           if (root / 'active').exists() else '[colab] No active sessions found on server.')
 elif args[0] == 'usage':
-    print('Current balance: 100.00 compute units\nUsage rate: 0.00/hr\nActive assignments: 0')
+    print('Current balance: 100.00 compute units\nUsage rate: ' + ('5.30/hr\nActive assignments: 1'
+          if (root / 'active').exists() else '0.00/hr\nActive assignments: 0'))
 elif args[0] == 'new': (root / 'active').touch()
 elif args[0] == 'stop': (root / 'active').unlink()
 elif args[0] == 'upload':
@@ -297,12 +298,16 @@ class WrapperTransfer(unittest.TestCase):
         shutil.copyfile(COLAB.parent / "colab_bootstrap.py", root / "phase0" / "colab_bootstrap.py")
         data = root / "phase0" / "data"
         data.mkdir()
+        (data / "scicode_all_optional_reference_v2.jsonl").write_text('{"synthetic": true}\n')
         with (data / "scicode_test_data.h5").open("wb") as output:
             if large:
                 block = os.urandom(1024 * 1024)
                 for _ in range(17): output.write(block)
             else:
                 output.write(b"synthetic data, never executed")
+        if large:
+            # Keep the multipart code-transfer regression after removing the HDF5 from every archive.
+            (root / "phase0" / "synthetic_source.py").write_bytes(os.urandom(17 * 1024 * 1024))
         bins = root / ".local" / "bin"
         bins.mkdir(parents=True)
         fake = bins / "colab"
@@ -313,7 +318,7 @@ class WrapperTransfer(unittest.TestCase):
         (root / "content" / "dllm.tgz").write_bytes(b"previous archive")
         return {**os.environ, "HOME": str(root), "TEST_ROOT": str(root), "MODE": mode,
                 "DLLM_REPO": str(root), "DLLM_CAMPAIGN_RECEIPT": str(root / "receipt"),
-                "DLLM_CAMPAIGN_ID": "synthetic-campaign", "DLLM_BUDGET_UNITS": "20", "DLLM_RETRY_SECONDS": ".01"}
+                "DLLM_CAMPAIGN_ID": "synthetic-campaign", "DLLM_BUDGET_UNITS": "20", "DLLM_HOURS": ".01", "DLLM_RETRY_SECONDS": ".01"}
 
     def test_real_wrapper_multi_part_and_ack_failures(self):
         for mode, expected in (("success", 0), ("upload-error", 29), ("no-ack", 65), ("bad-ack", 65),
@@ -343,9 +348,10 @@ class WrapperTransfer(unittest.TestCase):
                     self.assertEqual(set(p.name for p in (root / "content").iterdir()),
                                      {"dllm.tgz", "model-sentinel"})
                     with tarfile.open(root / "content" / "dllm.tgz") as archive:
-                        with archive.extractfile("phase0/data/scicode_test_data.h5") as source:
-                            self.assertEqual(hashlib.file_digest(source, "sha256").hexdigest(),
-                                             digest(root / "phase0" / "data" / "scicode_test_data.h5"))
+                        names = archive.getnames()
+                        self.assertNotIn("phase0/data/scicode_test_data.h5", names)
+                        self.assertFalse(any("scicode" in name and name.startswith("phase0/data/") for name in names))
+
 
     def test_supervised_upload_interruption_kills_group_and_releases_owned_session(self):
         with tempfile.TemporaryDirectory(prefix="supervised transfer spaces ", dir=COLAB.parents[1]) as directory:
@@ -353,7 +359,7 @@ class WrapperTransfer(unittest.TestCase):
             env = self.setup_root(root, "signal")
             p = subprocess.Popen(["bash", str(root / "phase0" / "colab" / "chain4.sh"), "--lock",
                                   str(root / "lock"), "--read-seconds", "3", "--up-seconds", "10",
-                                  "--cleanup-seconds", "20", "--grace", ".1"], env=env,
+                                  "--cleanup-seconds", "20", "--hours", ".01", "--grace", ".1"], env=env,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             pids = []
             try:

@@ -284,12 +284,16 @@ faisabilité du dépôt privé.
   références 7 + 6 + 5 cas réussis ; aucun modèle mesuré, aucun score SWE-bench officiel.
   Diagnostic Requests LGPL conservé distinctement. [Commandes et limites](../docs/13_repo_pilot.md).
 
-Deux fichiers viennent du propriétaire et ne sont jamais commités (`phase0/data/` est ignoré) : `gpqa_diamond.csv`
-(accepter les conditions de GPQA sur Hugging Face) et `scicode_test_data.h5` (dossier Drive du README de SciCode ;
-`uv run python -m essaim.scicode` affiche son SHA-256, à reporter dans `H5_SHA256`).
-
-Dans `aa-1`, seul le HDF5 est obligatoire : sans CSV GPQA, l'archive WSL et les commandes de génération
-exécutent SciCode seul. Un CSV présent mais invalide reste une erreur, même si un cache GPQA existe.
+Le CSV `gpqa_diamond.csv` vient du propriétaire après acceptation des conditions Hugging Face ; il reste
+facultatif et jamais commité. Pour `aa-1`, le PC transmet le code, ce petit CSV éventuel et les points de reprise
+(8 Mio maximum par fichier/compagnon, refus explicite au-delà),
+jamais le HDF5 ni le cache SciCode. La VM télécharge les cibles Drive `17G_k65N_6yFFZ2O-jQH00Lh6iaw3z-AW`
+avec `gdown==5.2.0` ([source officielle](https://github.com/wkentaro/gdown/tree/v5.2.0), MIT), contrôle le SHA-256
+par blocs de 1 Mio avant publication atomique, puis télécharge les deux JSONL HF à la révision SciCode existante
+et contrôle leurs blobs Git. `essaim.scicode` reconstruit le cache canonique ; les fichiers VM présents sont
+revérifiés, toute corruption/interruption interdit le lanceur. Drive est borné à 900 s, la préparation à 1200 s,
+l'installation gdown à 180 s ; les messages d'erreur distants sont omis des journaux.
+Sans CSV GPQA, SciCode seul est exécuté. Un CSV présent mais invalide reste une erreur, même si un cache existe.
 L'analyse choisit également SciCode seul par défaut si le CSV manque (`--benches` permet un choix explicite).
 Le split test SciCode n'a aucune référence : ses 288 étapes notées (291 brutes moins 3 ignorées) passent les tests officiels,
 sans exclusion par oracle. Les échecs de référence peuvent être exclus de dev pour choisir le meilleur pair.
@@ -418,7 +422,8 @@ Le protocole, les prompts, les modèles, les splits et l'oracle dev avant infér
 Entrée versionnée, depuis la racine du dépôt fusionné sous WSL (Python 3, bash et CLI Colab déjà configurés) :
 
 ```bash
-bash phase0/colab/chain4.sh --hours 12 >> tools/wsl/chain4.log 2>&1
+bash phase0/colab/chain4.sh --gpu A100 --hours 6 --budget-units 35 --min-balance-units 15 \
+  --cleanup-seconds 1800 >> tools/wsl/chain4.log 2>&1
 ```
 
 Le parent crée auparavant `tools/wsl/chain4.log`. `tools/wsl/` reste ignoré : aucun code de supervision ne dépend
@@ -431,7 +436,8 @@ avec `nohup` détaché a disparu lorsque WSL n'avait plus de processus Windows. 
 parent, depuis la racine du dépôt retenu dans PowerShell (commande documentée, pas exécutée ici) :
 
 ```powershell
-$arguments = @('--cd', ('"' + (Get-Location).Path + '"'), '-e', 'bash', 'phase0/colab/chain4.sh', '--hours', '12')
+$arguments = @('--cd', ('"' + (Get-Location).Path + '"'), '-e', 'bash', 'phase0/colab/chain4.sh',
+    '--gpu', 'A100', '--hours', '6', '--budget-units', '35', '--min-balance-units', '15', '--cleanup-seconds', '1800')
 Start-Process -FilePath wsl.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput C:/tmp/myriad-e12-transfer-launch.stdout.log `
     -RedirectStandardError C:/tmp/myriad-e12-transfer-launch.stderr.log
@@ -443,7 +449,7 @@ est celui de `wsl.exe`, pas un accusé de succès de campagne ; vérifier les é
 ### Transfert E12 après l'échec HTTP 500 du 10 octobre
 
 La taille de l'archive est une cause plausible, non démontrée par le seul HTTP 500. Le wrapper conserve la
-préparation scientifique existante (HDF5, sources, checkpoints et leurs empreintes), puis envoie l'archive
+préparation scientifique existante (sources, petits checkpoints et leurs empreintes), puis envoie l'archive
 en fichiers de **8 Mio maximum** via la CLI officielle. Même une petite archive suit cette vérification.
 La mémoire de découpage/reconstruction utilise des blocs de 1 Mio ; la CLI ne reçoit qu'un petit fichier à
 la fois, car son upload charge tout le fichier et sa représentation base64. Un seul morceau local est conservé
@@ -560,9 +566,19 @@ superflu. Une identité différente conserve le refus des récupérations et du 
 
 Avant allocation, `usage`/`usage-json` expose via le wrapper un JSON strict du solde, débit horaire du compte
 et nombre d'allocations. Un solde vide/inconnu/insuffisant ou une autre allocation facturée interdit `new`.
-Budget obligatoire : `--budget-units` pour la chaîne ou `DLLM_BUDGET_UNITS` pour le mode manuel ; l'opérateur
-doit le dimensionner pour la durée et le tarif prévus. Aucun tarif futur n'est inventé. Les relevés avant
-allocation et après absence confirmée sont inscrits dans `<reçu>.usage.jsonl` et dans le journal.
+Budget obligatoire : `--budget-units` pour la chaîne ; le wrapper manuel exige `DLLM_BUDGET_UNITS` et `DLLM_HOURS`.
+La réserve `--min-balance-units` / `DLLM_MIN_BALANCE_UNITS` vaut **15** par défaut. Avant `new`, budget ≤ solde −
+réserve et coût du plafond durée + nettoyage + marge ≤ budget sont obligatoires. `--max-rate-units-hour` /
+`DLLM_MAX_RATE_UNITS_HOUR` vaut 5,3 par défaut (dernier débit A100 observé, pas un tarif futur garanti).
+Après allocation, le débit réel doit aussi permettre le plafond demandé avant tout transfert. Le superviseur
+relit l'usage toutes les `--usage-seconds` (30 s), pendant `up` et les transferts : débit maximal observé,
+baisse du solde et consommation temporelle conservatrice bornent la deadline avec réserve de nettoyage et
+marge de lecture/arrêt. La lecture imbriquée d'usage respecte aussi la deadline propre de l'opération ;
+aucun succès tardif n'est accepté. Comptabilité inconnue ou réserve épuisée : échec immédiat et nettoyage
+toujours autorisé.
+Aucun changement silencieux des modèles/contexte ni réallocation. Avec 60,62 unités, 10 h / 60 unités est refusé.
+Les relevés avant/après allocation et après absence confirmée sont inscrits dans `<reçu>.usage.jsonl` ;
+la surveillance est inscrite dans le journal du superviseur.
 La diminution du solde du compte exige deux relevés lisibles ; recharge/autres usages peuvent la modifier.
 `campaign_consumption_units` reste `null`, sans prétendre une facture de campagne. Un relevé final impossible
 est enregistré explicitement avec valeurs inconnues, sans remettre en cause l'absence confirmée.
@@ -573,7 +589,7 @@ supprimés qu'après un relevé lisible. Le journal distingue cette comptabilit�
 Exemple de préparation, qui n'autorise pas une relance E12 :
 
 ```bash
-bash colab/chain4.sh --gpu auto --hours 10 --budget-units 60
+bash colab/chain4.sh --gpu A100 --hours 6 --budget-units 35 --min-balance-units 15 --cleanup-seconds 1800
 ```
 
 `--gpu auto` et `up <plan> auto` préfèrent L4 si les réservations du plan tiennent, puis A100/H100.

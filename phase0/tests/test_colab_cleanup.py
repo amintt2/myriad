@@ -14,6 +14,7 @@ from tests import test_colab_transfer as transfer
 INJECT = r'''
 with (root / 'operations').open('a') as out:
     out.write(json.dumps({'operation': args[0], 'mode': mode,
+                          'active': (root / 'active').exists(), 'boot': (root / 'boot').exists(),
                           'campaign_id': os.environ.get('DLLM_CAMPAIGN_ID')}) + '\n')
 if mode == 'foreign-race' and args[0] == 'sessions' and not (root / 'released-gate').exists():
     (root / 'ready').touch()
@@ -155,7 +156,8 @@ class Cleanup(unittest.TestCase):
                 if mode == "replace-observed":
                     self.assertTrue((root / "active").exists())
                     self.assertEqual(json.loads((root / "receipt").read_text())["status"], "foreign-campaign")
-                    self.assertEqual(sum(c["operation"] == "usage" for c in calls), 1)
+                    self.assertEqual(sum(c["operation"] == "usage" and c["boot"] and not c["active"]
+                                         for c in calls), 0)
                 else:
                     self.assertFalse((root / "receipt").exists())
                     self.assertIn("explicitly absent", result.stdout)
@@ -163,7 +165,8 @@ class Cleanup(unittest.TestCase):
                     evidence = [json.loads(line) for line in (root / "receipt.usage.jsonl").read_text().splitlines()]
                     self.assertTrue(evidence[-1]["release_confirmed"])
                     self.assertIsNotNone(evidence[-1]["after"])
-                    self.assertEqual(sum(c["operation"] == "usage" for c in calls), 2)
+                    self.assertEqual(sum(c["operation"] == "usage" and c["boot"] and not c["active"]
+                                         for c in calls), 1)
                 if mode != "expire-up": self.assertTrue((root / "observed").exists())
 
     def test_expiration_with_accounting_failure_retries_only_usage_on_cleanup_only(self):
@@ -177,7 +180,7 @@ class Cleanup(unittest.TestCase):
             self.assertTrue(saved["release_confirmed"])
             self.assertIn("release confirmed, accounting pending", result.stdout)
             calls = self.operations(root)
-            self.assertEqual(sum(c["operation"] == "usage" for c in calls), 4)
+            self.assertEqual(sum(c["operation"] == "usage" and c["boot"] and not c["active"] for c in calls), 3)
             self.assertNotIn("stop", [c["operation"] for c in calls])
             retried = subprocess.run([*command, "--cleanup-only"], env={**env, "MODE": "success"},
                                      capture_output=True, text=True, timeout=8)

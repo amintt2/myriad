@@ -208,6 +208,7 @@ def resume(plan, gpu):
 
 
 def allocate(plan, gpu):
+    from budget import limits, preflight
     path = receipt_path()
     if path.exists():
         raise ValueError(f"persistent ownership exists: run down first ({path})")
@@ -220,11 +221,11 @@ def allocate(plan, gpu):
     before = usage(invoke(["usage"]))
     campaign_id = os.environ.get("DLLM_CAMPAIGN_ID")
     usage_record(path, before, None, campaign_id=campaign_id)
-    if before["balance_units"] < budget or before["assignments"] != 0 or before["rate_units_hour"] != 0:
-        raise ValueError("insufficient balance or existing billed allocation")
+    policy = limits()
+    preflight(before, policy)
     pending = {"schema": 1, "status": "allocation-unconfirmed", "phase0": None,
                "campaign_id": campaign_id, "allocation_id": uuid.uuid4().hex, "plan": plan,
-               "usage_before": before, "budget_units": budget}
+               "usage_before": before, "budget_units": budget, "budget_policy": policy}
     save(path, pending)  # Survives a killed process, a successful new with lost output, or a failed receipt read.
     invoke(["new", "-s", "phase0", "--gpu", gpu])  # Never retry an ambiguous allocation.
     pending["allocation_returned"] = True
@@ -241,6 +242,9 @@ def allocate(plan, gpu):
     if owner is None or owner["hardware"] != gpu:
         raise ValueError("allocation identity unconfirmed")
     save(path, {**pending, "status": "owned", "phase0": owner})
+    after = usage(invoke(["usage"]))
+    usage_record(path, before, after, campaign_id=campaign_id)
+    preflight(after, policy, allocated=True)
     script = "import subprocess, json\n" + (
         "r = subprocess.run(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'], "
         "capture_output=True, text=True, check=True, timeout=10)\n"

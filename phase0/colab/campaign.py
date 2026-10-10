@@ -15,6 +15,7 @@ from pathlib import Path
 from read_timeout import run
 from snapshot import safe_snapshot
 from session_json import identity, lifecycle_lock, receipt_path, save
+from budget import remaining, validate_usage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from colab_jobs import PLANS
@@ -32,6 +33,10 @@ class Failure(Exception):
 class SessionAbsent(Failure):
     def __init__(self):
         super().__init__("owned session explicitly absent; campaign failed, accounting cleanup authorized")
+
+
+class AccountingFailure(Failure):
+    pass
 
 
 def log(message):
@@ -75,21 +80,31 @@ class Supervisor:
     def __init__(self, args, receipt):
         self.a, self.receipt = args, receipt
         self.deadline = time.monotonic() + args.hours * 3600
+        self.started = time.monotonic()
+        self.next_usage = 0
+        self.observed_rate = 0
+        self.monitoring = False
         self.campaign_id = uuid.uuid4().hex
         self.env = {**os.environ, "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": self.campaign_id,
                     "DLLM_SUPERVISED": "1", "DLLM_BUDGET_UNITS": str(args.budget_units),
-                    "DLLM_CLEANUP_SECONDS": str(args.cleanup_seconds)}
+                    "DLLM_CLEANUP_SECONDS": str(args.cleanup_seconds), "DLLM_HOURS": str(args.hours),
+                    "DLLM_MIN_BALANCE_UNITS": str(args.min_balance_units),
+                    "DLLM_MAX_RATE_UNITS_HOUR": str(args.max_rate_units_hour),
+                    "DLLM_ACCOUNTING_MARGIN_SECONDS": str(args.usage_seconds + args.read_seconds + args.grace * 2 + 1)}
         self.owner = None
         self.cleanup_lock_fd = None
 
-    def call(self, operation, seconds, structured=False):
-        remaining = self.deadline - time.monotonic()
+    def call(self, operation, seconds, structured=False, deadline=None):
+        deadline = min(self.deadline, deadline if deadline is not None else math.inf)
+        remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise Failure("global deadline exceeded", 124)
         log(f"wrapper {operation}")
         with tempfile.TemporaryFile() as output:
             code = run(["bash", str(WRAPPER), *operation.split()], seconds=min(seconds, remaining),
+                       deadline=deadline,
                        grace=self.a.grace, env=self.env, stdout=output if structured else None,
+                       monitor=self.monitor if self.monitoring and operation != "usage-json" else None,
                        pass_fds=() if self.cleanup_lock_fd is None else (self.cleanup_lock_fd,))
             if code:
                 raise Failure(f"wrapper {operation}: exit {code}", code)
@@ -99,6 +114,24 @@ class Supervisor:
                     return json.load(output)
                 except (ValueError, UnicodeError) as e:
                     raise Failure(f"wrapper {operation}: malformed JSON", 65) from e
+
+    def monitor(self, deadline=None):
+        now = time.monotonic()
+        if now >= self.next_usage and self.receipt.exists():
+            self.next_usage = now + self.a.usage_seconds
+            saved = json.loads(self.receipt.read_text(encoding="utf-8"))
+            if saved.get("status") == "owned":
+                saved = self.cleanup_identity()
+                try:
+                    value = validate_usage(self.call("usage-json", self.a.read_seconds, True, deadline=deadline), True)
+                    seconds, self.observed_rate = remaining(value, saved["budget_policy"],
+                        saved["usage_before"]["balance_units"], time.monotonic() - self.started, self.observed_rate)
+                except (ValueError, KeyError, Failure) as exc:
+                    code = 124 if isinstance(exc, Failure) and exc.code == 124 else 65
+                    raise AccountingFailure("accounting unknown or reserve exhausted; cleanup required", code) from exc
+                self.deadline = min(self.deadline, time.monotonic() + seconds)
+                log("account usage " + json.dumps(value, sort_keys=True))
+        return self.deadline - time.monotonic()
 
     def session(self):
         value = self.call("sessions-json", self.a.read_seconds, True)
@@ -161,11 +194,14 @@ class Supervisor:
                 return result
             except Failure as e:
                 log(str(e))
+                if isinstance(e, AccountingFailure):
+                    raise
                 if e.code not in (65, 124) and not str(e).startswith("wrapper"):
                     raise
                 last = e
                 if attempt + 1 < self.a.read_failures:
-                    time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
+                    time.sleep(min(self.a.poll_seconds, self.a.usage_seconds,
+                                   max(0, self.deadline - time.monotonic())))
         raise last
 
     def execute(self):
@@ -173,8 +209,11 @@ class Supervisor:
         try:
             if self.session() is not None:
                 raise Failure("existing phase0 session refused without touching it", 73)
+            self.monitoring = True
             self.call(f"up aa-1 {self.a.gpu}", self.a.up_seconds)
             self.ownership()
+            self.next_usage = 0
+            self.monitor()
             next_pull = time.monotonic() + self.a.pull_seconds
             while True:
                 phase = self.observe()
@@ -188,14 +227,14 @@ class Supervisor:
                             self.call("pull", self.a.transfer_seconds)
                             break
                         except Failure as e:
-                            if e.code == 73:
+                            if e.code == 73 or isinstance(e, AccountingFailure):
                                 raise
                             log(f"periodic recovery pending (attempt {attempt + 1}): {e}")
                             if attempt + 1 < self.a.read_failures:
-                                time.sleep(min(self.a.poll_seconds * 2 ** attempt,
+                                time.sleep(min(self.a.poll_seconds * 2 ** attempt, self.a.usage_seconds,
                                                max(0, self.deadline - time.monotonic())))
                     next_pull = time.monotonic() + self.a.pull_seconds
-                time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
+                time.sleep(min(self.a.poll_seconds, self.a.usage_seconds, max(0, self.deadline - time.monotonic())))
         except Failure as e:
             log(str(e))
             code = e.code
@@ -208,6 +247,7 @@ class Supervisor:
             log(f"supervision error: {type(e).__name__}: {e}")
             code = 1
         finally:
+            self.monitoring = False
             # Ignore repeated signals during bounded recovery; cleanup has its own finite budget.
             for sig in (signal.SIGTERM, signal.SIGINT):
                 signal.signal(sig, signal.SIG_IGN)
@@ -267,6 +307,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--gpu", choices=("auto", "L4", "A100", "H100", "T4"), default="auto")
     ap.add_argument("--budget-units", type=float, default=float(os.environ.get("DLLM_BUDGET_UNITS", "nan")))
+    ap.add_argument("--min-balance-units", type=float, default=float(os.environ.get("DLLM_MIN_BALANCE_UNITS", "15")))
+    ap.add_argument("--max-rate-units-hour", type=float, default=5.3)
+    ap.add_argument("--usage-seconds", type=float, default=30)
     ap.add_argument("--receipt", type=Path, default=receipt_path())
     ap.add_argument("--cleanup-only", action="store_true")
     ap.add_argument("--hours", type=float, default=12)
@@ -280,11 +323,17 @@ def main():
     ap.add_argument("--read-failures", type=int, default=3)
     ap.add_argument("--lock", type=Path, default=Path("/tmp/myriad-phase0-campaign.lock"))
     a = ap.parse_args()
-    times = (v for k, v in vars(a).items() if k not in ("lock", "receipt", "cleanup_only", "gpu", "budget_units"))
+    times = (v for k, v in vars(a).items() if k not in
+             ("lock", "receipt", "cleanup_only", "gpu", "budget_units", "min_balance_units",
+              "max_rate_units_hour", "usage_seconds"))
     if any(not math.isfinite(v) or v <= 0 for v in times):
         ap.error("all time limits and retry counts must be finite and positive")
     if not a.cleanup_only and (not math.isfinite(a.budget_units) or a.budget_units <= 0):
         ap.error("--budget-units must explicitly reserve sufficient compute units")
+    if not a.cleanup_only and (not math.isfinite(a.min_balance_units) or a.min_balance_units < 0):
+        ap.error("--min-balance-units must be finite and nonnegative")
+    if not a.cleanup_only and any(not math.isfinite(v) or v <= 0 for v in (a.max_rate_units_hour, a.usage_seconds)):
+        ap.error("rate reservation and usage interval must be finite and positive")
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     with a.lock.open("a") as lock:
         try:

@@ -65,11 +65,6 @@ case "${1:-}" in
     fi
     export DLLM_CAMPAIGN_ID="${DLLM_CAMPAIGN_ID:-$(python3 -c 'import uuid; print(uuid.uuid4().hex)')}"
     if [ "$gpu" = auto ]; then gpu=$(python3 "$COLAB_DIR/session_json.py" select-gpu "$plan"); fi
-    case "$plan" in aa-*)  # E12: SciCode targets required, GPQA optional, checked before a VM is allocated
-      for f in scicode_test_data.h5; do
-        [ -e "$REPO/phase0/data/$f" ] || { echo "manque phase0/data/$f : voir la section E12 de phase0/README.md (étapes manuelles)"; exit 1; }
-      done ;;
-    esac
     python3 "$COLAB_DIR/session_json.py" allocate "$plan" "$gpu"
     DLLM_OPERATION_IDENTITY=$(python3 "$COLAB_DIR/session_json.py" identity)
     export DLLM_OPERATION_IDENTITY
@@ -81,10 +76,9 @@ case "${1:-}" in
     trap 'rm -rf "$tmp"' EXIT
     mkdir -p "$tmp/stage/checkpoints"
     tar cf - -C "$REPO" --exclude='phase0/.venv' --exclude='phase0/results' --exclude='phase0/data' \
-        --exclude='__pycache__' phase0 | tar xf - -C "$tmp/stage"
+        --exclude='__pycache__' --exclude='*.h5' --exclude='.cache' phase0 | tar xf - -C "$tmp/stage"
     case "$plan" in aa-*)  # sent to the VM only (GPQA terms): phase0/data/ is ignored by git and left out of the other plans
       mkdir -p "$tmp/stage/phase0/data"
-      cp "$REPO/phase0/data/scicode_test_data.h5" "$tmp/stage/phase0/data/"
       if [ -e "$REPO/phase0/data/gpqa_diamond.csv" ]; then
         cp "$REPO/phase0/data/gpqa_diamond.csv" "$tmp/stage/phase0/data/"
       fi ;;
@@ -103,6 +97,13 @@ case "${1:-}" in
       [[ "$f" = *.timing.jsonl ]] && continue
       checkpoint_allowed "$(basename "$f")" || continue
       if [ -e "$f" ] && [ -e "$f.meta.json" ]; then
+        if [ "$plan" = aa-1 ]; then
+          for checkpoint in "$f" "$f.meta.json" "$f.timing.jsonl"; do
+            [ ! -e "$checkpoint" ] || [ "$(stat -c %s "$checkpoint")" -le 8388608 ] || {
+              echo 'E12 checkpoint exceeds 8 MiB; upload refused'; exit 65;
+            }
+          done
+        fi
         cp "$f" "$f.meta.json" "$tmp/stage/checkpoints/"
         if [[ "$f" = */aa_* ]] && [ -e "$f.timing.jsonl" ]; then cp "$f.timing.jsonl" "$tmp/stage/checkpoints/"; fi
       fi

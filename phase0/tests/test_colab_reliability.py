@@ -92,7 +92,8 @@ elif operation == 'stop':
 elif operation == 'usage':
     if mode == 'empty-usage' or mode == 'after-empty' and not active.exists(): sys.exit(0)
     balance = '1.00' if mode == 'low-balance' else '97.50' if mode == 'after' else '100.00'
-    print(f'Current balance: {balance} compute units\nUsage rate: 0.00/hr\nActive assignments: 0')
+    print(f'Current balance: {balance} compute units\nUsage rate: ' + ('5.30/hr\nActive assignments: 1'
+          if active.exists() else '0.00/hr\nActive assignments: 0'))
 elif operation == 'exec':
     print('DLLM_CAPACITY ' + json.dumps({'free_mib': 20000 if mode == 'low-memory' else 40960}))
 else: sys.exit(81)
@@ -109,7 +110,7 @@ class Reliability(unittest.TestCase):
         fake.chmod(0o755)
         return {**os.environ, "HOME": str(root), "PATH": str(bins) + ":" + os.environ["PATH"], "MODE": mode,
                 "TEST_ROOT": str(root), "DLLM_CAMPAIGN_RECEIPT": str(root / "receipt"),
-                "DLLM_BUDGET_UNITS": "20", "DLLM_RETRY_SECONDS": ".01", "DLLM_CLEANUP_SECONDS": "1.5"}
+                "DLLM_BUDGET_UNITS": "20", "DLLM_HOURS": ".01", "DLLM_RETRY_SECONDS": ".01", "DLLM_CLEANUP_SECONDS": "1.5"}
 
     def call(self, env, *args):
         return subprocess.run([sys.executable, str(COLAB / "session_json.py"), *args], env=env,
