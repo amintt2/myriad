@@ -212,6 +212,11 @@ faisabilité du dépôt privé.
   bac Linux WSL Landlock/namespaces/seccomp, vérificateur séparé et comptabilité jetons/temps/coût estimé.
   Provenance modèle/serveur structurée obligatoire ; solo direct Linux accepté. Aucune inférence ni mesure modèle
   dans ce jalon ; [reproduction et limites](../docs/12_code_pilot.md).
+- **5c, dépôt Python réel** : trois printers SymPy historiques présélectionnés (11400, 11897, 12171),
+  runtime uv Python 3.9.25 et mpmath 0.19 BSD, vrais dépôts temporaires sans Git, assertions de chaînes
+  dans contrôleur séparé et mêmes boucle/budgets/comptabilité. Smoke WSL : trois bases rejetées,
+  références 7 + 6 + 5 cas réussis ; aucun modèle mesuré, aucun score SWE-bench officiel.
+  Diagnostic Requests LGPL conservé distinctement. [Commandes et limites](../docs/13_repo_pilot.md).
 
 Deux fichiers viennent du propriétaire et ne sont jamais commités (`phase0/data/` est ignoré) : `gpqa_diamond.csv`
 (accepter les conditions de GPQA sur Hugging Face) et `scicode_test_data.h5` (dossier Drive du README de SciCode ;

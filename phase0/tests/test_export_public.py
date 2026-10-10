@@ -48,6 +48,35 @@ class TestScan(unittest.TestCase):
             for text in (FAKE_TOKEN, home):
                 self.assertTrue(self.scan({base + name: text.encode()}))
 
+    def test_repo_pilot_diagnostic_whitelist_is_exact_and_scanned(self):
+        allowed = {"phase0/repo_pilot/" + name for name in
+                   ("tasks.json", "README.md", "pyproject.toml", "uv.lock", "final_cases.json",
+                    "requests_diagnostic.json", "licenses/sympy-11400.txt", "licenses/sympy-11897.txt",
+                    "licenses/sympy-12171.txt", "licenses/mpmath-0.19.txt")} | {"docs/13_repo_pilot.md"}
+        for rel in allowed:
+            self.assertTrue(ex.selected(rel), rel)
+            self.assertTrue(self.scan({rel: FAKE_TOKEN.encode()}))
+        for name in ("sources.json", "test.parquet", "reference.patch", "tests.py", "private.txt",
+                     "sub/tasks.json", "tasks.json.part", "smoke.json", "licenses/extra.txt"):
+            self.assertFalse(ex.selected("phase0/repo_pilot/" + name), name)
+        for name in ("smoke.json", "verdicts.json.part", "single__psf__requests-1963.jsonl", "reference.patch"):
+            self.assertFalse(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/" + name), name)
+        for name in ex.REPO_PILOT_RESULTS:
+            self.assertTrue(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/" + name), name)
+            self.assertTrue(self.scan({"phase0/results/repo_pilot_cpu_20261010_01/" + name: FAKE_TOKEN.encode()}))
+            self.assertFalse(ex.selected("phase0/results/repo_pilot_other_20261010_01/" + name), name)
+            self.assertFalse(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/sub/" + name), name)
+        self.assertFalse(ex.selected("phase0/data/repo-pilot/test.parquet"))
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(ex, "dirty_paths", return_value=[]), \
+                mock.patch.object(ex, "git_files", return_value={f: "100644" for f in allowed}), \
+                mock.patch.object(ex, "REWRITES", []), mock.patch("sys.stdout"):
+            out = Path(d) / "public"
+            self.assertEqual(ex.main([str(out)]), 0)
+            exported = {p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file()}
+            self.assertEqual(exported, allowed)
+            for rel in allowed:
+                self.assertEqual((out / rel).read_bytes(), (ROOT / rel).read_bytes())
+
     def test_e10_synthetic_result_exact_line_only(self):
         rel = "phase0/results/sot_base_Qwen__Qwen3.5-4B_colab_other.jsonl"
         data = (ROOT / rel).read_bytes()

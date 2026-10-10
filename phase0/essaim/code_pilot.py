@@ -142,7 +142,12 @@ def instructions(cache: Path, task: str) -> str:
             "The final verifier restores the original tests and runs outside your interpreter.\n\n" + docs)
 
 
-def run_one(args, task: str, mode: str, models: list[str], client, output: Path, campaign_hash: str) -> dict:
+def run_one(args, task: str, mode: str, models: list[str], client, output: Path, campaign_hash: str,
+            backend=None) -> dict:
+    copy = backend.copy_task if backend else copy_task
+    collect = backend.collect_sources if backend else collect_sources
+    instruction_for = backend.instructions if backend else instructions
+    grade_sources = backend.verify if backend else verify
     started = time.monotonic()
     with (output / f"{mode}__{task}.jsonl").open("w", encoding="utf-8") as log:
         def record(value):
@@ -153,9 +158,9 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
         try:
             with tempfile.TemporaryDirectory(prefix="myriad-agent-") as temporary:
                 work = Path(temporary)
-                allowed = copy_task(args.tasks_dir, task, work)
-                initial = collect_sources(work, allowed)
-                instruction = instructions(args.tasks_dir, task)
+                allowed = copy(args.tasks_dir, task, work)
+                initial = collect(work, allowed)
+                instruction = instruction_for(args.tasks_dir, task)
                 record({"kind": "start", "task": task, "mode": mode, "instruction": instruction, "system": SYSTEM})
                 env = LocalLinuxEnv(work, args.runtime)
                 try:
@@ -169,7 +174,7 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                     record({"kind": "isolation", "receipt": env.isolation})
                 row.update(stopped=episode["stopped"], steps=len(episode["steps"]))
                 try:
-                    sources = collect_sources(work, allowed)
+                    sources = collect(work, allowed)
                 except SourceArtifactError:
                     # Only post-episode artifacts are candidate failures; initial preparation stays infrastructure.
                     grade = {"status": "graded", "passed": False, "candidate_failure": "invalid_source_artifact",
@@ -181,7 +186,7 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                                             for name, text in sources.items()}
                     record({"kind": "changes", "initial": initial, "sources": sources})
                     # Tests and any agent-written scores/artifacts are discarded, never trusted by the grader.
-                    grade = verify(args.tasks_dir, task, sources, args.runtime, args.verify_timeout)
+                    grade = grade_sources(args.tasks_dir, task, sources, args.runtime, args.verify_timeout)
                 row.update(status=grade["status"], passed=grade["passed"], verifier=grade)
                 row["episode_seconds"] = time.monotonic() - started - grade["seconds"]
         except Exception as error:
@@ -193,9 +198,10 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
     return row
 
 
-def report(rows: list[dict], campaign: dict, output: Path) -> dict:
+def report(rows: list[dict], campaign: dict, output: Path, backend=None) -> dict:
+    pilot = backend.PILOT if backend else PILOT
     modes = list(campaign["models"])
-    expected = {(mode, task) for mode in modes for task in PILOT}
+    expected = {(mode, task) for mode in modes for task in pilot}
     if (len(rows) != len(expected) or {(r["mode"], r["task"]) for r in rows} != expected
             or any(r["status"] != "graded" or type(r["passed"]) is not bool for r in rows)):
         raise ValueError("final report requires all predeclared episodes and valid verdicts")
@@ -207,7 +213,7 @@ def report(rows: list[dict], campaign: dict, output: Path) -> dict:
             raise ValueError("transcript provenance mismatch")
     # Reuse the existing completeness/Wilson helper; paired testing adds no useful claim with n=3.
     summary = {"scope": "three preselected tasks, not the full benchmark", "paired": {},
-               "modes": {mode: summarize([r for r in rows if r["mode"] == mode], [mode], PILOT)["modes"][mode]
+               "modes": {mode: summarize([r for r in rows if r["mode"] == mode], [mode], pilot)["modes"][mode]
                          for mode in modes}}
     lines = ["# Pilote descriptif Aider Python", "", "Trois exercices présélectionnés ; aucune généralisation aux 225 "
              "exercices, aux six langages ou à un dépôt logiciel réel.", "",
@@ -217,10 +223,13 @@ def report(rows: list[dict], campaign: dict, output: Path) -> dict:
              "| stratégie | réussites | Wilson 95 % | jetons réels | plafonds facturés | s/tâche "
              "| Wh/tâche estimés | €/tâche estimés |",
              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    if backend:
+        lines[:4] = ["# Pilote descriptif SymPy sur dépôt réel", "", "Trois réparations historiques présélectionnées ; "
+                     "assertions de chaînes seulement, aucun score SWE-bench officiel ni couverture PASS_TO_PASS.", ""]
     for mode in modes:
         selected = [r for r in rows if r["mode"] == mode]
         metric = summary["modes"][mode]
-        seconds = sum(r["seconds"] for r in selected) / len(PILOT)
+        seconds = sum(r["seconds"] for r in selected) / len(pilot)
         wh = campaign["watts"] * seconds / 3600
         counts = [r["completion_tokens"] for r in selected]
         tokens = sum(counts) if all(v is not None for v in counts) else None
@@ -279,21 +288,25 @@ def model_modes(args) -> dict:
     return models
 
 
-def parser() -> argparse.ArgumentParser:
-    cli = argparse.ArgumentParser(description="Pilote reproductible Aider Python sans Docker, trois tâches fixes")
+def parser(backend=None) -> argparse.ArgumentParser:
+    name = "SymPy sur dépôt réel" if backend else "Aider Python"
+    directory = "repo-pilot" if backend else "code-pilot"
+    cli = argparse.ArgumentParser(description=f"Pilote reproductible {name} sans Docker, trois tâches fixes")
     action = cli.add_mutually_exclusive_group()
-    action.add_argument("--prepare", action="store_true", help="Télécharger les 34 tâches publiques épinglées")
+    action.add_argument("--prepare", action="store_true", help="Télécharger les sources publiques épinglées")
     action.add_argument("--check", action="store_true", help="Vérifier les fichiers sans inférence")
     action.add_argument("--smoke", action="store_true", help="Références officielles et solutions incorrectes, sans modèle")
     action.add_argument("--report", action="store_true", help="Rapport uniquement sur campagne complète")
-    cli.add_argument("--tasks-dir", type=Path, default=ROOT / "data/code-pilot")
-    cli.add_argument("--runtime", type=Path, default=Path.home() / ".local/share/myriad-code-pilot/venv")
+    cli.add_argument("--tasks-dir", type=Path, default=ROOT / "data" / directory)
+    runtime = Path.home() / ".local/share" / ("myriad-" + directory) / "venv"
+    cli.add_argument("--runtime", type=Path, default=runtime)
     cli.add_argument("--output", type=Path)
     cli.add_argument("--resume", action="store_true")
     cli.add_argument("--single")
     cli.add_argument("--vote", nargs="+")
     cli.add_argument("--reference")
-    cli.add_argument("--provenance", type=Path, help="JSON nonsecret modèle/serveur/matériel/raisonnement avant inférence")
+    cli.add_argument("--provenance", type=Path,
+                     help="JSON nonsecret modèle/serveur/matériel/raisonnement avant inférence")
     cli.add_argument("--max-steps", type=int, default=20)
     cli.add_argument("--max-tokens", type=int, default=1024)
     cli.add_argument("--total-tokens", type=int, default=12288)
@@ -306,26 +319,34 @@ def parser() -> argparse.ArgumentParser:
     return cli
 
 
-def execute(args) -> int:
-    manifest = provenance()
+def execute(args, backend=None) -> int:
+    manifest = backend.provenance() if backend else provenance()
+    pilot = backend.PILOT if backend else PILOT
+    prepare_tasks = backend.prepare if backend else prepare
+    check_smoke = backend.smoke if backend else smoke
+    instruction_for = backend.instructions if backend else instructions
+    resource = "repo_pilot" if backend else "code_pilot"
     if args.prepare:
-        prepare(args.tasks_dir, manifest)
-        print("34 tâches Python vérifiées ; pilote fixe : " + ", ".join(PILOT))
+        prepare_tasks(args.tasks_dir, manifest)
+        print("Sources vérifiées ; pilote fixe : " + ", ".join(pilot))
         return 0
     check_tasks(args.tasks_dir, manifest)
     if args.check:
         if args.provenance:
             modes = model_modes(args)
-            declarations(args.provenance, sorted({m for peers in modes.values() for m in peers}), args.watts, args.eur_kwh)
-        print("Provenance vérifiée (34 tâches, 282 fichiers), aucune inférence.")
+            declarations(args.provenance, sorted({m for peers in modes.values() for m in peers}),
+                         args.watts, args.eur_kwh)
+        print(f"Provenance vérifiée ({len(manifest['files'])} fichiers), aucune inférence.")
         return 0
     if not sys.platform.startswith("linux"):
         raise ValueError("run execution from WSL with its separate frozen uv environment")
     args.runtime = args.runtime.resolve()
     if Path(sys.prefix).resolve() != args.runtime:
         raise ValueError("use the dedicated runtime interpreter for both orchestration and execution")
+    if backend:
+        backend.check_runtime()
     if args.smoke:
-        result = smoke(args.tasks_dir, args.runtime)
+        result = check_smoke(args.tasks_dir, args.runtime)
         if args.output:
             args.output.mkdir(parents=True, exist_ok=True)
             write_json(args.output / "smoke.json", result)
@@ -336,7 +357,7 @@ def execute(args) -> int:
     if args.report:
         campaign = json.loads((args.output / "manifest.json").read_text(encoding="utf-8"))
         rows = json.loads((args.output / "verdicts.json").read_text(encoding="utf-8"))
-        report(rows, campaign, args.output)
+        report(rows, campaign, args.output, backend)
         return 0
     models = model_modes(args)
     if not args.provenance:
@@ -350,17 +371,23 @@ def execute(args) -> int:
     validate_endpoint(url, key)
     execution_provenance = declarations(args.provenance, sorted({m for peers in models.values() for m in peers}),
                                         args.watts, args.eur_kwh)
-    campaign = {"version": VERSION_PILOT, "sandbox": VERSION, "dataset_hash": hash_json(manifest),
-                "tasks": PILOT, "models": models, "reference": args.reference, "execution_provenance": execution_provenance,
-                "endpoint": url, "system": SYSTEM, "instructions": {t: instructions(args.tasks_dir, t) for t in PILOT},
+    campaign = {"version": backend.VERSION if backend else VERSION_PILOT, "sandbox": VERSION,
+                "dataset_hash": hash_json(manifest), "tasks": pilot, "models": models,
+                "reference": args.reference,
+                "execution_provenance": execution_provenance,
+                "endpoint": url, "system": SYSTEM, "instructions": {t: instruction_for(args.tasks_dir, t) for t in pilot},
                 "limits": {k: getattr(args, k) for k in ("max_steps", "max_tokens", "total_tokens", "timeout",
                            "cmd_timeout", "verify_timeout", "seed")}, "watts": args.watts, "eur_kwh": args.eur_kwh,
                 "platform": platform.platform(), "python": platform.python_version(),
-                "environment_lock_sha256": hashlib.sha256((ROOT / "code_pilot/uv.lock").read_bytes()).hexdigest(),
+                "environment_lock_sha256": hashlib.sha256((ROOT / resource / "uv.lock").read_bytes()).hexdigest(),
                 "runtime_versions": {p: importlib.metadata.version(p) for p in ("httpx", "pytest", "matplotlib")},
                 "code_hashes": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in
                                 [Path(__file__), ROOT / "essaim/agent.py", ROOT / "essaim/local_linux.py",
                                  ROOT / "essaim/aider_python.py", ROOT / "essaim/code_provenance.py"]}}
+    if backend:
+        campaign["code_hashes"].update({p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in
+                                      [ROOT / "essaim/repo_pilot.py", ROOT / "essaim/repo_tasks.py"]})
+        campaign["runtime_versions"]["mpmath"] = importlib.metadata.version("mpmath")
     args.output.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output / "manifest.json"
     if manifest_path.exists():
@@ -371,13 +398,13 @@ def execute(args) -> int:
     else:
         write_json(manifest_path, campaign)
     # Smoke is mandatory before every invocation that may issue inference requests, including resume.
-    write_json(args.output / "smoke.json", smoke(args.tasks_dir, args.runtime))
+    write_json(args.output / "smoke.json", check_smoke(args.tasks_dir, args.runtime))
     rows_path = args.output / "verdicts.json"
     rows = json.loads(rows_path.read_text(encoding="utf-8")) if rows_path.exists() else []
     completed = set()
     for row in rows:
         identity = (row["mode"], row["task"])
-        if identity in completed or identity[0] not in models or identity[1] not in PILOT:
+        if identity in completed or identity[0] not in models or identity[1] not in pilot:
             raise ValueError("duplicate or undeclared resumed episode")
         if row["campaign_hash"] != hash_json(campaign) or row["status"] != "graded":
             raise ValueError("resume refuses incomplete/error episodes; use a fresh campaign")
@@ -387,26 +414,26 @@ def execute(args) -> int:
         completed.add(identity)
     client = DeadlineClient(url, key)
     for mode, peers in models.items():
-        for task in PILOT:
+        for task in pilot:
             if (mode, task) in completed:
                 continue
             transcript = args.output / f"{mode}__{task}.jsonl"
             if transcript.exists():
                 raise ValueError("orphan transcript: interrupted episode cannot be silently rerun")
-            row = run_one(args, task, mode, peers, client, args.output, hash_json(campaign))
+            row = run_one(args, task, mode, peers, client, args.output, hash_json(campaign), backend)
             rows.append(row)
             write_json(rows_path, rows)
             print(f"{mode}/{task}: {row['status']}, passed={row['passed']}", flush=True)
             if row["status"] != "graded":
                 return 2
-    report(rows, campaign, args.output)
+    report(rows, campaign, args.output, backend)
     return 0
 
 
-def cli_main(argv=None) -> int:
-    args = parser().parse_args(argv)
+def cli_main(argv=None, backend=None) -> int:
+    args = parser(backend).parse_args(argv)
     if args.output and not (args.prepare or args.check or args.smoke):
         args.output.mkdir(parents=True, exist_ok=True)
         with campaign_lock(args.output):
-            return execute(args)
-    return execute(args)
+            return execute(args, backend)
+    return execute(args, backend)

@@ -1,0 +1,98 @@
+{
+  "sympy__sympy-11400": [
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Eq(x, y))",
+      "expected": "x == y"
+    },
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Ne(x, y))",
+      "expected": "x != y"
+    },
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Le(x, y))",
+      "expected": "x <= y"
+    },
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Lt(x, y))",
+      "expected": "x < y"
+    },
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Gt(x, y))",
+      "expected": "x > y"
+    },
+    {
+      "test": "test_ccode_Relational",
+      "code": "from sympy import Eq, Ne, Le, Lt, Gt, Ge\nvalue = ccode(Ge(x, y))",
+      "expected": "x >= y"
+    },
+    {
+      "test": "test_ccode_sinc",
+      "code": "from sympy import sinc\nexpr = sinc(x)\nvalue = ccode(expr)",
+      "expected": "((x != 0) ? (\n   sin(x)/x\n)\n: (\n   1\n))"
+    }
+  ],
+  "sympy__sympy-11897": [
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\nvalue = latex(p)",
+      "expected": "\\begin{cases} x & \\text{for}\\: x < 1 \\\\x^{2} & \\text{otherwise} \\end{cases}"
+    },
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\nvalue = latex(p, itex=True)",
+      "expected": "\\begin{cases} x & \\text{for}\\: x \\lt 1 \\\\x^{2} & \\text{otherwise} \\end{cases}"
+    },
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\np = Piecewise((x, x < 0), (0, x >= 0))\nvalue = latex(p)",
+      "expected": "\\begin{cases} x & \\text{for}\\: x < 0 \\\\0 & \\text{for}\\: x \\geq 0 \\end{cases}"
+    },
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\np = Piecewise((x, x < 0), (0, x >= 0))\nA, B = symbols(\"A B\", commutative=False)\np = Piecewise((A**2, Eq(A, B)), (A*B, True))\nvalue = latex(p)",
+      "expected": "\\begin{cases} A^{2} & \\text{for}\\: A = B \\\\A B & \\text{otherwise} \\end{cases}"
+    },
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\np = Piecewise((x, x < 0), (0, x >= 0))\nA, B = symbols(\"A B\", commutative=False)\np = Piecewise((A**2, Eq(A, B)), (A*B, True))\nvalue = latex(A*p)",
+      "expected": "A \\left(\\begin{cases} A^{2} & \\text{for}\\: A = B \\\\A B & \\text{otherwise} \\end{cases}\\right)"
+    },
+    {
+      "test": "test_latex_Piecewise",
+      "code": "p = Piecewise((x, x < 1), (x**2, True))\np = Piecewise((x, x < 0), (0, x >= 0))\nA, B = symbols(\"A B\", commutative=False)\np = Piecewise((A**2, Eq(A, B)), (A*B, True))\nvalue = latex(p*A)",
+      "expected": "\\left(\\begin{cases} A^{2} & \\text{for}\\: A = B \\\\A B & \\text{otherwise} \\end{cases}\\right) A"
+    }
+  ],
+  "sympy__sympy-12171": [
+    {
+      "test": "test_Derivative",
+      "code": "\nvalue = mcode(Derivative(sin(x), x))",
+      "expected": "Hold[D[Sin[x], x]]"
+    },
+    {
+      "test": "test_Derivative",
+      "code": "\nvalue = mcode(Derivative(x, x))",
+      "expected": "Hold[D[x, x]]"
+    },
+    {
+      "test": "test_Derivative",
+      "code": "\nvalue = mcode(Derivative(sin(x)*y**4, x, 2))",
+      "expected": "Hold[D[y^4*Sin[x], x, x]]"
+    },
+    {
+      "test": "test_Derivative",
+      "code": "\nvalue = mcode(Derivative(sin(x)*y**4, x, y, x))",
+      "expected": "Hold[D[y^4*Sin[x], x, y, x]]"
+    },
+    {
+      "test": "test_Derivative",
+      "code": "\nvalue = mcode(Derivative(sin(x)*y**4, x, y, 3, x))",
+      "expected": "Hold[D[y^4*Sin[x], x, y, y, y, x]]"
+    }
+  ]
+}

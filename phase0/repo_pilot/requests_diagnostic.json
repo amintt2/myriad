@@ -1,0 +1,295 @@
+{
+  "version": "repo-pilot-selection-v1",
+  "date": "2026-10-10",
+  "status": "blocked",
+  "model_inference": false,
+  "scope": "SWE-bench Lite test / psf/requests; diagnostic only, not an executable benchmark",
+  "dataset": {
+    "repository": "princeton-nlp/SWE-bench_Lite",
+    "revision": "6ec7bb89b9342f664a54a6e0a6ea6501d3437cc2",
+    "split": "test",
+    "rows": 300,
+    "licence_scope": "README SWE-bench announces MIT for code+data; HF Lite card has no licence tag; individual issue text rights not established here"
+  },
+  "swe_bench_revision": "02e7a74ffd0b707aab73d203fe87bdc7c76afc8e",
+  "sources": {
+    "swe-readme": {
+      "url": "https://raw.githubusercontent.com/SWE-bench/SWE-bench/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/README.md",
+      "size": 13302,
+      "sha256": "06841624d7b5130dfe3cc6714642e9a8fd2a608c95c66ae0180e409f12b73aaa"
+    },
+    "swe-license": {
+      "url": "https://raw.githubusercontent.com/SWE-bench/SWE-bench/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/LICENSE",
+      "size": 1159,
+      "sha256": "2bd2e08df7147f67a69b42c10efae09bd4bf119df397371036187d5dd1b02f57"
+    },
+    "hf-readme": {
+      "url": "https://huggingface.co/datasets/princeton-nlp/SWE-bench_Lite/raw/6ec7bb89b9342f664a54a6e0a6ea6501d3437cc2/README.md",
+      "size": 3674,
+      "sha256": "01d69da06269ac911e8d716a868838d53c9bf0a16b9b2fee9097cb5c84bff3d3"
+    },
+    "test-parquet": {
+      "url": "https://huggingface.co/datasets/princeton-nlp/SWE-bench_Lite/resolve/6ec7bb89b9342f664a54a6e0a6ea6501d3437cc2/data/test-00000-of-00001.parquet",
+      "size": 1119540,
+      "sha256": "7a21f37b8bc179c7db5beeb14e88ac538ba283455c776e6b2535bbfb6e3551b4"
+    }
+  },
+  "selection": {
+    "order": "instance_id lexicographic ascending",
+    "limit": 3,
+    "rule": "first eligible IDs after all gates, never model success",
+    "criteria": [
+      "real_python_base_commit",
+      "permissive_code_and_all_dependencies",
+      "established_data_licence_scope",
+      "offline_tests",
+      "separate_trusted_assertions_and_serializable_candidate_observables",
+      "unchanged_fail_closed_linux_protections",
+      "negative_base_and_positive_reference_smoke"
+    ],
+    "eligible": [],
+    "pilot": []
+  },
+  "tasks": {
+    "psf__requests-1963": {
+      "repo": "psf/requests",
+      "base_commit": "110048f9837f8441ea536804115e80b69f400277",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/110048f9837f8441ea536804115e80b69f400277",
+        "size": 614367,
+        "sha256": "6b57e47f3b319ad4483676cbd1448d331a893363c84c04bb2a18db209690dc36"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 581,
+          "sha256": "89478f1915fbb6b6585a685d071bf006ba5649d2615fab787f66e9693c622ae4"
+        },
+        "NOTICE": {
+          "size": 2292,
+          "sha256": "8db5440dd069d57e1699205d4982e33b989d0ace4ed5a16b3587adcfccbc58a2"
+        },
+        "requests/compat.py": {
+          "size": 2556,
+          "sha256": "246ac93d5d9819ab73c2b7b197d912b7c67c42d9856e84591fdcb0b0b2bf30c0"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1295,
+          "sha256": "f3edfd0e0daa12ea1de4334ded131d9f665838ef73154ddf15f684f348835867"
+        }
+      },
+      "repository_licence": "Apache-2.0",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": false,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency"
+      ],
+      "record_sha256": "04a0c688f26c22fdc287b61129f854e3f92f98ac7a0bbdd9a11de9242a02e642"
+    },
+    "psf__requests-2148": {
+      "repo": "psf/requests",
+      "base_commit": "fe693c492242ae532211e0c173324f09ca8cf227",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/fe693c492242ae532211e0c173324f09ca8cf227",
+        "size": 641995,
+        "sha256": "902da328ece356f063cb74e092e76a07d892d8916c38ad10a92cf6ce02713e36"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 581,
+          "sha256": "89478f1915fbb6b6585a685d071bf006ba5649d2615fab787f66e9693c622ae4"
+        },
+        "NOTICE": {
+          "size": 2292,
+          "sha256": "3299f3fac35b42fbd3338044d9519ad8fd51ca72466a928a8732c54f8e2c9fd0"
+        },
+        "requests/compat.py": {
+          "size": 2682,
+          "sha256": "40dd436fb02f08ea29ca3a0f2a933f8bf1a6e8a03af0ef95f0f79618a228eb2b"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1295,
+          "sha256": "f3edfd0e0daa12ea1de4334ded131d9f665838ef73154ddf15f684f348835867"
+        }
+      },
+      "repository_licence": "Apache-2.0",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": false,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency"
+      ],
+      "record_sha256": "ab2ccdf75af8455bb2ddc78589626b1d9117e9b723ff613112b3759ab80173c2"
+    },
+    "psf__requests-2317": {
+      "repo": "psf/requests",
+      "base_commit": "091991be0da19de9108dbe5e3752917fea3d7fdc",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/091991be0da19de9108dbe5e3752917fea3d7fdc",
+        "size": 646953,
+        "sha256": "3163967c6ee3ea0ab1c0d1e780bb7002a68825f5b85ef36e1d3698ca117f4853"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 581,
+          "sha256": "89478f1915fbb6b6585a685d071bf006ba5649d2615fab787f66e9693c622ae4"
+        },
+        "NOTICE": {
+          "size": 2292,
+          "sha256": "3299f3fac35b42fbd3338044d9519ad8fd51ca72466a928a8732c54f8e2c9fd0"
+        },
+        "requests/compat.py": {
+          "size": 2600,
+          "sha256": "e553fc5aedf409a306c98c9d8adbf904ca7e075320e6f914785c6bf9e0edddee"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1295,
+          "sha256": "f3edfd0e0daa12ea1de4334ded131d9f665838ef73154ddf15f684f348835867"
+        }
+      },
+      "repository_licence": "Apache-2.0",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": true,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency",
+        "official_added_test_uses_httpbin"
+      ],
+      "record_sha256": "24bafc63147ecf828ac04987738a6590db34a636a4fcca10200828b743e12dc6"
+    },
+    "psf__requests-2674": {
+      "repo": "psf/requests",
+      "base_commit": "0be38a0c37c59c4b66ce908731da15b401655113",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/0be38a0c37c59c4b66ce908731da15b401655113",
+        "size": 663675,
+        "sha256": "f91bf0c1463f0e1349c0c2aa8c0d547412694d0bd87870e774a582410cb9e7fc"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 581,
+          "sha256": "c031540c6951209351ce0b9bcf1cdf689abb277bcb07780d74f448f882a4a869"
+        },
+        "NOTICE": {
+          "size": 2292,
+          "sha256": "3299f3fac35b42fbd3338044d9519ad8fd51ca72466a928a8732c54f8e2c9fd0"
+        },
+        "requests/compat.py": {
+          "size": 1469,
+          "sha256": "86aec2287a3290db3ccb328f00988e9074093e8369f40f3d32e7d37619429e26"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1295,
+          "sha256": "5ee4ca098391ec9c2ca07c6a653607f3a2d5c8c0db0c8decd6cd16feaa061013"
+        }
+      },
+      "repository_licence": "Apache-2.0",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": true,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency",
+        "official_added_test_uses_httpbin"
+      ],
+      "record_sha256": "67ff76397e806c6dd16eec07b44626edc39abded176c6341864331400f7c70a5"
+    },
+    "psf__requests-3362": {
+      "repo": "psf/requests",
+      "base_commit": "36453b95b13079296776d11b09cab2567ea3e703",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/36453b95b13079296776d11b09cab2567ea3e703",
+        "size": 710177,
+        "sha256": "156642dda5466fb67948b5ef0d2fe85c3387a09a7653e18ee99b2e000a0a74b2"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 581,
+          "sha256": "c12dd61a3868c674312e979d0ec179ee84c82e8e63c742875238ac912fbd1bac"
+        },
+        "NOTICE": {
+          "size": 2292,
+          "sha256": "3299f3fac35b42fbd3338044d9519ad8fd51ca72466a928a8732c54f8e2c9fd0"
+        },
+        "requests/compat.py": {
+          "size": 1469,
+          "sha256": "86aec2287a3290db3ccb328f00988e9074093e8369f40f3d32e7d37619429e26"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1295,
+          "sha256": "5ee4ca098391ec9c2ca07c6a653607f3a2d5c8c0db0c8decd6cd16feaa061013"
+        }
+      },
+      "repository_licence": "Apache-2.0",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": false,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency"
+      ],
+      "record_sha256": "b5f31ee19676711fe95528b1c9c7a70976cf7c3eecd2fe8631579f0f201746e4"
+    },
+    "psf__requests-863": {
+      "repo": "psf/requests",
+      "base_commit": "a0df2cbb10419037d11d04352b3175405ab52941",
+      "archive": {
+        "url": "https://codeload.github.com/psf/requests/tar.gz/a0df2cbb10419037d11d04352b3175405ab52941",
+        "size": 719420,
+        "sha256": "d80266cff495d9104c195e3fe0f89acda9ef7abfb3cf2bcec3f3912666547436"
+      },
+      "evidence_files": {
+        "LICENSE": {
+          "size": 731,
+          "sha256": "7e9aafec05e854f32f943af2c9f4ef0da7238f498318b195f1145eb2be906f9f"
+        },
+        "NOTICE": {
+          "size": 5114,
+          "sha256": "6b937e13970a46f6e11b62fa80146d603fbf8cb9d4e727e7329e8217cb774187"
+        },
+        "requests/compat.py": {
+          "size": 2471,
+          "sha256": "41d41b558dfd5ceca75f982b7c867780b56736f327065a5fac07f6500a9fce1a"
+        },
+        "requests/packages/chardet/__init__.py": {
+          "size": 1049,
+          "sha256": "f6081a8b5a969c9f3fdf23bc02a26aa238c0c66a4ac2ff374a76ba3c26f7da19"
+        },
+        "requests/packages/chardet2/__init__.py": {
+          "size": 1082,
+          "sha256": "a2dcc104702e348717220f44cf66ff02176a196c17dadcf309640c59f94b8f13"
+        }
+      },
+      "repository_licence": "ISC",
+      "vendored_dependency": {
+        "path": "requests/packages/chardet",
+        "licence": "LGPL-2.1-or-later"
+      },
+      "added_tests_network": false,
+      "controller_adapter": "not_validated",
+      "eligible": false,
+      "exclusions": [
+        "nonpermissive_vendored_dependency"
+      ],
+      "record_sha256": "38cd8590c666762f2e24411641252c683b08ddc9658c5410ad945319a26415b6"
+    }
+  }
+}
