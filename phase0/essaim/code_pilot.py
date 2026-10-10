@@ -24,6 +24,9 @@ from essaim.code_provenance import declarations
 from essaim.terminal_bench import check_tasks, summarize, validate_endpoint
 
 VERSION_PILOT = "code-pilot-v3"
+RESERVATION_NOTE = "Les plafonds réservés sont des réservations de budget, ni consommation de jetons ni facture."
+PUBLICATION_NOTE = ("Dérivation publique distincte : instantanés inchangés remplacés par références épinglées ; "
+                    "chemins home masqués dans les champs textuels. Les commandes ne sont pas un rejeu textuel exact.")
 
 
 def hash_json(value) -> str:
@@ -220,7 +223,7 @@ def report(rows: list[dict], campaign: dict, output: Path, backend=None) -> dict
              "L'énergie et le coût ci-dessous sont ESTIMÉS, pas mesurés ; ils couvrent le temps mur séquentiel "
              "agent + vérification. Les appels distants demandent une hypothèse de puissance agrégée appropriée.", "",
              f"Hypothèses : {campaign['watts']} W, {campaign['eur_kwh']} €/kWh.", "",
-             "| stratégie | réussites | Wilson 95 % | jetons réels | plafonds facturés | s/tâche "
+             "| stratégie | réussites | Wilson 95 % | jetons réels | plafonds réservés | s/tâche "
              "| Wh/tâche estimés | €/tâche estimés |",
              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     if backend:
@@ -240,6 +243,9 @@ def report(rows: list[dict], campaign: dict, output: Path, backend=None) -> dict
         lines.append(f"| {mode} | {metric['passed']}/3 | [{low:.3f}, {high:.3f}] | "
                      f"{tokens if tokens is not None else 'inconnu'} | {metric['charged_request_ceilings']} | "
                      f"{seconds:.6f} | {wh:.9f} | {metric['estimated_eur_per_task']:.12f} |")
+    lines.extend(["", RESERVATION_NOTE])
+    if (output / "publication.json").is_file():
+        lines.extend(["", PUBLICATION_NOTE])
     write_json(output / "summary.json", summary)
     (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     figures(summary, output)

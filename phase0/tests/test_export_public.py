@@ -52,7 +52,8 @@ class TestScan(unittest.TestCase):
         allowed = {"phase0/repo_pilot/" + name for name in
                    ("tasks.json", "README.md", "pyproject.toml", "uv.lock", "final_cases.json",
                     "requests_diagnostic.json", "licenses/sympy-11400.txt", "licenses/sympy-11897.txt",
-                    "licenses/sympy-12171.txt", "licenses/mpmath-0.19.txt")} | {"docs/13_repo_pilot.md"}
+                    "licenses/sympy-12171.txt", "licenses/mpmath-0.19.txt", "cpu_20261010_private_hashes.json")} | {
+                        "docs/13_repo_pilot.md"}
         for rel in allowed:
             self.assertTrue(ex.selected(rel), rel)
             self.assertTrue(self.scan({rel: FAKE_TOKEN.encode()}))
@@ -62,8 +63,9 @@ class TestScan(unittest.TestCase):
         for name in ("smoke.json", "verdicts.json.part", "single__psf__requests-1963.jsonl", "reference.patch"):
             self.assertFalse(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/" + name), name)
         for name in ex.REPO_PILOT_RESULTS:
-            self.assertTrue(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/" + name), name)
-            self.assertTrue(self.scan({"phase0/results/repo_pilot_cpu_20261010_01/" + name: FAKE_TOKEN.encode()}))
+            self.assertFalse(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/" + name), name)
+            self.assertTrue(ex.selected("phase0/results/repo_pilot_compare_20261010_01/" + name), name)
+            self.assertTrue(self.scan({"phase0/results/repo_pilot_compare_20261010_01/" + name: FAKE_TOKEN.encode()}))
             self.assertFalse(ex.selected("phase0/results/repo_pilot_other_20261010_01/" + name), name)
             self.assertFalse(ex.selected("phase0/results/repo_pilot_cpu_20261010_01/sub/" + name), name)
         self.assertFalse(ex.selected("phase0/data/repo-pilot/test.parquet"))
@@ -76,6 +78,24 @@ class TestScan(unittest.TestCase):
             self.assertEqual(exported, allowed)
             for rel in allowed:
                 self.assertEqual((out / rel).read_bytes(), (ROOT / rel).read_bytes())
+
+    def test_repo_public_derivation_exact_selection_and_injected_secrets(self):
+        public = "phase0/results/" + ex.REPO_PUBLIC_DIRECTORY + "/"
+        private = "phase0/results/" + ex.REPO_PRIVATE_DIRECTORY + "/"
+        self.assertEqual(len(ex.REPO_PUBLIC_RESULTS), 14)
+        home = "/" + "home/fixture/private.txt"
+        windows = "C:" + "\\Users\\fixture\\private.txt"
+        for name in ex.REPO_PUBLIC_RESULTS:
+            self.assertTrue(ex.selected(public + name), name)
+            self.assertFalse(ex.selected(private + name), name)
+            for injected in (FAKE_TOKEN, home, windows):
+                self.assertTrue(self.scan({public + name: injected.encode()}))
+            self.assertFalse(ex.selected(public + "sub/" + name))
+            self.assertFalse(ex.selected(public.replace("_01/", "_02/") + name))
+        for neighbor in ("smoke.json", "cache.json", ".campaign.lock", "report.md.part", "vote__sympy__sympy-11400.jsonl"):
+            self.assertFalse(ex.selected(public + neighbor))
+            self.assertFalse(ex.selected(private + neighbor))
+            self.assertFalse(ex.selected(private + "sub/" + neighbor))
 
     def test_e10_synthetic_result_exact_line_only(self):
         rel = "phase0/results/sot_base_Qwen__Qwen3.5-4B_colab_other.jsonl"

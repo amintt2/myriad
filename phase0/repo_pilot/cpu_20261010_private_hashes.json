@@ -1,0 +1,54 @@
+{
+    "accuracy_estimated_eur_per_task.pdf":  {
+                                                "bytes":  19435,
+                                                "sha256":  "b3f3db8ef833b538036ad2dffbe3c3df4990154320a928147a95894a8b685c20"
+                                            },
+    "accuracy_estimated_eur_per_task.png":  {
+                                                "bytes":  47410,
+                                                "sha256":  "e2d3dbbbb44ddd15c99a08db66ed96b3e7b7f5b12e3146d282af98b3e120db2d"
+                                            },
+    "accuracy_estimated_eur_per_task.svg":  {
+                                                "bytes":  40949,
+                                                "sha256":  "bb99bb484e3d8a54f7376e0faff1e86c44a235854c4c230f9abbc476de542edd"
+                                            },
+    "accuracy_seconds_per_task.pdf":  {
+                                          "bytes":  17145,
+                                          "sha256":  "0483643a960f740b310da54210cb696700beeb85a814957fcf618e7b855f842f"
+                                      },
+    "accuracy_seconds_per_task.png":  {
+                                          "bytes":  45411,
+                                          "sha256":  "93b487aa27b9591bcc899a98709c7b8c54bde3983dd2222943df79e57bd73079"
+                                      },
+    "accuracy_seconds_per_task.svg":  {
+                                          "bytes":  38733,
+                                          "sha256":  "9ceea6a6a3acae47c42b2b9a6dd44b4fff5bd1518c84ea24e627ea1bbbb133c3"
+                                      },
+    "manifest.json":  {
+                          "bytes":  6139,
+                          "sha256":  "d6c1c1fef11b092525ee496da13e02d9fcd72336f9e5aa11aa84be112c926911"
+                      },
+    "report.md":  {
+                      "bytes":  711,
+                      "sha256":  "7573a403097a824005f1606cd30f52bbc9826c10c4fe5c9ee76c122d5eba3062"
+                  },
+    "single__sympy__sympy-11400.jsonl":  {
+                                             "bytes":  19562855,
+                                             "sha256":  "b19875a7f2c0b9fd95971292bab273fb81f480dc4c0269e60066fa2fdad0c291"
+                                         },
+    "single__sympy__sympy-11897.jsonl":  {
+                                             "bytes":  19926673,
+                                             "sha256":  "96943cf566d10412e4bd6d3ccaae26a9afbe4e52c83babfc4929bcce2c101cb0"
+                                         },
+    "single__sympy__sympy-12171.jsonl":  {
+                                             "bytes":  20092600,
+                                             "sha256":  "3952bacf40591a52b78443b34399080a70db6dfab61e27fd35de4ec7f2803134"
+                                         },
+    "summary.json":  {
+                         "bytes":  516,
+                         "sha256":  "5917cc9bccb0e97fc4598ebc6d8cf080241191440596aea52c76f3ee7f214141"
+                     },
+    "verdicts.json":  {
+                          "bytes":  190232,
+                          "sha256":  "64d5fe16fa5472fd1ad0fe0c8b7a734124cb52fc506f5369e0b1ac741f6ce2ff"
+                      }
+}

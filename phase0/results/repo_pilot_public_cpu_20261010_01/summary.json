@@ -1,0 +1,21 @@
+{
+  "scope": "three preselected tasks, not the full benchmark",
+  "paired": {},
+  "modes": {
+    "single": {
+      "complete": true,
+      "passed": 0,
+      "expected": 3,
+      "pass_at_1": 0.0,
+      "wilson_95": [
+        5.551115123125783e-17,
+        0.5614970317550454
+      ],
+      "seconds_per_task": 162.448971657,
+      "estimated_wh_per_task": 4.512471434916666,
+      "estimated_eur_per_task": 0.0011281178587291664,
+      "completion_tokens": 2979,
+      "charged_request_ceilings": 36864
+    }
+  }
+}

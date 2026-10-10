@@ -1,0 +1,91 @@
+{
+  "version": "repo-pilot-v1",
+  "sandbox": "linux-shell-v2",
+  "dataset_hash": "7134d1e468382330ecb350a2ed8bd7a67b48f11ddfe7c1c5a0fded1afbc8685d",
+  "tasks": [
+    "sympy__sympy-11400",
+    "sympy__sympy-11897",
+    "sympy__sympy-12171"
+  ],
+  "models": {
+    "single": [
+      "Qwen3.5-2B"
+    ]
+  },
+  "reference": null,
+  "execution_provenance": {
+    "Qwen3.5-2B": {
+      "declared_at": "2026-10-10T10:06:07.9875749Z",
+      "endpoint_kind": "direct llama.cpp loopback, not Myriad gateway",
+      "model": "Qwen/Qwen3.5-2B",
+      "alias": "Qwen3.5-2B",
+      "licence": "Apache-2.0",
+      "repository": "unsloth/Qwen3.5-2B-GGUF",
+      "revision": "f6d5376be1edb4d416d56da11e5397a961aca8ae",
+      "file": "Qwen3.5-2B-Q8_0.gguf",
+      "quantization": "Q8_0",
+      "bytes": 2012012800,
+      "sha256": "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1",
+      "server": {
+        "version": "llama.cpp b11505",
+        "commit": "ff5888f99",
+        "artifact": "llama-b11505-bin-ubuntu-x64.tar.gz",
+        "sha256": "9e23bb8c48e0abbd03a558e8c341ec768fa32d56146a09e5fd13db5b0461e60c",
+        "context": 32768,
+        "parallel": 1,
+        "gpu_layers": 0,
+        "reasoning_budget": 0,
+        "jinja": true
+      },
+      "hardware": {
+        "cpu": "Intel Core i5-10400F",
+        "host_memory_gib": 32,
+        "execution": "WSL2 Linux x86_64",
+        "gpu": "none",
+        "cpu_threads": "llama.cpp default"
+      },
+      "energy": {
+        "watts": 100,
+        "eur_kwh": 0.25,
+        "measured": false,
+        "scope": "Assumed whole local PC power during sequential episode plus verification; preparation and smoke excluded. Host shared with CPU-light Colab supervision; electricity not measured."
+      }
+    }
+  },
+  "endpoint": "http://127.0.0.1:18490/v1",
+  "system": "You are a careful software engineer working in a Linux shell. Reply with a short thought, then EXACTLY ONE bash command in a single ```bash code block. You see the exit code and output of each command. When the task is done, reply with a block containing only: echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+  "instructions": {
+    "sympy__sympy-11400": "Repair the C printer so symbolic equality and ordering relations produce valid C operators, and sinc has its removable singularity handled when emitted as C. Preserve existing printer behavior and formatting. Explore the repository and run its visible tests.\nHistorical repair: https://github.com/sympy/sympy/pull/11400. Instance: sympy__sympy-11400. Your working directory is the real repository at the pinned pre-repair commit. Only existing non-test Python modules listed in _submission.json are submitted. Do not alter tests. Diagnostic command: python bin/test --no-subprocess --no-colors --seed 0 sympy/printing/tests/test_ccode.py. These initial tests predate the repair; a correct LaTeX fix conflicts with the old Piecewise expectation. Their output and exit code are not the final score. Final string assertions run in a separate controller; no Git history or reference patch is available.",
+    "sympy__sympy-11897": "Repair LaTeX printing of Piecewise inside multiplication: delimit the Piecewise factor so the product remains unambiguous, including noncommutative factors on either side. Preserve the standalone and itex forms. Explore the repository and run its visible tests.\nHistorical repair: https://github.com/sympy/sympy/pull/11897. Instance: sympy__sympy-11897. Your working directory is the real repository at the pinned pre-repair commit. Only existing non-test Python modules listed in _submission.json are submitted. Do not alter tests. Diagnostic command: python bin/test --no-subprocess --no-colors --seed 0 sympy/printing/tests/test_latex.py -k test_latex_Piecewise. These initial tests predate the repair; a correct LaTeX fix conflicts with the old Piecewise expectation. Their output and exit code are not the final score. Final string assertions run in a separate controller; no Git history or reference patch is available.",
+    "sympy__sympy-12171": "Repair the Mathematica printer to represent unevaluated symbolic derivatives using Mathematica held differentiation syntax. Preserve derivative variable order and repetitions and existing printers. Explore the repository and run its visible tests.\nHistorical repair: https://github.com/sympy/sympy/pull/12171. Instance: sympy__sympy-12171. Your working directory is the real repository at the pinned pre-repair commit. Only existing non-test Python modules listed in _submission.json are submitted. Do not alter tests. Diagnostic command: python bin/test --no-subprocess --no-colors --seed 0 sympy/printing/tests/test_mathematica.py. These initial tests predate the repair; a correct LaTeX fix conflicts with the old Piecewise expectation. Their output and exit code are not the final score. Final string assertions run in a separate controller; no Git history or reference patch is available."
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_tokens": 1024,
+    "total_tokens": 12288,
+    "timeout": 900,
+    "cmd_timeout": 30,
+    "verify_timeout": 120,
+    "seed": 0
+  },
+  "watts": 100,
+  "eur_kwh": 0.25,
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "python": "3.9.25",
+  "environment_lock_sha256": "a9cadca43a8694fa8788d42533de2a1256d0053e00a38e9de5e0f3ef3e826dbc",
+  "runtime_versions": {
+    "httpx": "0.28.1",
+    "pytest": "8.4.2",
+    "matplotlib": "3.9.4",
+    "mpmath": "0.19"
+  },
+  "code_hashes": {
+    "code_pilot.py": "113f490d8c261d3786dc9ebc4e4d31fd21a78238c8bae2bab49af5695ff61b31",
+    "agent.py": "69db616d83386991354a8cf9212c2aeb9e0f9838b73f4f335934025faab2c464",
+    "local_linux.py": "4a30044cc98d282a6e07357680a0c3ee6aae1ff777f2cd4bc24ca8531c5086dd",
+    "aider_python.py": "f10510076045226b03d1cd8bb6698f9b4cd6464d05fc33dbea727446861ab8cf",
+    "code_provenance.py": "e3f5700f55fc21fc33e5692f53d57fd576951d8c26fcb5fe91c17e926e373b63",
+    "repo_pilot.py": "6293c65a833829fc5ffab4901862c31d348568213f0e95eec9ffc5177f6db141",
+    "repo_tasks.py": "5168c2fecaaa2a38ea30063423ed9deea06e55173c0c6149cee19e4a42fbc998"
+  }
+}

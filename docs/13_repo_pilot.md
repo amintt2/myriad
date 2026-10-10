@@ -1,8 +1,9 @@
 # Pilote 5c sur dépôt Python réel, sans Docker
 
-Préparé le 2026-10-10 : **trois réparations historiques de printers SymPy réellement exécutables**.
+Premier pilote CPU mesuré le 2026-10-10 : **0 réussite sur les trois réparations historiques SymPy**,
+avec Qwen3.5-2B Q8_0 et llama.cpp direct en loopback WSL. Les trois sources restent inchangées.
 Smoke WSL : références **7 + 6 + 5 comparaisons de chaînes réussies**, chaque base échoue sur un cas
-pertinent. Aucune requête modèle faite. Ce contrôle du harnais ne mesure ni agent ni essaim.
+pertinent. Ce contrôle du harnais reste distinct de la mesure agent décrite ci-dessous.
 Le pilote Aider CPU 0/3 reste distinct : exercices, pas réparation d'un dépôt logiciel réel.
 
 ## Population, filtres et sélection avant inférence
@@ -194,8 +195,10 @@ sources initiales/finales, appels, votes, reçus, réponses et verdicts restent 
 Rapport JSON/Markdown et figures SVG/PNG/PDF seulement après grille complète sans erreur infra.
 Même verrou et refus des transcriptions orphelines que le pilote Aider. Tous les artefacts restent
 soumis au scan de secrets/chemins privés : une sortie contenant de tels chemins peut bloquer son export.
-Whitelist exacte : dix ressources et **22 noms d'artefacts** par dossier
-`results/repo_pilot_{cpu,compare}_AAAAMMJJ_NN` ; caches, smoke, locks, patches, voisins et sous-dossiers exclus.
+Whitelist exacte : onze ressources, **22 noms d'artefacts** par dossier générique
+`results/repo_pilot_{cpu,compare}_AAAAMMJJ_NN`. Exception explicite : le dossier brut de cette campagne
+`repo_pilot_cpu_20261010_01` est entièrement exclu, et son dérivé public exact admet seulement
+treize artefacts et `publication.json`. Caches, smoke, locks, patches, voisins et sous-dossiers exclus.
 
 ## Diagnostic Requests conservé
 
@@ -234,7 +237,189 @@ première vérification ciblée conservées séparément hors Git dans `myriad-r
 Bases : échecs `wrong_string` après 1/7, 5/6 et 1/5 cas ; références : 7/7, 6/6 et 5/5.
 Les références positives couvrent tous les cas déclarés ; les bases restent fail-fast.
 
-À mesurer par le parent : un pilote agent solo, puis comparaison vote/cascade/référence, à provenance et
-budgets déclarés. Aucun résultat modèle, score officiel ou preuve de réseau Myriad à ce jalon.
+Le pilote solo CPU ci-dessous complète ce jalon. Une comparaison vote/cascade/référence reste à autoriser
+et mesurer séparément, à provenance et budgets déclarés ; aucune preuve de réseau Myriad n'est acquise.
 E11/chain5, ses résultats, Colab et les réglages du propriétaire n'ont pas été touchés.
 Audit, fusion, push et export effectif sont laissés au parent.
+
+## Mesure solo CPU du 2026-10-10
+
+Campagne unique `repo_pilot_cpu_20261010_01`, engagée à **12:08:16 CEST** et terminée à **12:17:17 CEST**,
+code retour **0**, incluant le smoke obligatoire avant les épisodes et la production du rapport.
+Les durées par tâche ci-dessous excluent ce smoke et incluent agent et vérification. Présélection,
+ordre 11400/11897/12171, instructions et budgets par défaut sont restés fixes : 20 étapes, 1 024 jetons
+par appel, 12 288 réservés et 900 s par épisode, température 0, seed 0. Aucun épisode rejoué.
+
+La provenance nonsecrète a été déclarée avant la mesure et copiée dans le
+[manifeste](../phase0/results/repo_pilot_public_cpu_20261010_01/manifest.json) : modèle Qwen3.5-2B Q8_0,
+révision `f6d5376be1edb4d416d56da11e5397a961aca8ae`, **2 012 012 800 octets**, SHA-256
+`1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1`.
+Archive llama.cpp b11505 vérifiée : SHA-256
+`9e23bb8c48e0abbd03a558e8c341ec768fa32d56146a09e5fd13db5b0461e60c` ; version exécutée `ff5888f99`.
+CPU i5-10400F, hôte 32 Gio, WSL2 Linux x86_64, contexte 32 768, un slot, zéro couche GPU,
+reasoning-budget 0 et jinja ; six threads CPU selon le journal du serveur. **L'hôte était partagé** :
+tar/gzip de préparation Colab vers 12:08–12:09, puis uploads CLI pendant l'intervalle de mesure
+12:08–12:17 sur le même PC. Cette compression et ces transferts ajoutaient une charge CPU/E/S locale,
+au-delà de la supervision seule ; leur effet sur la latence n'est pas quantifié. Les temps sont donc
+observés sur hôte partagé, pas un banc CPU isolé. La déclaration brute antérieure « CPU-light supervision »
+est conservée honnêtement ; cette précision est rétrospective, sans correction artificielle des durées.
+Les 100 W sont une hypothèse globale non mesurée, sans addition d'un coût Colab à ce scénario local.
+Aucune requête externe ou référence modèle n'a été effectuée par le pilote.
+Il s'agit du **serveur direct WSL**, sans passerelle, essaim ou cascade Myriad.
+
+Le [rapport](../phase0/results/repo_pilot_public_cpu_20261010_01/report.md), le
+[résumé JSON](../phase0/results/repo_pilot_public_cpu_20261010_01/summary.json) et les
+[verdicts](../phase0/results/repo_pilot_public_cpu_20261010_01/verdicts.json) donnent **0/3**, single seul,
+trois échecs candidats valides, aucune erreur d'infrastructure pendant les épisodes.
+
+| tâche | arrêt | temps mur agent + vérification | jetons retournés | plafonds réservés | cas exécutés |
+| --- | --- | --- | --- | --- | --- |
+| 11400 | budget de requêtes épuisé | 138,266325 s | 676 | 12 288 | 1/7 |
+| 11897 | budget de requêtes épuisé | 209,437870 s | 1 772 | 12 288 | 5/6 |
+| 12171 | budget de requêtes épuisé | 139,642720 s | 531 | 12 288 | 1/5 |
+
+Les trois épisodes s'arrêtent après douze appels, avant le plafond de vingt étapes. Sur
+[11400](../phase0/results/repo_pilot_public_cpu_20261010_01/single__sympy__sympy-11400.jsonl), le modèle lit le
+printer C mais cherche surtout un historique Git absent et des dossiers supposés. Sur
+[11897](../phase0/results/repo_pilot_public_cpu_20261010_01/single__sympy__sympy-11897.jsonl), le premier message
+atteint 1 024 jetons et est rejeté pour format ; les onze commandes suivantes répètent une recherche
+Git dans un dossier supposé inexistant. Sur
+[12171](../phase0/results/repo_pilot_public_cpu_20261010_01/single__sympy__sympy-12171.jsonl), le modèle lit le
+printer Mathematica et la liste des modules autorisés, puis continue à chercher Git et des dossiers
+supposés. Aucune source soumise n'est modifiée. Les sept cas exécutés au total reproduisent les
+échecs des bases (`wrong_string`) ; le vérificateur reste fail-fast et ne prétend pas avoir exécuté
+les dix-huit cas sur ces candidats. Aucune sentinelle de soumission finale n'a été produite.
+
+Les **2 979 jetons retournés sont tous connus**, sur 36 appels. Les **36 864 plafonds réservés**
+sont une comptabilité de budget, pas des jetons consommés ni une facture. Moyenne mesurée :
+**162,448972 s/tâche**. À **100 W supposés** et **0,25 €/kWh supposé**, énergie et coût moyens
+**estimés**, non mesurés : **4,512471435 Wh** et **0,001128117859 €/tâche**.
+Wilson 95 % descriptif : [0 ; 0,561] pour n=3 ; la sélection lexicographique ne constitue pas
+un échantillon représentatif. Seulement dix-huit assertions de chaînes, aucun PASS_TO_PASS,
+problèmes anciens sans décontamination, ni score SWE-bench officiel ni vraie comparaison réseau.
+Aucun chiffre de ce petit pilote n'est ajouté à l'article.
+
+Figures publiques, PNG identiques aux originaux inspectés : [exactitude/temps PNG](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_seconds_per_task.png)
+([SVG](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_seconds_per_task.svg),
+[PDF](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_seconds_per_task.pdf)) et
+[exactitude/coût estimé PNG](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_estimated_eur_per_task.png)
+([SVG](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_estimated_eur_per_task.svg),
+[PDF](../phase0/results/repo_pilot_public_cpu_20261010_01/accuracy_estimated_eur_per_task.pdf)).
+
+### Preuves et reproduction sans inférence
+
+Avant la première requête, `--check` réel : **4 248 fichiers**, retour 0. Smoke explicite conservé
+sous `C:/tmp/myriad-repo-cpu-smoke-20261010/smoke.json`, SHA-256
+`a4afa2ca7d8441d290e804bd19eb75fb04cca9a300316724f66b6a9813714046` : trois bases négatives,
+références **18/18**, six diagnostics natifs conformes, Landlock ABI 7/seccomp/namespaces.
+Le CLI a refait ce smoke sans contournement avant les épisodes ; sa preuve est également conservée
+hors des artefacts publiables sous `C:/tmp/myriad-repo-cpu-mandatory-smoke-20261010.json`, SHA-256
+`e954f832bfb61f135b836499c5baaf708961bf796607c957d40d12c1cac3d253`.
+Provenance déclarée : `C:/tmp/myriad-repo-cpu-provenance-20261010.json`, SHA-256
+`e9bcc6ecef84da8076a9959e37695fa486abd6b37a67f5c8823dfbc1b0730fd3`.
+
+Un premier refus de lancement est conservé séparément : variable client obligatoire omise,
+retour 1 **avant manifeste et avant toute inférence**, dossier de sortie vide, serveur arrêté.
+L'invocation corrigée fournit uniquement une valeur client factice nonsecrète par environnement,
+requise par le harnais pour ce serveur local sans authentification ; aucun identifiant existant modifié.
+Ce refus préparatoire n'est ni un épisode interrompu ni une relance de tâche mesurée.
+
+Manifeste d'exécution inchangé SHA-256 : `d6c1c1fef11b092525ee496da13e02d9fcd72336f9e5aa11aa84be112c926911` ;
+verdicts privés originaux SHA-256 : `64d5fe16fa5472fd1ad0fe0c8b7a734124cb52fc506f5369e0b1ac741f6ce2ff`.
+Les hashes de campagne, trois transcriptions, sources initiales/finales, sept modules et lock,
+paramètres et compteurs ont été vérifiés ensemble. Inventaire original et contrôle d'intégrité :
+`C:/tmp/myriad-repo-cpu-integrity-20261010.json`.
+
+`--report` a été exécuté sur une **copie des cinq entrées brutes**, serveur arrêté et sans inférence :
+JSON, Markdown et deux PNG identiques octet pour octet. Les SVG diffèrent uniquement par date et
+identifiants générés ; les PDF uniquement par date de création, comparaison normalisée réussie.
+Les originaux n'ont pas été modifiés. Preuves persistantes sous
+`C:/tmp/myriad-repo-cpu-reproduction-20261010/` et
+`C:/tmp/myriad-repo-cpu-reproduction-comparison-20261010.json`.
+
+```bash
+# Dans un dossier neuf, copier uniquement manifest.json, verdicts.json et les trois single__*.jsonl.
+"$PY" run_repo_pilot.py --report --tasks-dir "$TASKS" --output "$COPIE_DES_BRUTS"
+```
+
+Journaux nonsecrets et commandes : `C:/tmp/myriad-repo-cpu-*.log`. Serveurs temporaires WSL PID 765
+(refus préparatoire), puis 320 (mesure), tous deux arrêtés, retours 0 et port 18490 fermé.
+Aucun service persistant, tunnel ou élargissement d'écoute ; aucun appel Colab, arrêt/reprise E12,
+Docker, audit imbriqué, export effectif, fusion, push, tag, release ou déploiement.
+
+Suites finales obligatoires, code retour **0** chacune : app `uv run pytest -q`, **426 réussis,
+3 ignorés**, 98,61 s ; phase0 Windows `uv run python -m unittest discover -s tests -q`,
+**305 tests, 48 ignorés**, 86,418 s. Venvs Windows dédiées existantes via `UV_PROJECT_ENVIRONMENT`,
+sans partage avec Linux. Les quatre caches E11 ignorés nécessaires à la validation ont été copiés
+et comparés par hash depuis la racine, sans modification des originaux ni des sorties E11.
+Les seize sources figées E11, les treize corrections de l'article, la boucle agent et le bac sont inchangés.
+
+### Dérivation publique distincte, sans rejeu
+
+Les **treize artefacts de `7f95fe9` restent privés et immuables**, ancien rapport compris. Leur scan
+historique donnait 258 occurrences bloquantes : diagnostics contenant des chemins home réels,
+chemins supposés par le modèle et adresses des instantanés de sources. Ils ne sont pas réécrits et
+le dossier brut est maintenant entièrement exclu de la sélection publique, sans remplacement silencieux.
+Tous les liens de la mesure ci-dessus pointent vers `repo_pilot_public_cpu_20261010_01`, un dossier distinct.
+
+Le [helper hors inférence](../phase0/publish_repo_pilot.py) lit uniquement JSON et SHA, jamais du code
+candidat par import, exec ou pickle. L'[inventaire gelé](../phase0/repo_pilot/cpu_20261010_private_hashes.json)
+verrouille les tailles/hashes des treize originaux. Il impose cette campagne et ses trois tâches,
+les accords end/verdicts/transcriptions, les notes, compteurs, paramètres et durées. Les sources
+initiales **et** finales sont vérifiées contre les modules des bases épinglées et entre elles :
+**541/544/545 modules inchangés**. Toute source réparée, manquante ou différente fait refuser cette
+dérivation limitée ; elle ne peut donc pas faire disparaître un vrai patch.
+
+Les trois records `changes`, contenant chacun les gros instantanés initiaux/finals, sont remplacés
+par un type distinct `pinned_source_references` : dépôt, commit initial, archive, chemins, tailles et SHA.
+Les hashes ne sont pas présentés comme des chaînes de code. Les sources BSD se récupèrent dans les
+archives épinglées du [manifeste des tâches](../phase0/repo_pilot/tasks.json), licences conservées.
+Les préfixes home POSIX/Windows des messages, commandes, réponses et diagnostics sont remplacés par
+`<HOME>` ; les champs assainis et occurrences sont comptés sans recopier les chaînes originales.
+**Les commandes dérivées ne constituent pas un rejeu textuel exact des commandes privées.** Aucun
+champ scientifique, code de retour, statut, temps ou hash de source n'est masqué ; un tel changement
+est refusé. Seuls les `transcript_sha256` des verdicts sont recalculés pour lier les nouvelles transcriptions.
+Les end publics s'accordent avec les verdicts publics ; `campaign_hash`, notes et mesures sont conservés.
+
+[publication.json](../phase0/results/repo_pilot_public_cpu_20261010_01/publication.json) relie les
+tailles/SHA des treize originaux privés et treize dérivés, le schéma, les règles, les comptes de masquage
+et les hashes des générateurs de publication et de rapport. Il n'inclut pas son propre hash : aucun cycle.
+Le manifeste d'exécution est **identique au brut**, y compris la provenance antérieure et les sept
+hashes du code réellement exécuté. Le nouveau hash de `code_pilot.py`, dont seul le rapport a évolué,
+est une provenance de **publication** séparée ; il n'est pas substitué au hash historique d'exécution.
+Le rapport autonome dit désormais « plafonds réservés » et précise : ni consommation de jetons ni facture.
+L'ancien rapport privé et les résultats Aider sont conservés sans modification.
+
+La dérivation produit le même summary et les mêmes PNG octet pour octet. Le Markdown diffère seulement
+par ce libellé, sa précision et la mention de dérivation. SVG/PDF gardent les mêmes figures et métriques ;
+leurs dates/identifiants sont fixés pour rendre deux dérivations identiques. La date PDF en UTC raccourcit
+aussi le bloc de métadonnées : son espacement et l'offset `startxref` associé changent, sans changement
+du contenu graphique. La comparaison normalisée vérifie ces seules différences. Un rapport peut être reproduit
+sur une copie **publique**, sans disposer des instantanés privés et sans serveur :
+
+```bash
+# Création hors inférence, sortie neuve obligatoire ; jamais lancer run_repo_pilot sur les bruts immuables.
+"$PY" publish_repo_pilot.py
+# Après copie des quatorze fichiers publics dans un dossier neuf :
+"$PY" publish_repo_pilot.py --report --output "$COPIE_PUBLIQUE"
+```
+
+Les filtres globaux du scan restent inchangés, sans nouvelle exception. Un secret ou chemin privé
+injecté ensuite dans un dérivé reste bloquant. Aucun export effectif ou publication n'est réalisé ici ;
+le parent effectue l'audit Astra puis examine la publication.
+
+Validation finale du correctif hors inférence : app **426 réussis / 3 ignorés**, 106,37 s ; phase0 Windows
+**315 tests / 50 ignorés**, 107,369 s, commandes complètes obligatoires ci-dessus, retours **0**.
+Ciblé WSL Python 3.9.25 : **9/9**, 11,128 s, retour **0**, incluant les sources traitées comme texte,
+refus de corruption et deux dérivations réelles. Les tests de sélection/scan vérifient l'exclusion complète
+du brut, les quatorze noms publics exacts, les voisins refusés et le blocage d'un secret ou home injecté.
+Les masquages documentés dans `publication.json` comptent **763 occurrences**, dont les répétitions
+dans les historiques, et les trois records d'instantanés remplacés. Aucun autre champ n'est changé.
+
+Preuves persistantes : `C:/tmp/myriad-repo-cpu-public-commit-integrity-20261010.json` (treize originaux
+identiques au commit), `C:/tmp/myriad-repo-cpu-public-reproduction-20261010/proof.json` (deux dérivations
+et copie publique reproduite octet pour octet), `C:/tmp/myriad-repo-cpu-public-figure-comparison-20261010.json`
+(différences autorisées des figures), journaux `C:/tmp/myriad-repo-cpu-public-*.log`.
+Scan **en lecture seule de la sélection publique finale : 859 fichiers, zéro blocage, retour 0** ;
+preuve `C:/tmp/myriad-repo-cpu-public-scan-20261010.json`. Les avertissements de références restent
+non bloquants ; aucun filtre global ou exception n'a été relâché et aucun export n'a été effectué.
