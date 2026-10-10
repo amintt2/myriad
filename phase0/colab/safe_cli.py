@@ -1,9 +1,16 @@
-"""Capture official CLI diagnostics before emitting sanitized output; inherit the supervisor's process group."""
+"""Bound official CLI calls and sanitize diagnostics; forward interruption to every CLI descendant."""
+import contextlib
+import io
+import json
+import os
 import re
 import signal
-import subprocess
 import sys
 import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from read_timeout import run as bounded_run
 
 
 def redact(text):
@@ -30,15 +37,34 @@ def emit(source, dest):
     dest.flush()
 
 
-def run(args):
-    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-        p = subprocess.Popen(["colab", *args], stdout=out, stderr=err)
+def run(args, seconds=None):
+    if os.environ.get("DLLM_REQUIRE_OWNER") == "1" and args[0] in ("upload", "download", "exec", "stop"):
+        from session_json import parse, owned_receipt
         try:
-            code = p.wait()
-        except BaseException:
-            p.kill()
-            p.wait()
-            raise
+            saved = owned_receipt()
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                code = run(["sessions"], seconds=seconds)
+            if code:
+                return code
+            if parse(output.getvalue())["phase0"] != saved["phase0"]:
+                raise PermissionError("owned session absent or replaced")
+            if owned_receipt() != saved:
+                raise PermissionError("receipt changed during identity read")
+        except PermissionError as exc:
+            print(f"cloud operation refused: {exc}; persistent ownership retained", file=sys.stderr)
+            return 73
+        except (ValueError, OSError, KeyError) as exc:
+            print(f"cloud operation refused: {exc}; persistent ownership retained", file=sys.stderr)
+            return 65
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        if seconds is None:
+            seconds = float(os.environ.get("DLLM_CLI_SECONDS", "120"))
+            if "DLLM_CLI_SECONDS" not in os.environ and args[0] == "exec" and "--timeout" in args:
+                seconds = max(seconds, float(args[args.index("--timeout") + 1]) + 30)
+        code = bounded_run(["colab", *args], seconds=seconds,
+                           grace=float(os.environ.get("DLLM_CLI_GRACE", "5")), interrupt_term=False,
+                           stdout=out, stderr=err)
         emit(out, sys.stdout)
         emit(err, sys.stderr)
     if code:

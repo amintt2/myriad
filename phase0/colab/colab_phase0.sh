@@ -15,7 +15,37 @@ COLAB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # Every official CLI stream is sanitized before it can reach a terminal or campaign journal.
 colab() { python3 "$COLAB_DIR/safe_cli.py" "$@"; }
 
+# Keep one open-file-description lock across helpers, transfer and bootstrap; nested reads do not lock.
+case "${1:-}" in up|resume-up|down)
+  receipt="${DLLM_CAMPAIGN_RECEIPT:-$HOME/.local/state/myriad-colab/ownership.json}"
+  mkdir -p "$(dirname "$receipt")"
+  if [ -z "${DLLM_LIFECYCLE_LOCK_FD:-}" ]; then
+    exec 9>>"$receipt.lock"
+    flock -n 9 || { echo 'another lifecycle operation holds the lock'; exit 73; }
+    export DLLM_LIFECYCLE_LOCK_FD=9
+  fi  # Helpers validate and share a lock explicitly inherited from cleanup-only.
+esac
+
+checkpoint_allowed() {
+  local family="${1%%_*}"
+  [[ "$families" = *" $family "* ]]
+}
+
 case "${1:-}" in
+  resume-up)
+    plan="${2:?plan}"; gpu="${3:?original gpu}"
+    DLLM_OPERATION_IDENTITY=$(python3 "$COLAB_DIR/session_json.py" identity)
+    export DLLM_OPERATION_IDENTITY
+    archive=$(python3 "$COLAB_DIR/session_json.py" resume "$plan" "$gpu")
+    export DLLM_REQUIRE_OWNER=1
+    snapshot=$(bash "$REPO/phase0/colab/colab_phase0.sh" snapshot)
+    printf '%s' "$snapshot" | python3 "$COLAB_DIR/session_json.py" guard
+    python3 "$COLAB_DIR/transfer.py" "$archive"
+    colab exec -s "$S" --timeout 1800 -f "$archive.colab_bootstrap.py"
+    ;;
+  usage|usage-json)
+    python3 "$COLAB_DIR/session_json.py" usage
+    ;;
   sessions-json)
     sessions_output=$(colab sessions)
     printf '%s\n' "$sessions_output" | python3 "$REPO/phase0/colab/session_json.py"
@@ -29,35 +59,24 @@ case "${1:-}" in
     fi
     ;;
   up)
-    plan="${2:?plan}"; gpu="${3:?gpu}"
+    plan="${2:?plan}"; gpu="${3:-auto}"
+    if [ "${DLLM_SUPERVISED:-}" = 1 ] && [ "$plan" != aa-1 ]; then
+      echo 'exclusive supervision requires aa-1'; exit 2
+    fi
+    export DLLM_CAMPAIGN_ID="${DLLM_CAMPAIGN_ID:-$(python3 -c 'import uuid; print(uuid.uuid4().hex)')}"
+    if [ "$gpu" = auto ]; then gpu=$(python3 "$COLAB_DIR/session_json.py" select-gpu "$plan"); fi
     case "$plan" in aa-*)  # E12: SciCode targets required, GPQA optional, checked before a VM is allocated
       for f in scicode_test_data.h5; do
         [ -e "$REPO/phase0/data/$f" ] || { echo "manque phase0/data/$f : voir la section E12 de phase0/README.md (étapes manuelles)"; exit 1; }
       done ;;
     esac
-    if [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ]; then
-      [ "$plan" = aa-1 ] || { echo 'exclusive supervision requires aa-1'; exit 2; }
-      sessions=$(bash "$REPO/phase0/colab/colab_phase0.sh" sessions-json)
-      printf '%s' "$sessions" | python3 -c 'import json,sys; sys.exit(73 if json.load(sys.stdin)["phase0"] else 0)'
-      colab new -s "$S" --gpu "$gpu"
-      # A receipt is written only after our allocation succeeded; failures before it never authorize down.
-      bash "$REPO/phase0/colab/colab_phase0.sh" sessions-json > "$DLLM_CAMPAIGN_RECEIPT"
-      python3 -c 'import json,sys; s=json.load(open(sys.argv[1]))["phase0"]; assert s and s["hardware"] == "A100"' \
-        "$DLLM_CAMPAIGN_RECEIPT"
-      snapshot=$(bash "$REPO/phase0/colab/colab_phase0.sh" snapshot)
-      code=0
-      printf '%s' "$snapshot" | python3 -c 'import json,sys
-s=json.load(sys.stdin)
-assert s.get("schema") == 1 and type(s.get("campaign_present")) is bool
-sys.exit(73 if s["campaign_present"] else 0)' || code=$?
-      if [ "$code" = 73 ]; then
-        rm -f "$DLLM_CAMPAIGN_RECEIPT"  # unexpected existing campaign: do not touch it, including cleanup
-        exit 73
-      fi
-      [ "$code" = 0 ] || exit "$code"
-    else
-      colab sessions 2>/dev/null | grep -q "$S" || colab new -s "$S" --gpu "$gpu"
-    fi
+    python3 "$COLAB_DIR/session_json.py" allocate "$plan" "$gpu"
+    DLLM_OPERATION_IDENTITY=$(python3 "$COLAB_DIR/session_json.py" identity)
+    export DLLM_OPERATION_IDENTITY
+    families=$(python3 "$COLAB_DIR/session_json.py" families "$plan")
+    export DLLM_REQUIRE_OWNER=1
+    snapshot=$(bash "$REPO/phase0/colab/colab_phase0.sh" snapshot)
+    printf '%s' "$snapshot" | python3 "$COLAB_DIR/session_json.py" guard
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     mkdir -p "$tmp/stage/checkpoints"
@@ -71,9 +90,7 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
       fi ;;
     esac
     echo "$plan" > "$tmp/stage/phase0/colab_plan.txt"
-    if [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ]; then
-      printf '%s\n' "${DLLM_CAMPAIGN_ID:?campaign id}" > "$tmp/stage/phase0/colab_campaign_id.txt"
-    fi
+    printf '%s\n' "${DLLM_CAMPAIGN_ID:?campaign id}" > "$tmp/stage/phase0/colab_campaign_id.txt"
     if [ "$plan" = aa-1 ]; then
       python3 "$COLAB_DIR/provenance.py" "$tmp/stage"
       mkdir -p "$REPO/phase0/results"
@@ -84,18 +101,20 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
              "$REPO"/phase0/results/code_*_colab_*.jsonl "$REPO"/phase0/results/codeexec_*_colab_*.jsonl \
              "$REPO"/phase0/results/aa_*_colab_*.jsonl "$REPO"/phase0/results/sciexec_*_colab_*.jsonl; do
       [[ "$f" = *.timing.jsonl ]] && continue
-      if [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ] && [[ "$f" != */aa_* && "$f" != */sciexec_* ]]; then continue; fi
+      checkpoint_allowed "$(basename "$f")" || continue
       if [ -e "$f" ] && [ -e "$f.meta.json" ]; then
         cp "$f" "$f.meta.json" "$tmp/stage/checkpoints/"
         if [[ "$f" = */aa_* ]] && [ -e "$f.timing.jsonl" ]; then cp "$f.timing.jsonl" "$tmp/stage/checkpoints/"; fi
       fi
     done
     tar czf "$tmp/dllm.tgz" -C "$tmp/stage" phase0 checkpoints
-    python3 "$COLAB_DIR/transfer.py" "$tmp/dllm.tgz"
+    archive=$(python3 "$COLAB_DIR/session_json.py" archive "$tmp/dllm.tgz" "$plan" \
+      "$REPO/phase0/colab_bootstrap.py")
+    python3 "$COLAB_DIR/transfer.py" "$archive"
     rm -rf "$tmp"
     code=0
-    colab exec -s "$S" --timeout 1800 -f "$REPO/phase0/colab_bootstrap.py" || code=$?
-    if [ "$code" = 73 ] && [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ]; then rm -f "$DLLM_CAMPAIGN_RECEIPT"; fi
+    colab exec -s "$S" --timeout 1800 -f "$archive.colab_bootstrap.py" || code=$?
+    if [ "$code" = 73 ]; then python3 "$COLAB_DIR/session_json.py" refuse; fi
     exit "$code"
     ;;
   status)
@@ -112,6 +131,11 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
         exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/diagnose.py"
     ;;
   pull)
+    plan=$(python3 "$COLAB_DIR/session_json.py" plan)
+    DLLM_OPERATION_IDENTITY=$(python3 "$COLAB_DIR/session_json.py" identity)
+    export DLLM_OPERATION_IDENTITY
+    families=$(python3 "$COLAB_DIR/session_json.py" families "$plan")
+    export DLLM_REQUIRE_OWNER=1
     dest="$REPO/phase0/results"
     mkdir -p "$dest"
     stage=$(mktemp -d)
@@ -121,18 +145,26 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
       | colab exec -s "$S" --timeout 60 | tr -d '\r')
     echo "$listing" | grep -q '^LISTE-OK$' || { echo "listing impossible"; exit 1; }
     status=0
-    if [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ]; then
+    if [ "$plan" = aa-1 ]; then
       for f in e12_campaign_sources.json colab_status.json colab_bootstrap_status.json; do
         if colab download -s "$S" "$REMOTE/$f" "$stage/$f"; then
           python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$stage/$f"
-          mkdir -p "$dest"
-          cp "$stage/$f" "$dest/$f"
         else status=1; fi
       done
+      [ "$status" = 0 ] || { rm -rf "$stage"; exit "$status"; }
+      python3 - "$stage" "$DLLM_OPERATION_IDENTITY" <<'PY'
+import json, sys
+from pathlib import Path
+stage = Path(sys.argv[1])
+boot = json.loads((stage / "colab_bootstrap_status.json").read_text(encoding="utf-8"))
+if boot.get("campaign_id") != json.loads(sys.argv[2])["campaign_id"]:
+    raise SystemExit("foreign recovered campaign: no local metadata publication authorized")
+PY
+      cp "$stage/e12_campaign_sources.json" "$stage/colab_status.json" "$stage/colab_bootstrap_status.json" "$dest/"
     fi
     for f in $(echo "$listing" | grep -E '^(mc|gen|solo|sot|code|codeexec|aa|sciexec)_.*_colab_.*\.jsonl$'); do
       [[ "$f" = *.timing.jsonl ]] && continue
-      if [ -n "${DLLM_CAMPAIGN_RECEIPT:-}" ] && [[ "$f" != aa_* && "$f" != sciexec_* ]]; then continue; fi
+      checkpoint_allowed "$f" || continue
       if colab download -s "$S" "$REMOTE/$f" "$stage/$f" >/dev/null && \
          colab download -s "$S" "$REMOTE/$f.meta.json" "$stage/$f.meta.json" >/dev/null; then
         # validate the pair, never go backwards, publish atomically, keep the previous checkpoint
@@ -149,7 +181,7 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
         echo "ÉCHEC téléchargement $f"; status=1
       fi
     done
-    if [ "${2:-}" = final ]; then
+    if [ "${2:-}" = final ] && [ "$plan" = aa-1 ]; then
       python3 "$REPO/phase0/colab/verify_e12_pull.py" "$stage" \
         "$REPO/phase0/results/e12_campaign_sources.local.json" || status=1
     fi
@@ -157,7 +189,7 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
     exit $status
     ;;
   down)
-    colab stop -s "$S"
+    python3 "$COLAB_DIR/session_json.py" down
     ;;
   *)
     sed -n '2,8p' "$0"; exit 1 ;;

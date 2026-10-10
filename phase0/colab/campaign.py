@@ -14,6 +14,7 @@ from pathlib import Path
 
 from read_timeout import run
 from snapshot import safe_snapshot
+from session_json import identity, lifecycle_lock, receipt_path, save
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from colab_jobs import PLANS
@@ -26,6 +27,11 @@ class Failure(Exception):
     def __init__(self, message, code=1):
         super().__init__(message)
         self.code = code
+
+
+class SessionAbsent(Failure):
+    def __init__(self):
+        super().__init__("owned session explicitly absent; campaign failed, accounting cleanup authorized")
 
 
 def log(message):
@@ -71,8 +77,10 @@ class Supervisor:
         self.deadline = time.monotonic() + args.hours * 3600
         self.campaign_id = uuid.uuid4().hex
         self.env = {**os.environ, "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": self.campaign_id,
-                    "DLLM_SUPERVISED": "1"}
+                    "DLLM_SUPERVISED": "1", "DLLM_BUDGET_UNITS": str(args.budget_units),
+                    "DLLM_CLEANUP_SECONDS": str(args.cleanup_seconds)}
         self.owner = None
+        self.cleanup_lock_fd = None
 
     def call(self, operation, seconds, structured=False):
         remaining = self.deadline - time.monotonic()
@@ -81,7 +89,8 @@ class Supervisor:
         log(f"wrapper {operation}")
         with tempfile.TemporaryFile() as output:
             code = run(["bash", str(WRAPPER), *operation.split()], seconds=min(seconds, remaining),
-                       grace=self.a.grace, env=self.env, stdout=output if structured else None)
+                       grace=self.a.grace, env=self.env, stdout=output if structured else None,
+                       pass_fds=() if self.cleanup_lock_fd is None else (self.cleanup_lock_fd,))
             if code:
                 raise Failure(f"wrapper {operation}: exit {code}", code)
             if structured:
@@ -101,16 +110,40 @@ class Supervisor:
             raise Failure("invalid session fingerprint", 65)
         return item
 
+    def cleanup_identity(self):
+        try:
+            saved = json.loads(self.receipt.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise Failure("allocation ownership unconfirmed; no cloud cleanup authorized", 65) from e
+        if saved.get("status") == "foreign-campaign" or saved.get("campaign_id") != self.campaign_id:
+            raise Failure("receipt foreign or campaign differs; no recovery authorized", 73)
+        pinned = json.dumps(identity(saved), sort_keys=True)
+        if "DLLM_OPERATION_IDENTITY" not in self.env:
+            self.env["DLLM_OPERATION_IDENTITY"] = pinned
+        elif self.env["DLLM_OPERATION_IDENTITY"] != pinned:
+            raise Failure("operation receipt replaced; no recovery authorized", 73)
+        return saved
+
     def ownership(self):
-        if self.owner is None:
-            try:
-                self.owner = json.loads(self.receipt.read_text())["phase0"]
-            except (OSError, ValueError, KeyError) as e:
-                raise Failure("allocation ownership unconfirmed; no cloud cleanup authorized", 65) from e
-            if not isinstance(self.owner, dict) or not self.owner.get("fingerprint"):
-                raise Failure("invalid ownership receipt", 65)
-        if self.session() != self.owner:
-            raise Failure("owned session absent or replaced; no cloud mutation authorized", 73)
+        saved = self.cleanup_identity()
+        if saved.get("status") != "owned":
+            raise Failure("allocation ownership unconfirmed; no recovery authorized", 65)
+        if not isinstance(saved.get("phase0"), dict) or not saved["phase0"].get("fingerprint"):
+            raise Failure("invalid ownership receipt", 65)
+        self.owner = saved["phase0"]
+        self.env["DLLM_REQUIRE_OWNER"] = "1"
+        current = self.session()
+        if current is None:
+            raise SessionAbsent()
+        if current != self.owner:
+            raise Failure("owned session replaced; no cloud mutation authorized", 73)
+
+    def mark_foreign(self):
+        saved = json.loads(self.receipt.read_text(encoding="utf-8"))
+        pinned = self.env.get("DLLM_OPERATION_IDENTITY")
+        if (saved.get("campaign_id") == self.campaign_id
+                and (pinned is None or json.dumps(identity(saved), sort_keys=True) == pinned)):
+            save(self.receipt, {**saved, "status": "foreign-campaign"})
 
     def observe(self):
         last = None
@@ -140,7 +173,7 @@ class Supervisor:
         try:
             if self.session() is not None:
                 raise Failure("existing phase0 session refused without touching it", 73)
-            self.call("up aa-1 A100", self.a.up_seconds)
+            self.call(f"up aa-1 {self.a.gpu}", self.a.up_seconds)
             self.ownership()
             next_pull = time.monotonic() + self.a.pull_seconds
             while True:
@@ -149,15 +182,25 @@ class Supervisor:
                     complete = True
                     break
                 if phase == "jobs" and time.monotonic() >= next_pull:
-                    self.ownership()
-                    self.call("pull", self.a.transfer_seconds)
+                    for attempt in range(self.a.read_failures):
+                        try:
+                            self.ownership()
+                            self.call("pull", self.a.transfer_seconds)
+                            break
+                        except Failure as e:
+                            if e.code == 73:
+                                raise
+                            log(f"periodic recovery pending (attempt {attempt + 1}): {e}")
+                            if attempt + 1 < self.a.read_failures:
+                                time.sleep(min(self.a.poll_seconds * 2 ** attempt,
+                                               max(0, self.deadline - time.monotonic())))
                     next_pull = time.monotonic() + self.a.pull_seconds
                 time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
         except Failure as e:
             log(str(e))
             code = e.code
-            if code == 73:
-                self.receipt.unlink(missing_ok=True)
+            if code == 73 and self.receipt.exists():
+                self.mark_foreign()
         except (KeyboardInterrupt, SystemExit) as e:
             code = e.code if isinstance(e, SystemExit) else 130
             log(f"signal received: exit {code}")
@@ -185,10 +228,18 @@ class Supervisor:
                         foreign = boot is None and snap.get("campaign_present")
                         foreign = foreign or isinstance(boot, dict) and boot.get("campaign_id") != self.campaign_id
                         if foreign:
-                            self.receipt.unlink(missing_ok=True)
+                            self.mark_foreign()
                             raise Failure("preexisting campaign: no recovery or down authorized", 73)
-                    self.call("pull final" if complete else "pull", self.a.transfer_seconds)
-                    log("final recovery succeeded")
+                    for attempt in range(self.a.read_failures):
+                        try:
+                            self.ownership()
+                            self.call("pull final" if complete else "pull", self.a.transfer_seconds)
+                            log("final recovery succeeded")
+                            break
+                        except Failure:
+                            if attempt + 1 == self.a.read_failures:
+                                raise
+                            time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
                 except Failure as e:
                     log(f"FINAL RECOVERY FAILED: {e}; results not confirmed recovered")
                     code = code or e.code
@@ -196,13 +247,15 @@ class Supervisor:
                 try:
                     if not self.receipt.exists():
                         raise Failure("no ownership receipt: down not authorized", 73)
-                    self.ownership()
-                    self.call("down", self.a.read_seconds)
-                    if self.session() is not None:
-                        raise Failure("down returned but phase0 is still present")
+                    self.cleanup_identity()
+                    self.call("down", max(.01, self.deadline - time.monotonic()))
                     log("owned allocation released")
                 except Failure as e:
-                    log(f"FINAL DOWN FAILED: {e}")
+                    saved = json.loads(self.receipt.read_text()) if self.receipt.exists() else {}
+                    pending = saved.get("status") == "released/accounting-pending"
+                    detail = "release confirmed, accounting pending" if pending else "VM may still be billed"
+                    log(f"FINAL DOWN FAILED: {e}; {detail}; receipt retained at {self.receipt}; "
+                        "resume with --cleanup-only")
                     code = code or e.code
         if not complete:
             code = code or 1
@@ -212,6 +265,10 @@ class Supervisor:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--gpu", choices=("auto", "L4", "A100", "H100", "T4"), default="auto")
+    ap.add_argument("--budget-units", type=float, default=float(os.environ.get("DLLM_BUDGET_UNITS", "nan")))
+    ap.add_argument("--receipt", type=Path, default=receipt_path())
+    ap.add_argument("--cleanup-only", action="store_true")
     ap.add_argument("--hours", type=float, default=12)
     ap.add_argument("--poll-seconds", type=float, default=60)
     ap.add_argument("--pull-seconds", type=float, default=600)
@@ -223,8 +280,11 @@ def main():
     ap.add_argument("--read-failures", type=int, default=3)
     ap.add_argument("--lock", type=Path, default=Path("/tmp/myriad-phase0-campaign.lock"))
     a = ap.parse_args()
-    if any(not math.isfinite(v) or v <= 0 for k, v in vars(a).items() if k != "lock"):
+    times = (v for k, v in vars(a).items() if k not in ("lock", "receipt", "cleanup_only", "gpu", "budget_units"))
+    if any(not math.isfinite(v) or v <= 0 for v in times):
         ap.error("all time limits and retry counts must be finite and positive")
+    if not a.cleanup_only and (not math.isfinite(a.budget_units) or a.budget_units <= 0):
+        ap.error("--budget-units must explicitly reserve sufficient compute units")
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     with a.lock.open("a") as lock:
         try:
@@ -232,8 +292,37 @@ def main():
         except BlockingIOError:
             log("another local campaign holds the lock")
             return 73
-        with tempfile.TemporaryDirectory(prefix="myriad-e12-") as tmp:
-            return Supervisor(a, Path(tmp) / "allocation.json").execute()
+        supervisor = Supervisor(a, a.receipt)
+        if a.cleanup_only:
+            supervisor.deadline = time.monotonic() + a.cleanup_seconds
+            try:
+                # Explicit adoption is local, under the same lock retained through wrapper/down.
+                with lifecycle_lock(a.receipt) as receipt_lock:
+                    saved = json.loads(a.receipt.read_text(encoding="utf-8"))
+                    supervisor.campaign_id = saved.get("campaign_id")
+                    if supervisor.campaign_id is None:
+                        supervisor.env.pop("DLLM_CAMPAIGN_ID", None)
+                    else:
+                        supervisor.env["DLLM_CAMPAIGN_ID"] = supervisor.campaign_id
+                    supervisor.env["DLLM_OPERATION_IDENTITY"] = json.dumps(identity(saved), sort_keys=True)
+                    supervisor.cleanup_lock_fd = receipt_lock.fileno()
+                    supervisor.env["DLLM_LIFECYCLE_LOCK_FD"] = str(supervisor.cleanup_lock_fd)
+                    log("cleanup-only explicitly adopted the selected receipt under lifecycle lock")
+                    supervisor.call("down", a.cleanup_seconds)
+                return 0
+            except (PermissionError, OSError, ValueError) as exc:
+                log(f"cleanup-only adoption refused: {exc}")
+                return 73 if isinstance(exc, PermissionError) else 65
+            except Failure as exc:
+                saved = json.loads(a.receipt.read_text()) if a.receipt.exists() else {}
+                detail = ("release confirmed, accounting pending" if saved.get("status") == "released/accounting-pending"
+                          else "ownership unresolved")
+                log(f"CLEANUP PENDING: {exc}; {detail}; receipt retained at {a.receipt}")
+                return exc.code
+        if a.receipt.exists():
+            log(f"persistent ownership requires --cleanup-only before allocation: {a.receipt}")
+            return 73
+        return supervisor.execute()
 
 
 if __name__ == "__main__":

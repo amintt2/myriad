@@ -342,9 +342,20 @@ en fichiers de **8 Mio maximum** via la CLI officielle. Même une petite archive
 La mémoire de découpage/reconstruction utilise des blocs de 1 Mio ; la CLI ne reçoit qu'un petit fichier à
 la fois, car son upload charge tout le fichier et sa représentation base64. Un seul morceau local est conservé
 à la fois en plus de l'archive et du staging existants. La limite est 8 192 morceaux, soit 64 Gio d'archive.
-Aucune nouvelle authentification, aucun appel HTTP direct, aucune nouvelle tentative automatique d'upload.
+Aucune nouvelle authentification ni appel HTTP direct. Les erreurs DNS/connexion/délai/HTTP 408, 429 et 5xx
+permettent trois tentatives au maximum, avec attente exponentielle (1, 2 s, plafonnée à 8 s).
 
-Chaque tentative utilise un préfixe aléatoire sûr sous `/content/dllm-transfer-<tentative>` (fichiers plats).
+Le préfixe `/content/dllm-transfer-<identité>` vient du SHA-256 de l'archive (fichiers plats). Une reprise du
+même fichier, y compris dans un nouveau processus, retrouve donc les morceaux. Avant chaque upload, un script
+borné vérifie la taille et le SHA-256 du fichier distant : un morceau déjà vérifié n'est pas retransmis.
+Après une réponse d'upload perdue, cette lecture précède toute nouvelle écriture. Un morceau absent/corrompu
+est remplacé puis revérifié ; une lecture incohérente ou sans accusé échoue fermement.
+Même le troisième upload ambigu reçoit une dernière vérification avec défi frais, sans quatrième upload.
+Le wrapper conserve aussi l'archive exacte et le bootstrap épinglé à côté du reçu, avec leurs SHA-256.
+Après un envoi manuel interrompu, `resume-up <plan> <gpu initial>` reprend ces mêmes octets sans `new`,
+uniquement si la session est encore la nôtre et qu'aucune campagne n'a démarré. Un cache modifié est refusé.
+La libération confirmée supprime ce cache ; la chaîne supervisée garde son nettoyage final après épuisement
+des tentatives. Le transfert ne change donc pas rétroactivement les sources d'une tentative reprise.
 Le manifeste contient indices, noms exacts, tailles et SHA-256 des morceaux et de l'archive. Le petit script
 versionné `colab/reconstruct.py`, lancé par le wrapper avec `colab exec --timeout 180`, exige aussi l'empreinte
 du manifeste transmise dans son code. Il refuse les chemins inattendus, liens symboliques, indices désordonnés,
@@ -356,9 +367,12 @@ par glob des tentatives antérieures. Les temporaires locaux sont supprimés à 
 SIGKILL/panne peut les laisser en place.
 
 Un code CLI 0 ne prouve pas la réussite distante. Avant bootstrap, le wrapper exige exactement un accusé
-`DLLM_TRANSFER_ACK` JSON avec statut, tentative, taille, SHA-256 d'archive et de manifeste identiques ; accusé
+`DLLM_TRANSFER_ACK` JSON avec statut, tentative, taille, SHA-256 d'archive et de manifeste et défi frais identiques ; accusé
 absent, multiple, périmé ou incorrect ⇒ refus. Le verrou, les reçus d'allocation et les délais mur du superviseur
-restent inchangés ; upload/reconstruction partagent son groupe de processus, sans groupe imbriqué.
+restent obligatoires. Après un accusé perdu, la reconstruction peut revérifier l'archive publiée sans renvoyer
+les morceaux supprimés. Le défi frais évite un accusé périmé ; ce n'est pas une attestation contre un candidat hostile.
+Une publication interrompue pendant la suppression des morceaux est aussi reprise : taille et SHA de l'archive
+finale sont revérifiés, puis le nettoyage du manifeste épinglé et de ses seuls morceaux devient idempotent.
 
 Les sorties CLI sont capturées dans des fichiers temporaires anonymes, assainies avant stdout/stderr, puis
 supprimées. Toutes les requêtes d'URL sont masquées, ainsi que les paramètres d'accès courants et Bearer hors URL.
@@ -368,12 +382,12 @@ Aucun argument ni environnement n'est journalisé. Le journal brut du premier es
 
 ```bash
 cd phase0
-uv run python -m unittest tests.test_colab_transfer tests.test_campaign tests.test_colab_timeout -q
+uv run python -m unittest tests.test_colab_transfer tests.test_campaign tests.test_colab_timeout tests.test_colab_reliability -q
 ```
 
 Toutes les opérations passent par `bash phase0/colab/colab_phase0.sh`. La chaîne refuse une session `phase0`
-existante et une campagne déjà présente, sans l'arrêter, l'écraser ni adopter son PID. Elle n'appelle `up aa-1 A100`
-qu'une fois. Les lectures structurées `sessions-json` et `snapshot` conservent les erreurs de connexion et de JSON ;
+existante et une campagne déjà présente, sans l'arrêter, l'écraser ni adopter son PID. Elle n'appelle `up aa-1 <gpu>`
+qu'une fois, sans réessayer une allocation ambiguë. Les lectures `sessions-json` et `snapshot` conservent les erreurs ;
 le format texte de la CLI est adapté strictement, toute sortie inconnue ou vide est une erreur. Une évolution de
 ce format nécessite une adaptation revue, jamais un repli par recherche de texte. Les snapshots exposent des états filtrés
 et la vie du lanceur, sans messages/logs bruts ni URL signées ; les fichiers originaux restent intacts.
@@ -383,18 +397,85 @@ mur locale et un groupe de processus TERM/KILL, même en cas de connexion bloqu�
 `--read-seconds 120`, `--transfer-seconds 900`, `--grace 5`. Trois lectures successives au maximum sont tolérées
 (`--read-failures`), espacées de `--poll-seconds 60`. Les récupérations périodiques ont lieu toutes les 600 s
 (`--pull-seconds`), après initialisation des jobs ; les téléchargements initiaux ne déclenchent pas de pull.
-Leurs erreurs arrêtent la campagne. Sous supervision, le snapshot partage le groupe borné extérieur ; les snapshots
-manuels conservent leur propre borne TERM/KILL. SIGINT/SIGTERM déclenchent le nettoyage ; les signaux répétés
+Un échec du pull périodique déclenche au plus `--read-failures` tentatives, puis laisse la campagne saine continuer
+avec une récupération en attente. Les observations conservent la deadline globale et l'appartenance ; le pull
+final reste obligatoire et est réessayé dans son budget réservé. Chaque appel officiel, manuel ou supervisé,
+a sa propre borne via `safe_cli.py` : 120 s par défaut, ou exécution distante + 30 s si plus longue.
+`DLLM_CLI_SECONDS` et `DLLM_CLI_GRACE` permettent une borne explicite. Les lectures avant allocation et le snapshot
+avant upload sont donc bornés séparément du budget `up`. Les superviseurs transmettent TERM avant KILL ; sur
+interruption, le wrapper termine immédiatement son groupe CLI, y compris ses enfants résistants à TERM.
+Un parent CLI sorti sans son enfant ne laisse pas cet enfant vivant. SIGINT/SIGTERM déclenchent le nettoyage ; les signaux répétés
 sont ignorés pendant ce nettoyage borné à 1800 s (`--cleanup-seconds`), dont une réserve permet de tenter `down`
 même après expiration du transfert. SIGKILL, panne du PC ou disparition de WSL ne permettent pas de garantir le nettoyage.
 
-Le reçu d'allocation contient seulement une empreinte opaque de session et le matériel ; aucune clé ni URL n'est
-enregistrée. La chaîne vérifie cette empreinte avant récupération et libération. Une allocation refusée ou un
-bootstrap refusé n'autorise aucun `down` ; un identifiant aléatoire de campagne transmis dans l'archive et inscrit
-par le bootstrap empêche aussi d'adopter l'état réussi d'une autre campagne. Si la confirmation de propriété échoue
-après `new`, ou si la session
-disparaît/change, la chaîne échoue et ne risque pas d'arrêter une session étrangère : vérification manuelle nécessaire.
-Une panne réseau durable peut donc empêcher de confirmer la libération ; le journal le dit explicitement.
+Le reçu persiste dans `~/.local/state/myriad-colab/ownership.json`, hors magasin CLI ; chemin configurable avec
+`DLLM_CAMPAIGN_RECEIPT` ou `--receipt`. Publication atomique/fsync, empreinte opaque de session, matériel,
+campagne, identité d'allocation, plan, budget et relevé initial, aucune clé ni URL. Le verrou commun du reçu couvre
+`up` et `resume-up` jusqu'à la fin du bootstrap, ainsi que `down`. Les helpers héritent de ce même verrou sans
+le réacquérir sur un autre descripteur ; la supervision conserve son verrou distinct, sans attente circulaire.
+Les concurrents sont refusés (73). L'identité initiale est attachée à l'opération : un reçu réécrit ne permet pas
+à une ancienne reprise d'adopter une nouvelle allocation. La chaîne vérifie statut, campagne et empreinte avant
+récupération ; `down` relit l'empreinte avant chaque arrêt.
+Les appels de transfert/bootstrap vérifient aussi cette appartenance avant chaque lecture/écriture distante.
+Une campagne étrangère reste bloquée dans le reçu au lieu de supprimer la preuve.
+Le superviseur refuse aussi son nettoyage si le reçu appartient à une autre campagne, même avant sa première
+épingle ; `down` vérifie lui-même la campagne attendue dès l'entrée, avant toute lecture CLI. La reprise volontaire
+`--cleanup-only` adopte explicitement le reçu choisi sous le verrou commun, puis transmet ce même verrou et
+l'identité épinglée au wrapper jusqu'à la fin du nettoyage. Un reçu remplacé entre adoption et `down` est refusé.
+Ce refus interdit aussi tout pull si le snapshot du nettoyage est illisible. Les métadonnées E12 téléchargées
+ne sont publiées localement qu'après vérification de leur identifiant de campagne. Les checkpoints envoyés et
+récupérés sont filtrés par les familles du plan enregistré, jamais par le chemin du reçu : `code-1` conserve
+`code_*` et `codeexec_*` sans provenance E12 ; `aa-1` conserve provenance et vérification finale complète.
+
+`down` réessaie lecture et arrêt jusqu'à absence explicitement confirmée, même après erreur DNS/connexion,
+arrêt ambigu ou lecture perdue après un arrêt réussi. Budget total : 1800 s par défaut (`DLLM_CLEANUP_SECONDS`,
+`--cleanup-seconds` sous supervision), avec borne de chaque appel et attentes exponentielles. À expiration,
+retour 124 et **CLEANUP PENDING, VM peut encore être facturée**, reçu conservé, nouvelle allocation interdite.
+Reprendre sans allocation :
+
+```bash
+bash colab/chain4.sh --cleanup-only --receipt /chemin/ownership.json
+# ou, avec le même DLLM_CAMPAIGN_RECEIPT :
+bash colab/colab_phase0.sh down
+```
+
+Une session remplacée n'est jamais arrêtée. Avant `new`, un reçu `allocation-unconfirmed` est écrit ; un résultat
+ambigu garde ce reçu. Après un `new` confirmé, seule la lecture d'identité est réessayée trois fois au maximum,
+avec bornes CLI et backoff (1 puis 2 s par défaut) ; une panne durable conserve `allocation_returned=true` et
+la preuve non confirmée. Le CLI installé ne fournit
+aucun endpoint dans l'accusé de `new` : une session apparue ultérieurement ne prouve pas la propriété.
+Dans ce cas, le nettoyage peut confirmer une absence, mais ne peut pas arrêter une session présente :
+réconciliation indépendante indispensable par l'opérateur, sans adoption automatique ni nouvelle allocation.
+SIGKILL, panne du PC ou disparition de WSL peuvent empêcher l'arrêt ; la preuve persistante permet la reprise.
+L'absence explicitement confirmée d'une session possédée est distincte d'une identité distante remplacée.
+Si la session expire après `up` ou pendant l'observation, la campagne reste en échec et la récupération n'est
+pas présentée comme complète, mais `down` peut confirmer l'absence et terminer la comptabilité sans arrêt
+superflu. Une identité différente conserve le refus des récupérations et du nettoyage ; aucune adoption implicite.
+
+Avant allocation, `usage`/`usage-json` expose via le wrapper un JSON strict du solde, débit horaire du compte
+et nombre d'allocations. Un solde vide/inconnu/insuffisant ou une autre allocation facturée interdit `new`.
+Budget obligatoire : `--budget-units` pour la chaîne ou `DLLM_BUDGET_UNITS` pour le mode manuel ; l'opérateur
+doit le dimensionner pour la durée et le tarif prévus. Aucun tarif futur n'est inventé. Les relevés avant
+allocation et après absence confirmée sont inscrits dans `<reçu>.usage.jsonl` et dans le journal.
+La diminution du solde du compte exige deux relevés lisibles ; recharge/autres usages peuvent la modifier.
+`campaign_consumption_units` reste `null`, sans prétendre une facture de campagne. Un relevé final impossible
+est enregistré explicitement avec valeurs inconnues, sans remettre en cause l'absence confirmée.
+Le reçu reste alors `released/accounting-pending`, la commande retourne 124 et aucune nouvelle allocation n'est
+permise. Le relevé final est réessayé trois fois au maximum dans le budget de nettoyage. `down` ou
+`--cleanup-only` reprend uniquement `usage`, sans sessions ni stop supplémentaires ; le reçu et le cache ne sont
+supprimés qu'après un relevé lisible. Le journal distingue cette comptabilité en attente d'une VM encore facturable.
+Exemple de préparation, qui n'autorise pas une relance E12 :
+
+```bash
+bash colab/chain4.sh --gpu auto --hours 10 --budget-units 60
+```
+
+`--gpu auto` et `up <plan> auto` préfèrent L4 si les réservations du plan tiennent, puis A100/H100.
+Le choix peut être explicite (`L4`, `A100`, `H100`, `T4`). La plus grande réservation modèle/contexte/slots,
+avec la marge existante de 2 Gio, est vérifiée avant allocation, puis la mémoire libre réelle est mesurée par
+`nvidia-smi` avant upload/bootstrap. `aa-1` garde Qwen 27B et sa concurrence : 37 + 2 = **39 Gio libres**,
+donc L4 est refusé. `smoke` exige 6 Gio et peut choisir L4. Le scheduler garde ses réservations pour limiter
+la concurrence ; aucun changement de modèle, quantification, contexte ou protocole scientifique.
 
 Succès exige les quinze jobs exacts réussis, le téléchargement final complet de cette invocation (générations
 SciCode et notes dev/test des treize modèles, oracle dev, métadonnées, observations de temps et provenance), puis

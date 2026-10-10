@@ -18,12 +18,30 @@ def regular(path):
         raise ValueError("transfer path is not a regular file")
 
 
+def matches(path, size, digest):
+    try:
+        regular(path)
+        if path.stat().st_size != size:
+            return False
+        hashed = hashlib.sha256()
+        with path.open("rb") as source:
+            while block := source.read(BLOCK):
+                hashed.update(block)
+        return hashed.hexdigest() == digest
+    except FileNotFoundError:
+        return False
+
+
 def reconstruct(config, root=Path("/content")):
     attempt = config["attempt"]
     if not re.fullmatch(r"[0-9a-f]{32}", attempt):
         raise ValueError("invalid attempt")
     prefix = f"dllm-transfer-{attempt}"
     manifest_path = root / f"{prefix}.json"
+    published = matches(root / "dllm.tgz", config["size"], config["sha256"])
+    # A previous reconstruction may have completed before its acknowledgement was lost.
+    if not manifest_path.exists() and published:
+        return {"schema": 1, "status": "ok", **config}
     regular(manifest_path)
     if manifest_path.stat().st_size > 2 * 1024 * 1024:
         raise ValueError("manifest too large")
@@ -56,10 +74,16 @@ def reconstruct(config, root=Path("/content")):
         if not isinstance(part["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", part["sha256"]):
             raise ValueError("invalid part hash")
         path = root / name
-        regular(path)
-        if path.stat().st_size != expected_size:
-            raise ValueError("part size mismatch")
+        if not published:
+            regular(path)
+            if path.stat().st_size != expected_size:
+                raise ValueError("part size mismatch")
         paths.append(path)
+    if published:
+        # The pinned manifest enumerates only this attempt, even after partial cleanup.
+        for path in [*paths, manifest_path]:
+            path.unlink(missing_ok=True)
+        return {"schema": 1, "status": "ok", **config}
     temporary = None
     try:
         whole = hashlib.sha256()
@@ -85,7 +109,7 @@ def reconstruct(config, root=Path("/content")):
         temporary = None
         # Only this attempt's enumerated files, after full validation and atomic publication.
         for path in [*paths, manifest_path]:
-            path.unlink()
+            path.unlink(missing_ok=True)
         return {"schema": 1, "status": "ok", **config}
     finally:
         if temporary is not None:

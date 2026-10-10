@@ -172,8 +172,14 @@ elif operation == 'up':
     if mode == 'up-refused': sys.exit(23)
     if mode == 'bootstrap-refused': sys.exit(73)
     active.touch()
-    Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps(session))
-    if mode == 'refused-without-bootstrap': sys.exit(1)
+    Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({**session, 'status': 'owned',
+        'campaign_id': os.environ['DLLM_CAMPAIGN_ID']}))
+    if mode in ('refused-without-bootstrap', 'foreign-receipt-dns'):
+        if mode == 'foreign-receipt-dns':
+            Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({**session,
+                'status': 'foreign-campaign', 'campaign_id': os.environ['DLLM_CAMPAIGN_ID']}))
+            sys.exit(73)
+        sys.exit(1)
     if mode == 'timeout':
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         child = os.fork()
@@ -181,6 +187,7 @@ elif operation == 'up':
         (root / 'pids').write_text(json.dumps([os.getpid(), child]))
         time.sleep(60)
 elif operation == 'snapshot':
+    if mode == 'foreign-receipt-dns': sys.exit(27)
     if mode == 'refused-without-bootstrap':
         print(json.dumps({'schema': 1, 'bootstrap': None, 'jobs': None, 'campaign_present': True}))
         sys.exit(0)
@@ -194,12 +201,15 @@ elif operation == 'snapshot':
     if mode == 'incomplete': jobs.pop(next(iter(jobs)))
     if mode in ('failed', 'cancelled'):
         jobs[next(iter(jobs))] = 'ÉCHEC code 7' if mode == 'failed' else 'annulé (arrêt du lanceur)'
-    if mode == 'deadline' or mode == 'periodic' and n <= 3: jobs = {k: 'prévu' for k in jobs}
+    if mode == 'deadline' or mode in ('periodic', 'periodic-failed') and n <= 3: jobs = {k: 'prévu' for k in jobs}
     if mode in ('downloads', 'dead-preflight') and n <= 2: jobs = None
     print(json.dumps({'schema': 1, 'bootstrap': {'step': 'lanceur en marche', 'plan': 'aa-1', 'pid': 42,
                                                'campaign_id': 'foreign' if mode == 'foreign' else os.environ['DLLM_CAMPAIGN_ID']},
                       'jobs': jobs, 'diagnostics': {'launcher_alive': mode != 'dead-preflight'}}))
 elif operation == 'pull':
+    if mode == 'periodic-failed' and not (root / 'pull-lost').exists():
+        (root / 'pull-lost').touch()
+        sys.exit(27)
     if mode == 'pull-failed': sys.exit(31)
     if mode == 'downloads' and int((root / 'count').read_text()) <= 2: sys.exit(83)
 elif operation == 'down':
@@ -229,10 +239,19 @@ with (root / 'calls').open('a') as f: f.write(args[0] + '\n')
 if args[0] == 'sessions':
     print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU'
           if (root / 'allocated').exists() else '[colab] No active sessions found on server.')
+elif args[0] == 'usage':
+    print('Current balance: 100.00 compute units\nUsage rate: 0.00/hr\nActive assignments: 0')
 elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'upload': pass
 elif args[0] == 'exec':
-    if args[-1].endswith('reconstruct.py'):
+    if args[-1].endswith('capacity.py'):
+        print('DLLM_CAPACITY ' + json.dumps({'free_mib': 40960}))
+        sys.exit(0)
+    elif args[-1].endswith('verify_part.py'):
+        import ast
+        config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(' = ', 1)[1])
+        print('DLLM_PART_ACK ' + json.dumps({**config, 'matches': True}))
+    elif args[-1].endswith('reconstruct.py'):
         import ast
         config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(' = ', 1)[1])
         print('DLLM_TRANSFER_ACK ' + json.dumps({'schema': 1, 'status': 'ok', **config}))
@@ -267,6 +286,8 @@ else: sys.exit(81)
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix="real wrapper spaces ") as d:
                 root = Path(d)
                 shutil.copytree(COLAB, root / "phase0" / "colab")
+                shutil.copyfile(COLAB.parent / "colab_jobs.py", root / "phase0" / "colab_jobs.py")
+                shutil.copyfile(COLAB.parent / "colab_bootstrap.py", root / "phase0" / "colab_bootstrap.py")
                 (root / "phase0" / "data").mkdir()
                 (root / "phase0" / "data" / "scicode_test_data.h5").write_bytes(b"synthetic")
                 bins = root / ".local" / "bin"
@@ -277,8 +298,9 @@ else: sys.exit(81)
                 runner = root / "runner.py"
                 runner.write_text(RUNNER)
                 env = {**os.environ, "HOME": d, "TEST_ROOT": d, "MODE": mode, "DLLM_REPO": d,
-                       "FAKE_WRAPPER": str(root / "phase0" / "colab" / "colab_phase0.sh")}
+                       "FAKE_WRAPPER": str(root / "phase0" / "colab" / "colab_phase0.sh"), "DLLM_BUDGET_UNITS": "20"}
                 cmd = [sys.executable, str(runner), str(COLAB), "--lock", str(root / "lock"),
+                       "--receipt", str(root / "receipt.json"), "--budget-units", "20",
                        "--read-seconds", "3", "--up-seconds", "10", "--transfer-seconds", "2",
                        "--cleanup-seconds", "10", "--grace", ".1"]
                 p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -321,7 +343,9 @@ else: sys.exit(81)
 from pathlib import Path
 args = sys.argv[1:]
 name = 'aa_synthetic_colab_scicode_dev.jsonl'
-if args[0] == 'exec':
+if args[0] == 'sessions':
+    print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU')
+elif args[0] == 'exec':
     sys.stdin.read()
     print('LISTE-OK')
     print(name)
@@ -331,6 +355,7 @@ elif args[0] == 'download':
     if remote.endswith(('.timing.jsonl.meta.json', '.timing.jsonl.timing.jsonl')): sys.exit(82)
     if remote == name: raw = '{"id": "synthetic"}\\n'
     elif remote == name + '.timing.jsonl': raw = '{"kind": "call", "wall_s": 1}\\n'
+    elif remote == 'colab_bootstrap_status.json': raw = '{"campaign_id": "synthetic"}'
     else: raw = '{"synthetic": true, "measurements": "e12-wall-v1"}'
     Path(args[4]).write_text(raw)
 else: sys.exit(81)
@@ -339,12 +364,17 @@ else: sys.exit(81)
             root = Path(d)
             shutil.copytree(COLAB, root / "phase0" / "colab")
             shutil.copy(COLAB.parent / "aa_timing.py", root / "phase0")
+            shutil.copy(COLAB.parent / "colab_jobs.py", root / "phase0")
             bins = root / ".local" / "bin"
             bins.mkdir(parents=True)
             fake = bins / "colab"
             fake.write_text(f"#!{sys.executable}\n" + cli)
             fake.chmod(0o755)
-            env = {**os.environ, "HOME": d, "DLLM_REPO": d, "DLLM_CAMPAIGN_RECEIPT": ""}
+            receipt = root / "receipt"
+            import hashlib
+            receipt.write_text(json.dumps({"status": "owned", "plan": "aa-1", "campaign_id": "synthetic",
+                "phase0": {"fingerprint": hashlib.sha256(b"synthetic").hexdigest(), "hardware": "A100"}}))
+            env = {**os.environ, "HOME": d, "DLLM_REPO": d, "DLLM_CAMPAIGN_RECEIPT": str(receipt)}
             result = subprocess.run(["bash", str(root / "phase0" / "colab" / "colab_phase0.sh"), "pull"],
                                     env=env, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -364,9 +394,17 @@ if args[0] == 'sessions':
     if mode == 'existing' or (root / 'allocated').exists():
         print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU')
     else: print('[colab] No active sessions found on server.')
+elif args[0] == 'usage':
+    print('Current balance: 100.00 compute units\\nUsage rate: 0.00/hr\\nActive assignments: 0')
 elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'exec':
-    if args[-1].endswith('snapshot.py'):
+    if args[-1].endswith('capacity.py'):
+        print('DLLM_CAPACITY ' + json.dumps({'free_mib': 40960}))
+    elif args[-1].endswith('verify_part.py'):
+        import ast
+        config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(' = ', 1)[1])
+        print('DLLM_PART_ACK ' + json.dumps({**config, 'matches': True}))
+    elif args[-1].endswith('snapshot.py'):
         print(json.dumps({'schema': 1, 'campaign_present': mode == 'campaign-existing'}))
     elif args[-1].endswith('reconstruct.py'):
         import ast
@@ -380,6 +418,8 @@ else: sys.exit(81)
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix="wrapper spaces ") as d:
                 root = Path(d)
                 shutil.copytree(COLAB, root / "phase0" / "colab")
+                shutil.copyfile(COLAB.parent / "colab_jobs.py", root / "phase0" / "colab_jobs.py")
+                shutil.copyfile(COLAB.parent / "colab_bootstrap.py", root / "phase0" / "colab_bootstrap.py")
                 (root / "phase0" / "data").mkdir()
                 (root / "phase0" / "data" / "scicode_test_data.h5").write_bytes(b"synthetic, never executed")
                 bins = root / ".local" / "bin"
@@ -389,16 +429,16 @@ else: sys.exit(81)
                 fake.chmod(0o755)
                 receipt = root / "receipt.json"
                 env = {**os.environ, "HOME": d, "TEST_ROOT": d, "DLLM_REPO": d, "MODE": mode,
-                       "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": "synthetic"}
+                       "DLLM_CAMPAIGN_RECEIPT": str(receipt), "DLLM_CAMPAIGN_ID": "synthetic", "DLLM_BUDGET_UNITS": "20"}
                 result = subprocess.run(["bash", str(root / "phase0" / "colab" / "colab_phase0.sh"),
                                          "up", "aa-1", "A100"], env=env, capture_output=True, text=True, timeout=10)
-                code = 0 if mode == "success" else 23 if mode == "connection" else 73
+                code = 0 if mode == "success" else 65 if mode == "connection" else 73
                 self.assertEqual(result.returncode, code, result.stderr)
                 calls = (root / "calls").read_text().splitlines()
                 self.assertNotIn("stop", calls)
                 if mode in ("existing", "campaign-existing", "connection"):
                     self.assertNotIn("upload", calls)
-                self.assertEqual(receipt.exists(), mode == "success")
+                self.assertEqual(receipt.exists(), mode in ("success", "campaign-existing", "bootstrap-refused"))
 
     def run_case(self, mode, expected_code, signal_case=False):
         sys.path.insert(0, str(COLAB))
@@ -412,7 +452,8 @@ else: sys.exit(81)
             runner.write_text(RUNNER)
             env = {**os.environ, "TEST_ROOT": d, "MODE": mode, "PYTHON": sys.executable,
                    "FAKE_WRAPPER": str(wrapper), "EXPECTED": json.dumps(sorted(campaign.EXPECTED))}
-            cmd = [sys.executable, str(runner), str(COLAB), "--lock", str(root / "lock"), "--hours",
+            cmd = [sys.executable, str(runner), str(COLAB), "--lock", str(root / "lock"),
+                   "--receipt", str(root / "receipt.json"), "--budget-units", "20", "--hours",
                    ".00015" if mode == "deadline" else ".002",
                    "--poll-seconds", ".02", "--pull-seconds", ".02", "--read-seconds", ".3",
                    "--up-seconds", ".4", "--transfer-seconds", ".3", "--cleanup-seconds", "3", "--grace", ".1"]
@@ -429,7 +470,8 @@ else: sys.exit(81)
             output, _ = p.communicate(timeout=10)
             self.assertEqual(p.returncode, expected_code, output)
             calls = (root / "calls").read_text().splitlines()
-            if mode in ("existing", "up-refused", "bootstrap-refused", "foreign", "refused-without-bootstrap"):
+            if mode in ("existing", "up-refused", "bootstrap-refused", "foreign", "refused-without-bootstrap",
+                        "foreign-receipt-dns"):
                 self.assertNotIn("pull", calls)
                 self.assertNotIn("down", calls)
             else:
@@ -442,7 +484,7 @@ else: sys.exit(81)
                 self.assertIn("results not confirmed recovered", output)
             if mode in ("failed", "cancelled"):
                 self.assertIn("ÉCHEC code 7" if mode == "failed" else "annulé", output)
-            if mode == "periodic":
+            if mode in ("periodic", "periodic-failed"):
                 self.assertGreaterEqual(calls.count("pull"), 2)
             if mode == "timeout":
                 for pid in json.loads((root / "pids").read_text()):
@@ -451,14 +493,15 @@ else: sys.exit(81)
                         self.assertIn(path.read_text().rsplit(")", 1)[1].split()[0], ("Z", "X", "x"))
 
     def test_success_and_transient_reads(self):
-        for mode in ("success", "transient", "periodic", "downloads"):
+        for mode in ("success", "transient", "periodic", "periodic-failed", "downloads"):
             with self.subTest(mode=mode): self.run_case(mode, 0)
 
     def test_refusals_and_failures(self):
         for mode, code in (("existing", 73), ("up-refused", 23), ("bootstrap-refused", 73),
                            ("failed", 1), ("cancelled", 1), ("malformed", 65), ("incomplete", 65),
                            ("connection", 27), ("dead-preflight", 1), ("pull-failed", 31), ("down-failed", 32),
-                           ("timeout", 124), ("deadline", 124), ("foreign", 73), ("refused-without-bootstrap", 1)):
+                           ("timeout", 124), ("deadline", 124), ("foreign", 73), ("refused-without-bootstrap", 1),
+                           ("foreign-receipt-dns", 73)):
             with self.subTest(mode=mode): self.run_case(mode, code)
 
     def test_signal_cleanup(self):

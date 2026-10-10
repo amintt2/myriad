@@ -114,6 +114,38 @@ class Reconstruction(unittest.TestCase):
                 self.assertEqual(target.read_bytes(), b"existing archive")
                 self.assertEqual(set(root.iterdir()), before)
 
+    def test_published_archive_resumes_partial_cleanup_with_fresh_ack(self):
+        for corrupt in (False, True):
+            with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                manifest, config = self.fixture(root)
+                config = {**self.publish(root, manifest, config), "challenge": "first"}
+                original_unlink = Path.unlink
+                removed = []
+
+                def interrupted(path, *args, **kwargs):
+                    if ".part-" in path.name:
+                        if removed:
+                            raise InterruptedError("synthetic cleanup interruption")
+                        removed.append(path.name)
+                    return original_unlink(path, *args, **kwargs)
+
+                with mock.patch.object(Path, "unlink", interrupted):
+                    with self.assertRaises(InterruptedError): remote.reconstruct(config, root)
+                self.assertTrue((root / f'dllm-transfer-{config["attempt"]}.json').exists())
+                self.assertEqual(digest(root / "dllm.tgz"), config["sha256"])
+                sentinel = root / ("dllm-transfer-" + "b" * 32 + ".part-000000")
+                sentinel.write_bytes(b"other attempt")
+                if corrupt:
+                    (root / "dllm.tgz").write_bytes(b"corrupt published archive")
+                    with self.assertRaises(FileNotFoundError): remote.reconstruct(config, root)
+                else:
+                    fresh = {**config, "challenge": "second"}
+                    self.assertEqual(remote.reconstruct(fresh, root), {"schema": 1, "status": "ok", **fresh})
+                    self.assertEqual(remote.reconstruct(fresh, root), {"schema": 1, "status": "ok", **fresh})
+                    self.assertEqual(set(root.iterdir()), {root / "dllm.tgz", sentinel})
+                self.assertEqual(sentinel.read_bytes(), b"other attempt")
+
     @unittest.skipUnless(sys.platform == "linux", "symlink test requires Linux")
     def test_symlink_refused(self):
         with tempfile.TemporaryDirectory(dir=COLAB.parents[1]) as directory:
@@ -142,7 +174,7 @@ class Reconstruction(unittest.TestCase):
         self.assertIn("HTTP 500", out.getvalue())
 
     def test_local_splitter_memory_stays_bounded(self):
-        with mock.patch.dict(sys.modules, {"reconstruct": remote}):
+        with mock.patch.dict(sys.modules, {"reconstruct": remote, "safe_cli": load("safe_cli")}):
             transfer = load("transfer")
         with tempfile.TemporaryDirectory(dir=COLAB.parents[1]) as directory:
             root = Path(directory)
@@ -160,6 +192,10 @@ class Reconstruction(unittest.TestCase):
                 else:
                     import ast
                     config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(" = ", 1)[1])
+                    if args[-1].endswith('verify_part.py'):
+                        valid = remote.matches(content / config['name'], config['size'], config['sha256'])
+                        output.write(('DLLM_PART_ACK ' + json.dumps({**config, 'matches': valid}) + "\n").encode())
+                        return
                     result = remote.reconstruct(config, content)
                     output.write((remote.ACK + json.dumps(result) + "\n").encode())
             tracemalloc.start()
@@ -185,6 +221,8 @@ with (root / 'calls').open('a') as output: output.write(args[0] + '\n')
 if args[0] == 'sessions':
     print('[phase0] synthetic | Hardware: A100 | Shape: Standard | Variant: GPU'
           if (root / 'active').exists() else '[colab] No active sessions found on server.')
+elif args[0] == 'usage':
+    print('Current balance: 100.00 compute units\nUsage rate: 0.00/hr\nActive assignments: 0')
 elif args[0] == 'new': (root / 'active').touch()
 elif args[0] == 'stop': (root / 'active').unlink()
 elif args[0] == 'upload':
@@ -204,7 +242,16 @@ elif args[0] == 'upload':
     shutil.copyfile(source, content / Path(args[4]).name)
 elif args[0] == 'download': sys.exit(31)
 elif args[0] == 'exec':
-    if args[-1].endswith('snapshot.py'):
+    if args[-1].endswith('capacity.py'):
+        print('DLLM_CAPACITY ' + json.dumps({'free_mib': 40960}))
+    elif args[-1].endswith('verify_part.py'):
+        code = Path(args[-1]).read_text()
+        config = ast.literal_eval(code.splitlines()[0].split(' = ', 1)[1])
+        path = content / config['name']
+        valid = (path.exists() and path.stat().st_size == config['size']
+                 and hashlib.sha256(path.read_bytes()).hexdigest() == config['sha256'])
+        print('DLLM_PART_ACK ' + json.dumps({**config, 'matches': valid}))
+    elif args[-1].endswith('snapshot.py'):
         print(json.dumps({'schema': 1, 'campaign_present': False}))
     elif args[-1].endswith('colab_bootstrap.py'):
         assert (root / 'verified').exists()
@@ -215,8 +262,10 @@ elif args[0] == 'exec':
         if mode == 'no-ack': print('SystemExit: 1'); sys.exit(0)
         namespace = {'__name__': 'synthetic_reconstruction'}
         exec(compile(code, 'synthetic_reconstruction', 'exec'), namespace)
-        manifest = json.loads((content / ('dllm-transfer-' + config['attempt'] + '.json')).read_text())
-        (root / 'manifest-proof').write_text(json.dumps(manifest))
+        manifest_path = content / ('dllm-transfer-' + config['attempt'] + '.json')
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text())
+            (root / 'manifest-proof').write_text(json.dumps(manifest))
         if mode == 'corrupt-remote':
             with (content / manifest['parts'][0]['name']).open('r+b') as part: part.write(b'bad')
         try:
@@ -245,6 +294,7 @@ class WrapperTransfer(unittest.TestCase):
     def setup_root(self, root, mode, large=False):
         shutil.copytree(COLAB, root / "phase0" / "colab")
         shutil.copyfile(COLAB.parent / "colab_jobs.py", root / "phase0" / "colab_jobs.py")
+        shutil.copyfile(COLAB.parent / "colab_bootstrap.py", root / "phase0" / "colab_bootstrap.py")
         data = root / "phase0" / "data"
         data.mkdir()
         with (data / "scicode_test_data.h5").open("wb") as output:
@@ -263,7 +313,7 @@ class WrapperTransfer(unittest.TestCase):
         (root / "content" / "dllm.tgz").write_bytes(b"previous archive")
         return {**os.environ, "HOME": str(root), "TEST_ROOT": str(root), "MODE": mode,
                 "DLLM_REPO": str(root), "DLLM_CAMPAIGN_RECEIPT": str(root / "receipt"),
-                "DLLM_CAMPAIGN_ID": "synthetic-campaign"}
+                "DLLM_CAMPAIGN_ID": "synthetic-campaign", "DLLM_BUDGET_UNITS": "20", "DLLM_RETRY_SECONDS": ".01"}
 
     def test_real_wrapper_multi_part_and_ack_failures(self):
         for mode, expected in (("success", 0), ("upload-error", 29), ("no-ack", 65), ("bad-ack", 65),
@@ -283,7 +333,7 @@ class WrapperTransfer(unittest.TestCase):
                 if mode in ("upload-error", "no-ack", "corrupt-remote"):
                     self.assertEqual((root / "content" / "dllm.tgz").read_bytes(), b"previous archive")
                 if mode == "upload-error":
-                    self.assertEqual((root / "calls").read_text().splitlines().count("upload"), 1)
+                    self.assertEqual((root / "calls").read_text().splitlines().count("upload"), 3)
                     self.assertIn("colab upload: exit 29", result.stderr)
                 if mode == "success":
                     import tarfile
@@ -316,6 +366,14 @@ class WrapperTransfer(unittest.TestCase):
                     status = Path(f"/proc/{pid}/status").read_text()
                     mask = int(next(l.split()[1] for l in status.splitlines() if l.startswith("SigIgn:")), 16)
                     self.assertTrue(mask & (1 << (signal.SIGTERM - 1)))
+                calls = (root / "calls").read_text()
+                wrapper = root / "phase0/colab/colab_phase0.sh"
+                for operation in (("resume-up", "aa-1", "A100"), ("down",)):
+                    competitor = subprocess.run(["bash", str(wrapper), *operation], env=env,
+                                                capture_output=True, text=True, timeout=3)
+                    self.assertEqual(competitor.returncode, 73, competitor.stdout + competitor.stderr)
+                    self.assertIn("lifecycle operation holds the lock", competitor.stdout)
+                    self.assertEqual((root / "calls").read_text(), calls)
                 p.send_signal(signal.SIGTERM)
                 output, _ = p.communicate(timeout=25)
                 self.assertEqual(p.returncode, 143, output)
