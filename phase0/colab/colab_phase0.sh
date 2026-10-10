@@ -12,6 +12,9 @@ REPO="${DLLM_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"  # repo
 REMOTE=/content/dllm/phase0/results
 COLAB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
+# Every official CLI stream is sanitized before it can reach a terminal or campaign journal.
+colab() { python3 "$COLAB_DIR/safe_cli.py" "$@"; }
+
 case "${1:-}" in
   sessions-json)
     sessions_output=$(colab sessions)
@@ -21,7 +24,8 @@ case "${1:-}" in
     if [ "${DLLM_SUPERVISED:-}" = 1 ]; then
       colab exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/snapshot.py"
     else
-      python3 "$REPO/phase0/colab/read_timeout.py" colab exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/snapshot.py"
+      python3 "$REPO/phase0/colab/read_timeout.py" python3 "$COLAB_DIR/safe_cli.py" \
+        exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/snapshot.py"
     fi
     ;;
   up)
@@ -55,6 +59,7 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
       colab sessions 2>/dev/null | grep -q "$S" || colab new -s "$S" --gpu "$gpu"
     fi
     tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
     mkdir -p "$tmp/stage/checkpoints"
     tar cf - -C "$REPO" --exclude='phase0/.venv' --exclude='phase0/results' --exclude='phase0/data' \
         --exclude='__pycache__' phase0 | tar xf - -C "$tmp/stage"
@@ -86,7 +91,7 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
       fi
     done
     tar czf "$tmp/dllm.tgz" -C "$tmp/stage" phase0 checkpoints
-    colab upload -s "$S" "$tmp/dllm.tgz" /content/dllm.tgz
+    python3 "$COLAB_DIR/transfer.py" "$tmp/dllm.tgz"
     rm -rf "$tmp"
     code=0
     colab exec -s "$S" --timeout 1800 -f "$REPO/phase0/colab_bootstrap.py" || code=$?
@@ -100,10 +105,11 @@ sys.exit(73 if s["campaign_present"] else 0)' || code=$?
       "    print(open(p).read() if os.path.exists(p) else f'{os.path.basename(p)} : absent')" \
       "print(subprocess.run(['tail','-5','$REMOTE/colab_launcher.log'],capture_output=True,text=True).stdout)" \
       "print(subprocess.run(['nvidia-smi','--query-gpu=utilization.gpu,memory.used,memory.total','--format=csv,noheader'],capture_output=True,text=True).stdout)" \
-      | python3 "$REPO/phase0/colab/read_timeout.py" colab exec -s "$S" --timeout 60
+      | python3 "$REPO/phase0/colab/read_timeout.py" python3 "$COLAB_DIR/safe_cli.py" exec -s "$S" --timeout 60
     ;;
   diagnose)
-    python3 "$REPO/phase0/colab/read_timeout.py" colab exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/diagnose.py"
+    python3 "$REPO/phase0/colab/read_timeout.py" python3 "$COLAB_DIR/safe_cli.py" \
+        exec -s "$S" --timeout 60 -f "$REPO/phase0/colab/diagnose.py"
     ;;
   pull)
     dest="$REPO/phase0/results"

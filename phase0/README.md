@@ -320,6 +320,57 @@ de ce dossier. Ne pas lancer la commande historique `up` en parallèle. Le verro
 `/tmp/myriad-phase0-campaign.lock` protège les chaînes de ce superviseur dans une même distribution WSL ; il ne
 coordonne pas d'autres machines ni des commandes manuelles. Ne pas changer `--lock` pour contourner ce verrou.
 
+Pour un lancement Windows durable, garder un processus Windows propriétaire de WSL. Le premier lancement
+avec `nohup` détaché a disparu lorsque WSL n'avait plus de processus Windows. Après revue/audit/fusion par le
+parent, depuis la racine du dépôt retenu dans PowerShell (commande documentée, pas exécutée ici) :
+
+```powershell
+$arguments = @('--cd', ('"' + (Get-Location).Path + '"'), '-e', 'bash', 'phase0/colab/chain4.sh', '--hours', '12')
+Start-Process -FilePath wsl.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru `
+    -RedirectStandardOutput C:/tmp/myriad-e12-transfer-launch.stdout.log `
+    -RedirectStandardError C:/tmp/myriad-e12-transfer-launch.stderr.log
+```
+
+Le parent crée le dossier de journaux et choisit des noms ne recouvrant pas une preuve antérieure. Le PID rendu
+est celui de `wsl.exe`, pas un accusé de succès de campagne ; vérifier les états finaux du superviseur.
+
+### Transfert E12 après l'échec HTTP 500 du 10 octobre
+
+La taille de l'archive est une cause plausible, non démontrée par le seul HTTP 500. Le wrapper conserve la
+préparation scientifique existante (HDF5, sources, checkpoints et leurs empreintes), puis envoie l'archive
+en fichiers de **8 Mio maximum** via la CLI officielle. Même une petite archive suit cette vérification.
+La mémoire de découpage/reconstruction utilise des blocs de 1 Mio ; la CLI ne reçoit qu'un petit fichier à
+la fois, car son upload charge tout le fichier et sa représentation base64. Un seul morceau local est conservé
+à la fois en plus de l'archive et du staging existants. La limite est 8 192 morceaux, soit 64 Gio d'archive.
+Aucune nouvelle authentification, aucun appel HTTP direct, aucune nouvelle tentative automatique d'upload.
+
+Chaque tentative utilise un préfixe aléatoire sûr sous `/content/dllm-transfer-<tentative>` (fichiers plats).
+Le manifeste contient indices, noms exacts, tailles et SHA-256 des morceaux et de l'archive. Le petit script
+versionné `colab/reconstruct.py`, lancé par le wrapper avec `colab exec --timeout 180`, exige aussi l'empreinte
+du manifeste transmise dans son code. Il refuse les chemins inattendus, liens symboliques, indices désordonnés,
+données manquantes, mélangées ou corrompues. Il recompose en streaming dans un fichier temporaire puis remplace
+atomiquement `/content/dllm.tgz` seulement après validation complète. Il nettoie uniquement le manifeste et
+les morceaux connus de cette tentative après validation ; modèles et résultats existants ne sont pas effacés.
+Une tentative interrompue peut laisser des morceaux distants jusqu'à la libération de la VM ; aucun nettoyage
+par glob des tentatives antérieures. Les temporaires locaux sont supprimés à la sortie normale ou signalée ;
+SIGKILL/panne peut les laisser en place.
+
+Un code CLI 0 ne prouve pas la réussite distante. Avant bootstrap, le wrapper exige exactement un accusé
+`DLLM_TRANSFER_ACK` JSON avec statut, tentative, taille, SHA-256 d'archive et de manifeste identiques ; accusé
+absent, multiple, périmé ou incorrect ⇒ refus. Le verrou, les reçus d'allocation et les délais mur du superviseur
+restent inchangés ; upload/reconstruction partagent son groupe de processus, sans groupe imbriqué.
+
+Les sorties CLI sont capturées dans des fichiers temporaires anonymes, assainies avant stdout/stderr, puis
+supprimées. Toutes les requêtes d'URL sont masquées, ainsi que les paramètres d'accès courants et Bearer hors URL.
+Opération, HTTP et code de retour restent disponibles ; les lignes dépassant 64 Kio sont omises entièrement.
+Aucun argument ni environnement n'est journalisé. Le journal brut du premier essai reste ignoré et ne doit pas
+être lu/copié. Smoke synthétique hors ligne sous WSL, sans CLI réelle, modèle ni exécution de dataset :
+
+```bash
+cd phase0
+uv run python -m unittest tests.test_colab_transfer tests.test_campaign tests.test_colab_timeout -q
+```
+
 Toutes les opérations passent par `bash phase0/colab/colab_phase0.sh`. La chaîne refuse une session `phase0`
 existante et une campagne déjà présente, sans l'arrêter, l'écraser ni adopter son PID. Elle n'appelle `up aa-1 A100`
 qu'une fois. Les lectures structurées `sessions-json` et `snapshot` conservent les erreurs de connexion et de JSON ;

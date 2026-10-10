@@ -557,20 +557,10 @@ class Plan(unittest.TestCase):
                 if csv:
                     self.assertEqual(old.read_bytes(), b"new")
 
-    @unittest.skipUnless(shutil.which("bash"), "bash is needed to exercise the upload archive")
+    @unittest.skipUnless(sys.platform == "linux", "official CLI executable fixture requires Linux/WSL")
     def test_upload_archive_with_optional_gpqa(self):
+        from tests.test_colab_transfer import CLI
         script = Path(colab_jobs.__file__).parent / "colab" / "colab_phase0.sh"
-        shell = '''
-colab() {
-    case "$1" in
-      sessions) echo phase0 ;;
-      upload) cp "$4" "$ARCHIVE" ;;
-      *) return 0 ;;
-    esac
-}
-export -f colab
-bash "$SCRIPT" up aa-1 A100
-'''
         for h5, csv in ((True, False), (True, True), (False, False)):
             with self.subTest(h5=h5, csv=csv), tempfile.TemporaryDirectory() as d:
                 root = Path(d)
@@ -580,10 +570,16 @@ bash "$SCRIPT" up aa-1 A100
                     (data / scicode.H5_NAME).write_bytes(b"synthetic targets")
                 if csv:
                     (data / gpqa.FILE).write_bytes(b"synthetic CSV")
-                archive = root / "archive.tgz"
-                env = {**os.environ, "DLLM_REPO": root.as_posix(), "SCRIPT": script.as_posix(),
-                       "ARCHIVE": archive.as_posix()}
-                r = subprocess.run([shutil.which("bash"), "-c", shell], env=env, capture_output=True, text=True)
+                bins = root / ".local" / "bin"
+                bins.mkdir(parents=True)
+                fake = bins / "colab"
+                fake.write_text(f"#!{sys.executable}\n" + CLI)
+                fake.chmod(0o755)
+                archive = root / "content" / "dllm.tgz"
+                env = {**os.environ, "DLLM_REPO": root.as_posix(), "HOME": str(root), "TEST_ROOT": str(root),
+                       "MODE": "success", "DLLM_CAMPAIGN_RECEIPT": ""}
+                r = subprocess.run(["bash", str(script), "up", "aa-1", "A100"], env=env,
+                                   capture_output=True, text=True, timeout=20)
                 if not h5:
                     self.assertNotEqual(r.returncode, 0)
                     self.assertFalse(archive.exists())

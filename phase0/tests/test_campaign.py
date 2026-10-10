@@ -232,7 +232,11 @@ if args[0] == 'sessions':
 elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'upload': pass
 elif args[0] == 'exec':
-    if args[-1].endswith('colab_bootstrap.py'):
+    if args[-1].endswith('reconstruct.py'):
+        import ast
+        config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(' = ', 1)[1])
+        print('DLLM_TRANSFER_ACK ' + json.dumps({'schema': 1, 'status': 'ok', **config}))
+    elif args[-1].endswith('colab_bootstrap.py'):
         (root / 'boot').touch()
         print('SystemExit: 73' if mode == 'refused' else 'started')
         sys.exit(0)  # Real CLI can report remote exceptions as outputs with local success.
@@ -246,7 +250,8 @@ elif args[0] == 'exec':
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
             child = os.fork()
             if child == 0: time.sleep(60); sys.exit(0)
-            (root / 'pids').write_text(json.dumps([os.getpid(), child]))
+            (root / 'pids.tmp').write_text(json.dumps([os.getpid(), child]))
+            (root / 'pids.tmp').replace(root / 'pids')
             time.sleep(60)
         else:
             print(json.dumps({'schema': 1, 'campaign_present': True,
@@ -363,6 +368,10 @@ elif args[0] == 'new': (root / 'allocated').touch()
 elif args[0] == 'exec':
     if args[-1].endswith('snapshot.py'):
         print(json.dumps({'schema': 1, 'campaign_present': mode == 'campaign-existing'}))
+    elif args[-1].endswith('reconstruct.py'):
+        import ast
+        config = ast.literal_eval(Path(args[-1]).read_text().splitlines()[0].split(' = ', 1)[1])
+        print('DLLM_TRANSFER_ACK ' + json.dumps({'schema': 1, 'status': 'ok', **config}))
     elif mode == 'bootstrap-refused': sys.exit(73)
 elif args[0] == 'upload': pass
 else: sys.exit(81)

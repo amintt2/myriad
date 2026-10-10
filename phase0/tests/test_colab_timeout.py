@@ -48,6 +48,8 @@ time.sleep(60)
 # Run the actual supervisor; shorten only the test's wall-clock deadlines.
 SUPERVISOR = '''#!/usr/bin/python3
 import importlib.util, os, sys
+if sys.argv[1].endswith('safe_cli.py'):
+    os.execv(sys.executable, [sys.executable, *sys.argv[1:]])
 if sys.argv[1] != os.environ['SUPERVISOR']:
     sys.exit(82)
 spec = importlib.util.spec_from_file_location('read_timeout', sys.argv[1])
@@ -117,7 +119,7 @@ class ColabTimeout(unittest.TestCase):
         for action in ("status", "diagnose"):
             with self.subTest(action=action):
                 rc, out, err, _ = self.run_wrapper(action, "error")
-                self.assertEqual((rc, out, err), (23, "sortie CLI\n", "message CLI\n"))
+                self.assertEqual((rc, out, err), (23, "sortie CLI\n", "message CLI\ncolab exec: exit 23\n"))
 
     def test_connection_block_stops_group(self):
         for action in ("status", "diagnose"):
