@@ -20,13 +20,14 @@ BASE = "https://github.com/ggml-org/llama.cpp/releases/download/b11505"
 RESULTS = f"{WORK}/phase0/results"
 STATUS = f"{RESULTS}/colab_bootstrap_status.json"
 LOCK = f"{RESULTS}/colab_launcher.lock"
+CAMPAIGN_ID = None
 
 
 def status(step, **kw):
     os.makedirs(RESULTS, exist_ok=True)
     tmp = STATUS + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"step": step, "time": time.strftime("%H:%M:%S"), **kw}, f)
+        json.dump({"step": step, "time": time.strftime("%H:%M:%S"), "campaign_id": CAMPAIGN_ID, **kw}, f)
     os.replace(tmp, STATUS)
     print(step, kw or "", flush=True)
 
@@ -59,17 +60,27 @@ def unpack_code(archive):
 try:
     pid = launcher_alive()
     if pid:
-        status("refusé : un lanceur tourne déjà", pid=pid)
-        raise SystemExit(0)
+        print("refusé : un lanceur tourne déjà", flush=True)
+        raise SystemExit(73)
+
+    with tarfile.open("/content/dllm.tgz") as archive:
+        try:
+            CAMPAIGN_ID = archive.extractfile("phase0/colab_campaign_id.txt").read().decode().strip()
+        except KeyError:
+            pass  # historical campaigns have no supervisor identity
 
     status("décompression du code")
     PLAN = unpack_code("/content/dllm.tgz")
     restored = []
     for src in glob.glob(f"{WORK}/checkpoints/*.jsonl"):
+        if src.endswith(".timing.jsonl"):
+            continue  # timing observations are restored alongside their scientific result file
         dst = f"{RESULTS}/{os.path.basename(src)}"
         if not os.path.exists(dst):  # the VM's own copy, if any, is newer: never overwrite it
             shutil.copy2(src, dst)
             shutil.copy2(src + ".meta.json", dst + ".meta.json")
+            if os.path.exists(src + ".timing.jsonl"):
+                shutil.copy2(src + ".timing.jsonl", dst + ".timing.jsonl")
             restored.append(os.path.basename(src))
     status("points de reprise restaurés", fichiers=restored)
 

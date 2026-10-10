@@ -21,6 +21,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import aa_timing
 from essaim import answers, data, gpqa, scicode, sot
 from essaim.common import resolve_revision
 from essaim.results import ResultsFile, file_identity, read_rows
@@ -31,6 +32,33 @@ BENCHES = ("gpqa", "scicode")
 CTX_PER_SLOT = 8192  # SciCode prompts carry the earlier steps; 6 slots of this size = 16 slots of E4's 3072
 MAX_TOKENS = {"gpqa": 1024, "scicode": 2048}
 SEED = 7
+MEASUREMENTS = "e12-wall-v2"
+
+
+def timing(out, lock, row):
+    """Append observations separately from scientific rows; interrupted calls keep unknown token counts."""
+    with lock:
+        aa_timing.append(out, row)
+
+
+def observed_chat(call, out, lock, **identity):
+    with lock:
+        aa_timing.initialize(out)
+    start = time.perf_counter()
+    g, error = None, None
+    try:
+        g = dict(call())
+        return g
+    except BaseException as e:
+        error = type(e).__name__
+        raise
+    finally:
+        wall = time.perf_counter() - start
+        if g is not None:
+            g["wall_s"] = wall
+        timing(out, lock, {"kind": "call", **identity, "wall_s": wall, "error_type": error,
+                          "returned": g is not None, "n_tokens": g.get("n_tokens") if g else None,
+                          "prompt_tokens": g.get("prompt_tokens") if g else None})
 
 
 def path_for(model: str, suffix: str, bench: str, split: str) -> Path:
@@ -41,7 +69,7 @@ def base_manifest(a, rev, srv, weights, bench, split, n):
     return {"model": a.model, "revision": rev, "backend": "llama.cpp (--jinja, OpenAI chat)",
             "gguf": Path(a.gguf).name, "weights": weights, "engine": srv.version, "bench": bench, "split": split,
             "n": n, "max_tokens": MAX_TOKENS[bench], "temperature": 0.0, "seed": SEED, "thinking": False,
-            "ctx_per_slot": CTX_PER_SLOT}
+            "ctx_per_slot": CTX_PER_SLOT, "measurements": MEASUREMENTS}
 
 
 def run_gpqa(a, srv, rev, weights):
@@ -49,28 +77,46 @@ def run_gpqa(a, srv, rev, weights):
     man = {**base_manifest(a, rev, srv, weights, "gpqa", "all", len(items)), "data": data.dataset_identity("gpqa"),
            "prompt": MC_PROMPT, "logprobs": False}
     out = ResultsFile(path_for(a.model, a.suffix, "gpqa", "all"), man, key=("id",))
+    aa_timing.initialize(out)
     todo = [it for it in items[: a.n or None] if (it["id"],) not in out.done]
-    t0, k = time.perf_counter(), 0
+    t0, k, lock = time.perf_counter(), 0, threading.Lock()
     ex = ThreadPoolExecutor(max_workers=a.parallel)
     try:
-        futs = {ex.submit(srv.chat, mc_prompt("gpqa", it), MAX_TOKENS["gpqa"], SEED): it for it in todo}
+        futs = {ex.submit(observed_chat,
+                          lambda it=it: srv.chat(mc_prompt("gpqa", it), MAX_TOKENS["gpqa"], SEED),
+                          out, lock, bench="gpqa", id=it["id"]): it for it in todo}
         for fut in as_completed(futs):
             it, g = futs[fut], fut.result()
             out.write({"id": it["id"], "model": a.model, "bench": "gpqa", "text": g["text"],
                        "answer": answers.extract("gpqa", g["text"], it, g["finish"] == "stop"),
                        "gold": answers.gold("gpqa", it), "finish": g["finish"], "n_tokens": g["n_tokens"],
-                       "ms": g["ms"], "reasoning": bool(g["reasoning"])})
+                       "ms": g["ms"], "wall_s": g["wall_s"], "reasoning": bool(g["reasoning"])})
             k += 1
     except BaseException:
         ex.shutdown(wait=False, cancel_futures=True)
         out.release()
         raise
     ex.shutdown()
+    timing(out, lock, {"kind": "batch", "bench": "gpqa", "wall_s": time.perf_counter() - t0, "new": k})
     out.release()
     print(f"gpqa: {k} nouvelles réponses en {time.perf_counter() - t0:.0f} s", flush=True)
 
 
 def solve_problem(srv, a, problem, out, lock, have: dict) -> int:
+    with lock:
+        aa_timing.initialize(out)
+    start, complete = time.perf_counter(), False
+    try:
+        new = solve_steps(srv, a, problem, out, lock, have)
+        complete = True
+        return new
+    finally:
+        timing(out, lock, {"kind": "problem", "problem": problem["id"], "wall_s": time.perf_counter() - start,
+                          "complete": complete,
+                          "resumed_steps": sum(scicode.row_id(s) in have for s in problem["steps"])})
+
+
+def solve_steps(srv, a, problem, out, lock, have: dict) -> int:
     """All steps of one problem, in order, each prompted with the code kept for the earlier ones."""
     chain, new = [], 0
     for k, step in enumerate(problem["steps"]):
@@ -82,16 +128,19 @@ def solve_problem(srv, a, problem, out, lock, have: dict) -> int:
             chain.append(scicode.chain_code(problem, k, have[rid]["text"]))
             continue
         try:
-            g = sot.chat(srv.http, [{"role": "user", "content": scicode.prompt(problem, k, chain, not a.no_background)}],
-                         MAX_TOKENS["scicode"])
+            start = time.perf_counter()
+            g = observed_chat(
+                lambda: sot.chat(srv.http, [{"role": "user", "content":
+                                scicode.prompt(problem, k, chain, not a.no_background)}], MAX_TOKENS["scicode"]),
+                out, lock, bench="scicode", problem=problem["id"], id=rid)
         except RuntimeError as e:  # e.g. the prompt does not fit the context: an empty answer, recorded as such
-            g = {"text": "", "finish": "error", "n_tokens": 0, "prompt_tokens": None, "ms": 0, "reasoning": False,
-                 "error": str(e)[:300]}
+            g = {"text": "", "finish": "error", "n_tokens": None, "prompt_tokens": None, "ms": None,
+                 "wall_s": time.perf_counter() - start, "reasoning": False, "error": str(e)[:300]}
         name = scicode.def_name(step["header"])
         code_text, status = scicode.extract(g["text"], name)
         row = {"id": rid, "problem": problem["id"], "step": scicode.step_number(step), "model": a.model,
                "bench": "scicode", "text": g["text"], "extract": status, "finish": g["finish"],
-               "n_tokens": g["n_tokens"], "prompt_tokens": g["prompt_tokens"], "ms": g["ms"],
+               "n_tokens": g["n_tokens"], "prompt_tokens": g["prompt_tokens"], "ms": g["ms"], "wall_s": g["wall_s"],
                "reasoning": bool(g["reasoning"])}
         if g.get("error"):
             row["error"] = g["error"]
@@ -111,6 +160,7 @@ def run_scicode(a, srv, rev, weights):
                "skipped_code": scicode.SKIPPED_SHA256, "skipped_steps": sorted(f"{p}.{s}" for p, s in scicode.SKIPPED)}
         path = path_for(a.model, a.suffix, "scicode", split)
         out = ResultsFile(path, man, key=("id",))
+        aa_timing.initialize(out)
         have = {r["id"]: r for r in read_rows(path, key=("id",))}
         lock, t0, k = threading.Lock(), time.perf_counter(), 0
         ex = ThreadPoolExecutor(max_workers=a.parallel)
@@ -123,6 +173,8 @@ def run_scicode(a, srv, rev, weights):
             out.release()
             raise
         ex.shutdown()
+        timing(out, lock, {"kind": "batch", "bench": "scicode", "split": split,
+                          "wall_s": time.perf_counter() - t0, "new": k})
         out.release()
         print(f"scicode {split}: {k} nouveaux sous-problèmes en {time.perf_counter() - t0:.0f} s", flush=True)
 

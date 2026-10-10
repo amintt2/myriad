@@ -226,6 +226,11 @@ class FakeHTTP:
 class FakeOut:
     def __init__(self):
         self.rows, self.done = [], set()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = Path(self.tmp.name) / "synthetic.jsonl"
+
+    def __del__(self):
+        self.tmp.cleanup()
 
     def write(self, row):
         self.rows.append(row)

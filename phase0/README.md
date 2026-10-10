@@ -302,6 +302,89 @@ uv run python analyze_e12.py --suffix _colab
 uv run python -m unittest tests.test_aa tests.test_agent   # tests sans modèle ni données protégées
 ```
 
+## Préparation E12 du 10 octobre 2026 : supervision et mesures
+
+E11 est terminé ; cette préparation ne lance aucune VM et ne produit aucun résultat E12. Le parent doit encore
+relire, auditer et fusionner le changement, fournir le HDF5 épinglé dans `phase0/data/` et vérifier la disponibilité
+de la session. GPQA reste facultatif ; aucun script candidat ni test numérique SciCode ne doit tourner sur le PC.
+Le protocole, les prompts, les modèles, les splits et l'oracle dev avant inférence GPU restent identiques.
+
+Entrée versionnée, depuis la racine du dépôt fusionné sous WSL (Python 3, bash et CLI Colab déjà configurés) :
+
+```bash
+bash phase0/colab/chain4.sh --hours 12 >> tools/wsl/chain4.log 2>&1
+```
+
+Le parent crée auparavant `tools/wsl/chain4.log`. `tools/wsl/` reste ignoré : aucun code de supervision ne dépend
+de ce dossier. Ne pas lancer la commande historique `up` en parallèle. Le verrou par défaut
+`/tmp/myriad-phase0-campaign.lock` protège les chaînes de ce superviseur dans une même distribution WSL ; il ne
+coordonne pas d'autres machines ni des commandes manuelles. Ne pas changer `--lock` pour contourner ce verrou.
+
+Toutes les opérations passent par `bash phase0/colab/colab_phase0.sh`. La chaîne refuse une session `phase0`
+existante et une campagne déjà présente, sans l'arrêter, l'écraser ni adopter son PID. Elle n'appelle `up aa-1 A100`
+qu'une fois. Les lectures structurées `sessions-json` et `snapshot` conservent les erreurs de connexion et de JSON ;
+le format texte de la CLI est adapté strictement, toute sortie inconnue ou vide est une erreur. Une évolution de
+ce format nécessite une adaptation revue, jamais un repli par recherche de texte. Les snapshots exposent des états filtrés
+et la vie du lanceur, sans messages/logs bruts ni URL signées ; les fichiers originaux restent intacts.
+
+Le délai de campagne inclut l'allocation/bootstrap et vaut 12 h par défaut (`--hours`). Chaque invocation a sa borne
+mur locale et un groupe de processus TERM/KILL, même en cas de connexion bloquée : `--up-seconds 2400`,
+`--read-seconds 120`, `--transfer-seconds 900`, `--grace 5`. Trois lectures successives au maximum sont tolérées
+(`--read-failures`), espacées de `--poll-seconds 60`. Les récupérations périodiques ont lieu toutes les 600 s
+(`--pull-seconds`), après initialisation des jobs ; les téléchargements initiaux ne déclenchent pas de pull.
+Leurs erreurs arrêtent la campagne. Sous supervision, le snapshot partage le groupe borné extérieur ; les snapshots
+manuels conservent leur propre borne TERM/KILL. SIGINT/SIGTERM déclenchent le nettoyage ; les signaux répétés
+sont ignorés pendant ce nettoyage borné à 1800 s (`--cleanup-seconds`), dont une réserve permet de tenter `down`
+même après expiration du transfert. SIGKILL, panne du PC ou disparition de WSL ne permettent pas de garantir le nettoyage.
+
+Le reçu d'allocation contient seulement une empreinte opaque de session et le matériel ; aucune clé ni URL n'est
+enregistrée. La chaîne vérifie cette empreinte avant récupération et libération. Une allocation refusée ou un
+bootstrap refusé n'autorise aucun `down` ; un identifiant aléatoire de campagne transmis dans l'archive et inscrit
+par le bootstrap empêche aussi d'adopter l'état réussi d'une autre campagne. Si la confirmation de propriété échoue
+après `new`, ou si la session
+disparaît/change, la chaîne échoue et ne risque pas d'arrêter une session étrangère : vérification manuelle nécessaire.
+Une panne réseau durable peut donc empêcher de confirmer la libération ; le journal le dit explicitement.
+
+Succès exige les quinze jobs exacts réussis, le téléchargement final complet de cette invocation (générations
+SciCode et notes dev/test des treize modèles, oracle dev, métadonnées, observations de temps et provenance), puis
+`down` réussi et absence explicitement confirmée. Un JSON absent/incomplet, une erreur, une annulation ou un simple
+retour 0 du bootstrap ne constitue jamais un succès. Si la récupération finale échoue, le journal indique que les
+résultats ne sont pas confirmés récupérés et le code est non nul ; l'erreur initiale est conservée si elle existe.
+Ce contrôle de récupération ne remplace pas l'analyse scientifique et ses contrôles de provenance/dev/test.
+
+Avant archivage/upload, `e12_campaign_sources.json` empreinte les fichiers sources effectivement présents dans le
+répertoire de préparation (chemins relatifs, tailles, SHA-256 ; données/checkpoints/résultats exclus).
+La copie locale `results/e12_campaign_sources.local.json` doit être identique au manifeste récupéré sur la VM.
+Les seize sources figées d'E11 et ses bruts ne changent pas.
+
+`run_aa.py` inscrit `wall_s` par appel dans les réponses et un journal compagnon `*.jsonl.timing.jsonl` : appels
+(jetons retournés ou `null`, type d'erreur), problèmes SciCode (temps observé, achèvement, étapes reprises), batch
+(temps global observé et nombre de nouvelles réponses). Le compagnon est initialisé avant la première inférence,
+avec une empreinte du manifeste et le nom du résultat.
+La version `e12-wall-v2` du manifeste refuse la reprise
+silencieuse d'anciens fichiers non instrumentés. Les observations de reprise ne reconstituent pas le temps passé
+avant une interruption ; les checkpoints transmettent les journaux de temps disponibles. Le temps d'un problème
+est mesuré dans son worker, après l'attente dans la file, et comprend construction du prompt, appels séquentiels,
+extraction et écriture. Le batch mesure le temps global de génération, hors démarrage du serveur et chargement
+des données ; **il ne faut pas sommer les durées des problèmes/appels concurrents pour le remplacer**.
+`ms` reste la mesure interne historique du client ; pour un appel échoué elle vaut `null`, ainsi que les compteurs
+de jetons inconnus. Un batch interrompu ne fournit pas de durée globale complète ; les observations déjà écrites
+restent partielles. Ces temps locaux VM incluent l'attente/ordonnancement serveur, pas une mesure distribuée WAN.
+Le pull manuel récupère aussi les compagnons des résultats instrumentés, sans reçu de campagne. Les résultats
+historiques sans champ `measurements` restent récupérables sans compagnon ; aucun total de temps n’en découle.
+Une dernière ligne JSON complète sans retour ligne est normalisée. Un fragment final ou une corruption au milieu
+refuse la reprise avant inférence et la publication : preuve brute `*.rejected-<sha256>` conservée, mesures
+incomplètes et jetons inconnus. La publication est atomique et refuse un préfixe ancien/divergent. Les essais
+répétés restent des observations distinctes ; le journal est vérifié une fois par reprise, pas à chaque ajout.
+Une interruption sans trace finale de problème/batch interdit de prétendre à un temps global complet.
+Énergie et coût restent inconnus sans hypothèses explicites de puissance et de tarif.
+
+Une interruption peut consommer des jetons avant que la première observation de l'appel soit écrite. Après une
+interruption ou une reprise, la validité JSON et la couverture des réponses ne suffisent donc pas à établir un
+coût total complet : conserver l'historique des campagnes et rapporter le total comme inconnu, sauf preuve
+complète de toutes les tentatives. La somme observée reste distincte de ce total ; les compteurs `null` ne valent
+jamais zéro. Ces limites s'appliquent aussi si les réponses scientifiques sont finalement toutes récupérées.
+
 ## Sur le Mac
 
 Avec llama.cpp de Homebrew : `LLAMA_SERVER=/opt/homebrew/bin/llama-server uv run python run_mc.py --model

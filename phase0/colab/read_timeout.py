@@ -16,8 +16,8 @@ def killgroup(pid, sig):
         pass
 
 
-def run(cmd, seconds=90, grace=5):
-    p = subprocess.Popen(cmd, start_new_session=True)
+def run(cmd, seconds=90, grace=5, **streams):
+    p = subprocess.Popen(cmd, start_new_session=True, **streams)
     try:
         try:
             code = p.wait(timeout=seconds)
