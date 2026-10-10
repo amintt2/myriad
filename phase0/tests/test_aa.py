@@ -371,8 +371,9 @@ class Analysis(unittest.TestCase):
                                 call()
                         section.assert_not_called()
                     else:
-                        ae.main()
-                        self.assertEqual(section.call_count, int(chosen is not None))
+                        with self.assertRaises(SystemExit):  # Scientific CLI needs an explicit parent delivery.
+                            ae.main()
+                        section.assert_not_called()
                         self.assertEqual(colab_jobs.aa_benches(), ["gpqa", "scicode"] if chosen else ["scicode"])
                         if chosen is not None:
                             self.assertEqual(gpqa.read_csv_bytes(), valid)
@@ -384,7 +385,8 @@ class Analysis(unittest.TestCase):
                 mock.patch.object(ae, "RESULTS", Path(d)), mock.patch.object(ae, "sci_section", return_value=[]), \
                 mock.patch.object(ae, "gpqa_section") as section, \
                 mock.patch.object(sys, "argv", ["analyze_e12.py"]), mock.patch("sys.stdout", io.StringIO()):
-            ae.main()
+            with self.assertRaises(SystemExit):
+                ae.main()
             section.assert_not_called()
             (Path(d) / gpqa.FILE).write_bytes(b"invalid")
             with self.assertRaises(SystemExit):

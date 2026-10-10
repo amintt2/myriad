@@ -266,7 +266,9 @@ faisabilité du dépôt privé.
   VM jetable). `exec_scicode.py --oracle` vérifie uniquement les références de dev et arrête le plan si
   le banc est cassé. Pas de décision d'essaim sur du code : chaque pair seul, meilleur pair de dev, plafond
   « au moins un pair juste ».
-- **Analyse** : `analyze_e12.py` (Wilson, test exact contre le hasard, tests appariés exacts comme E4).
+- **Analyse** : `analyze_e12.py`, porte scientifique `validate_e12.py`, statistiques par grappes et comptabilité
+  `e12_costs.py`. Les helpers GPQA historiques gardent Wilson et le test exact contre le hasard ; SciCode
+  utilise un bootstrap déterministe de problèmes entiers, avec différences appariées exploratoires.
 - **Terminal-Bench 4.0** : adaptateur Harbor réel et lanceur sur trois tâches publiques épinglées,
   puis comparaison single/vote/référence aux mêmes plafonds. Aucun score mesuré : Docker WSL et tunnel
   authentifié d'inférence indisponibles. Commandes, provenance et limites : [guide](../docs/11_terminal_bench.md).
@@ -298,15 +300,119 @@ les anciens résultats ne sont pas repris silencieusement et doivent être rég�
 ```
 bash colab/colab_phase0.sh up aa-1 A100       # oracle SciCode (CPU), 13 modèles (GPU), tests de SciCode (CPU)
 bash colab/colab_phase0.sh pull
-uv run python analyze_e12.py --suffix _colab
+# Analyse seulement après livraison complète explicite du parent : voir le contrat ci-dessous.
 uv run python -m unittest tests.test_aa tests.test_agent   # tests sans modèle ni données protégées
 ```
 
 ## Préparation E12 du 10 octobre 2026 : supervision et mesures
 
+### Préparation de l'analyse scientifique (priorité 2, sans résultats)
+
+La campagne réelle est supervisée exclusivement par le parent. Cette préparation teste du code sur des fixtures
+synthétiques : elle ne lit aucun score partiel, n'exécute aucun modèle ni code de dataset et ne clôt pas E12.
+Le succès de `verify_e12_pull.py` est une preuve de récupération, pas une validation scientifique.
+
+La CLI refuse toute écriture sans une livraison complète du parent et son SHA-256 communiqué indépendamment.
+Les chemins d'entrée désignent des archives immuables complètes, jamais le répertoire d'une campagne active.
+La validation lit uniquement les deux JSONL officiels déjà disponibles, vérifie leurs blobs Git épinglés, puis
+reconstruit l'identité du cache par parsing. Aucun téléchargement n'est déclenché. Elle assemble les programmes
+pour vérifier leurs hashes, sans les exécuter. Les treize modèles, leurs dev/test exacts, l'oracle dev et tous les
+compagnons sont obligatoires. Les identités des poids/moteurs doivent être attestées par le parent dans la livraison.
+Les sources de génération/notation uploadées et récupérées sont liées à l'inventaire ; leurs modules critiques
+doivent correspondre aux sources locales inchangées. Les analyseurs préparés ici ne modifient pas ces sources.
+Ce contrôle inclut `essaim/llamacpp.py`, `essaim/common.py` et `pyproject.toml` : absence ou divergence refusée.
+
+Contrat `delivery.json` (schema 1, document fourni après campagne ; aucun exemple de brut réel fabriqué) :
+
+- `complete: true`, `plan: "aa-1"`, `benches: ["scicode"]` pour cette campagne sans GPQA.
+- `files` : objet nom relatif → SHA-256 des 53 JSONL scientifiques, leurs 53 manifestes, les 26 compagnons
+  timing, `e12_campaign_sources.json` et la copie uploadée `e12_campaign_sources.local.json`. Les preuves annexes
+  peuvent aussi figurer dans l'inventaire ; chaque fichier inventorié doit être présent et identique.
+- `identities` : exactement les treize IDs de `FAMILIES + EXTRA + REFS`, chacun avec `model`, `revision`
+  (commit de 40 caractères), `gguf`, `weights` (`name`, `size`, `sha256`), `engine`, `backend`. Le parent vérifie
+  ces identités contre les poids réellement préparés et les preuves de campagne ; une déclaration seule n'atteste
+  pas les poids distants. La CLI impose aussi les noms GGUF du catalogue et le protocole canonique.
+- `execution_environment` : `isolation`, `python`, `numpy`, `scipy`, identiques dans les 27 manifestes de notation.
+  Ce sont les déclarations historiques du harnais, pas une attestation de sécurité ; SciCode partage candidat
+  et cibles dans un processus académique. Aucun durcissement ni Docker ajouté.
+- `attempts` : liste ordonnée de toutes les tentatives, objets `campaign_id` (32 caractères hexadécimaux),
+  `interrupted` et `resumed` (booléens), `evidence` (identifiant relatif de preuve immuable → SHA-256).
+  Le parent conserve et vérifie ces originaux ; seuls les identifiants relatifs et empreintes entrent au résumé,
+  jamais des chemins personnels. Inclure la tentative `4a85834264f14e0d8f3333b368013476` et la campagne reprise
+  `2b437e9608224949abdffdbe1b6b6f6a`, ainsi que les autres interruptions pertinentes. Ne pas inventer les preuves.
+
+Commande prévue après livraison (substituer les chemins et le SHA fournis par le parent) :
+
+```bash
+uv run python analyze_e12.py --suffix _colab --benches scicode \
+  --results-dir <archive-complete> --dataset-dir <sources-officielles-offline> \
+  --delivery <delivery.json> --delivery-sha256 <sha256-parent> --output-dir <analyse-complete>
+```
+
+SciCode conserve dev 15 problèmes/50 étapes et test 65/288 étapes notées, avec les trois étapes fournies
+officielles. Le harnais dev doit passer au moins 90 % avant toute exclusion dev ; aucune exclusion test nouvelle.
+Le meilleur pair est choisi uniquement sur dev, départage en ordre `FAMILIES`. Les quatre références restent
+séparées. Les scores sont les ratios exacts de sommes de réussites/étapes ; les IC percentiles à 95 % rééchantillonnent
+les problèmes entiers (10 000 réplications, graine 12), avec la même sélection de grappes dans les différences
+appariées. Ces IC descriptifs restent exploratoires, sans correction de multiplicité ; aucun verdict
+d'équivalence ou de supériorité générale. Réutilisation historique et contamination restent des limites.
+La couverture par étape peut combiner des chaînes incompatibles ; elle est séparée du compte de problèmes
+où un même pair réussit sa chaîne entière. Aucun essaim SciCode ni sélecteur réalisable n'est mesuré.
+
+La comptabilité conserve sommes observées, appels, compteurs `null`, erreurs, troncatures, durées de worker et
+de batch séparément, par problème, modèle et split. Les sommes d'appels ne sont pas du temps mur. La concurrence
+des workers est explicite ; la concurrence de modèles sur GPU n'est pas attribuée. Toute reprise/interruption
+laisse les totaux inconnus, même si les JSON et réponses sont complets. Les relevés de solde Colab ne sont pas
+une facture campagne. Grading, démarrage du serveur, téléchargement et préflight sont hors durées de génération.
+Pour une tentative propre, le worker doit couvrir ses appels séquentiels ; le batch doit couvrir le plus long
+worker, sans additionner les workers concurrents. Une contradiction conserve les observations
+mais rend durée totale, scénario et point de figure inexploitables. Aucun ancien worker n'est comparé au nouveau
+batch d'une reprise ; les totaux de reprise restent inconnus sans invalider les réponses scientifiques complètes.
+
+Les figures Matplotlib SVG/PNG/PDF sont déterministes et limitées aux métriques interprétables : exactitude
+contre durée de batch amortie par problème (débit, pas latence individuelle). Sur la campagne reprise, cette durée
+totale est inconnue : aucun point n'est fabriqué. Un scénario facultatif `--scenario-watts W --scenario-eur-kwh T`
+ajoute une estimation `W × secondes / 3 600 000 × T`, explicitement hypothétique : puissance d'un appareil entier
+pendant le batch, sans attribution du GPU partagé. Ce n'est ni une mesure physique, ni une extrapolation A100
+vers PC/WAN, ni un tarif API. Aucune figure de modèle réel n'est créée pendant cette préparation.
+
+Les produits sont préparés dans un répertoire temporaire avant remplacement ; un refus scientifique conserve
+les rapports, résumés et figures antérieurs. Après construction réussie de tous les produits, seules les anciennes
+figures gérées `e12<suffix>_{time,cost}.{svg,png,pdf}` non reproduites sont retirées. Les autres fichiers et suffixes
+sont préservés. Les helpers synthétiques existants gardent leur API, mais ne sont pas une voie de validation.
+
+GPQA reste absent de la campagne réelle arrêtée. La disponibilité attestée par `delivery.benches` et les deux
+manifestes de sources doit être identique et canonique : `["scicode"]` ou `["gpqa", "scicode"]`, jamais GPQA seul.
+`--benches` filtre uniquement le rapport : sous-ensemble non vide des bancs disponibles, sans doublons.
+Une même livraison combinée complète accepte `--benches gpqa`, `--benches scicode` et
+`--benches gpqa scicode`, sans réécrire les manifestes, empreintes ou inventaires, ni retirer des artefacts d'entrée.
+Sans `--benches`, un CSV local présent sélectionne les deux bancs,
+sinon SciCode seul. Le CSV est contrôlé contre son blob et sa taille épinglés puis parsé directement, sans
+téléchargement ni cache implicite. Un CSV invalide est refusé ; aucun CSV gated n'est téléchargé ici.
+La validation scientifique porte toujours sur **toute** la livraison déclarée complète. Une référence absente,
+un protocole altéré ou une provenance divergente du banc non affiché reste un refus et conserve les produits.
+Un banc demandé absent est refusé. Le résumé distingue `provenance.available_benches` et `report_benches`.
+GPQA exige les réponses, manifestes et timings liés des treize modèles, toutes références comprises, les sources
+`essaim/gpqa.py`, `essaim/answers.py`, `analyze_e4.py`, et `e4_summary<suffix>.json` dans l'inventaire épinglé.
+Les poids et probabilités par famille et le meilleur pair sont repris de MMLU-Pro dev E4 ; le meilleur respecte
+le départage en ordre `FAMILIES`. Le parent atteste la provenance dev de ce résumé immuable, aucun réglage GPQA.
+`--results-dir` s'applique aussi aux réponses GPQA et au résumé E4 ; `--output-dir` reçoit seulement les agrégats.
+Pour valider une livraison combinée, même avec `--benches gpqa` seul, fournir `--dataset-dir` vers les deux JSONL
+SciCode officiels hors ligne, `--results-dir` vers l'archive complète et `--delivery` / `--delivery-sha256` du parent.
+Même avec `--benches scicode` seul, le CSV GPQA local admis reste nécessaire (`GPQA_DIAMOND_CSV` ou emplacement
+local habituel), ainsi que le résumé E4 dev épinglé. Le filtre ne permet pas de contourner ces contrôles.
+Aucune question, sortie de modèle ou trace brute GPQA n'est publiée. Les modes facultatifs sont testés uniquement
+sur fixtures synthétiques et ne permettent pas d'analyser une livraison SciCode incomplète.
+Article, macros, rapport scientifique et revue des données complètes attendent le parent.
+
+```bash
+uv run python -m unittest tests.test_e12_analysis tests.test_aa.Analysis tests.test_aa.EndToEnd -q
+```
+
 E11 est terminé ; cette préparation ne lance aucune VM et ne produit aucun résultat E12. Le parent doit encore
-relire, auditer et fusionner le changement, fournir le HDF5 épinglé dans `phase0/data/` et vérifier la disponibilité
-de la session. GPQA reste facultatif ; aucun script candidat ni test numérique SciCode ne doit tourner sur le PC.
+relire et réauditer le changement avant fusion, puis livrer les données et preuves complètes pour contrôle
+scientifique. Cette préparation hors ligne ne rouvre pas la file arrêtée. GPQA reste facultatif ; aucun script
+candidat ni test numérique SciCode ne doit tourner sur le PC.
 Le protocole, les prompts, les modèles, les splits et l'oracle dev avant inférence GPU restent identiques.
 
 Entrée versionnée, depuis la racine du dépôt fusionné sous WSL (Python 3, bash et CLI Colab déjà configurés) :

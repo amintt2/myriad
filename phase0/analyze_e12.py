@@ -1,25 +1,8 @@
-"""E12 analysis: the E4 swarm (7 small models of 7 families) against the big single references on GPQA Diamond
-and SciCode, the benchmarks Artificial Analysis uses (offline, from run_aa.py and exec_scicode.py).
+"""Offline E12 analysis, gated by an explicit hash-pinned complete parent delivery.
 
-    uv run python analyze_e12.py --suffix _colab
-
-GPQA Diamond (198 questions, 4 options, chance 25 %): no dev/test split (a split of 198 questions would
-leave 99 for the test: no power). Nothing is fitted on GPQA. The weighted vote uses the weights frozen from E4's
-MMLU-Pro DEV run (results/e4_summary<suffix>.json: the hardest multiple-choice benchmark of E4), and the "best
-peer" is the one best on E4's MMLU-Pro dev; the plain vote has no parameter. Per system: accuracy with its Wilson
-95 % interval and the exact one-sided binomial test against chance; swarm minus each reference with the same
-paired tests as E4 (essaim/stats.py, margin +-DELTA points: with 198 questions the equivalence test has little
-power, which the verdicts say honestly).
-
-SciCode (Artificial Analysis' "scientific coding"; essaim/scicode.py): each model writes the sub-problems of a
-problem in order, seeing its own earlier code, and the official tests grade them (exec_scicode.py). Sub-problems
-the dev reference code fails in our harness (--oracle run) are left out of dev for everyone.
-Test has no references: every officially graded test step is kept. dev (15 problems,
-50 sub-problems) picks the best of the 7 peers; test (65 problems, 288 graded, 3 skipped) is reported once.
-There is no swarm DECISION rule for code without execution of candidates against each other (E11 needed a
-shared set of inputs; SciCode tests build their own inputs), so the swarm row is an upper bound only: "at least
-one of the 7 peers passes" (oracle), clearly labelled as such, next to the best-dev peer and the references.
-Writes results/e12_report<suffix>.md and results/e12_summary<suffix>.json (aggregates only: no question text).
+SciCode statistics resample whole problems; step coverage is distinct from coherent single-model chains.
+Optional GPQA CLI and helpers retain the historical E4-dev-only weights protocol.
+No dataset or candidate code is executed. See README for the delivery contract and honest cost limits.
 """
 from __future__ import annotations
 
@@ -27,6 +10,11 @@ import argparse
 import json
 import math
 import statistics as st
+import tempfile
+import os
+
+import e12_costs
+import validate_e12
 from pathlib import Path
 
 from analyze_e4 import DELTA, EXTRA, FAMILIES, REFS, decide
@@ -103,19 +91,19 @@ def system_line(name: str, correct: list[float]) -> tuple[str, dict]:
             {"acc": 100 * k / n, "lo95": lo, "hi95": hi, "p_chance": p, "n": n})
 
 
-def gpqa_section(suffix: str, summary: dict) -> list[str]:
-    items = {x["id"]: x for x in gpqa.diamond()}
+def gpqa_section(suffix: str, summary: dict, validated=None) -> list[str]:
+    items = validated["items"] if validated is not None else {x["id"]: x for x in gpqa.diamond()}
     ids = sorted(items)
     fams = list(FAMILIES)
     models = list(FAMILIES.values()) + EXTRA + REFS
-    loaded = {m: load_gpqa(m, suffix, items) for m in models}
+    loaded = validated["loaded"] if validated is not None else {m: load_gpqa(m, suffix, items) for m in models}
     L = ["## GPQA Diamond (198 questions, 4 options, hasard 25 %)", ""]
     absent = [m for m in models if loaded[m] is None]
     if any(FAMILIES[f] in absent for f in fams):
         return L + [f"incomplet : {absent}", ""]
     present = {m: v for m, v in loaded.items() if v is not None}
     check_same({m: v[1] for m, v in present.items()}, GPQA_PROTOCOL, "gpqa")
-    frozen = e4_frozen(suffix)
+    frozen = validated["frozen"] if validated is not None else e4_frozen(suffix)
     w = {f: frozen["weights"][f] for f in fams} if frozen else None
     correct = {m: [float(v[0][i]["answer"] == v[0][i]["gold"]) for i in ids] for m, v in present.items()}
 
@@ -203,40 +191,44 @@ def sci_vectors(probs: list[dict], res: dict, excluded: set[str]) -> tuple[list[
     return ids, ok, solved
 
 
-def sci_section(suffix: str, summary: dict) -> list[str]:
+def sci_section(suffix: str, summary: dict, validated: dict | None = None) -> list[str]:
     L = ["## SciCode (sous-problèmes, tests officiels, glouton, un seul passage)", ""]
     models = list(FAMILIES.values()) + EXTRA + REFS
-    data_by = {sp: {m: load_sci(m, suffix, sp) for m in models} for sp in ("dev", "test")}
-    oracle = {sp: load_sci("oracle", suffix, sp, oracle=True) for sp in scicode.ORACLE_SPLITS}
-    fams = list(FAMILIES)
-    if any(oracle[sp] is None for sp in oracle) or any(data_by[sp][FAMILIES[f]] is None for sp in data_by for f in fams):
-        return L + ["incomplet : exécution de l'oracle ou d'un pair de l'essaim absente.", ""]
-    present = {sp: {m: v for m, v in data_by[sp].items() if v is not None} for sp in data_by}
-    check_same({f"{sp}/{m}": v["man"] for sp in present for m, v in present[sp].items()},
-               SCI_EXEC_PROTOCOL, "scicode dev/test (exécution)")
-    for sp in present:
-        check_same({m: v["man"] for m, v in present[sp].items()}, SCI_EXEC_PROTOCOL,
-                   f"scicode {sp} (exécution)")
-        if sp in oracle:
-            check_same({"oracle": oracle[sp]["man"], **{m: v["man"] for m, v in present[sp].items()}},
-                       SCI_EXEC_PROTOCOL, f"scicode {sp} (oracle et modèles)")
-        gens = {m: read_manifest(path_for(m, suffix, "scicode", sp)) for m in present[sp]}
-        for m, g in gens.items():
-            if g is None or g["prompt"] != scicode.PROMPT_VERSION:
-                raise SystemExit(f"scicode : {m} {sp} absent ou généré avec un autre prompt")
-            check_same({"generation": g, "execution": present[sp][m]["man"]["generation"]},
-                       SCI_PROTOCOL + IDENTITY + ("n", "n_steps"), f"scicode {m} {sp} (protocole noté)")
-            rows = {r["id"]: r for r in read_rows(path_for(m, suffix, "scicode", sp), key=("id",))}
-            if present[sp][m]["man"]["generation"].get("rows_sha256") != gen_digest(rows):
-                raise SystemExit(f"scicode : {m} {sp} : les notes ne correspondent plus aux textes générés (régénéré ?)")
-        check_same(gens, SCI_PROTOCOL + ("n", "n_steps"), f"scicode {sp} (génération)")
-    for m in present["test"]:  # the same model files for a model's dev and test runs
-        if m in present["dev"]:
-            a, b = (read_manifest(path_for(m, suffix, "scicode", sp)) for sp in ("dev", "test"))
-            diff = {k: (a.get(k), b.get(k)) for k in IDENTITY if a.get(k) != b.get(k)}
-            if diff:
-                raise SystemExit(f"scicode {m} : dev et test ne viennent pas du même modèle ou moteur : {diff}")
-    probs = {sp: scicode.problems(sp) for sp in ("dev", "test")}
+    if validated is None:
+        data_by = {sp: {m: load_sci(m, suffix, sp) for m in models} for sp in ("dev", "test")}
+        oracle = {sp: load_sci("oracle", suffix, sp, oracle=True) for sp in scicode.ORACLE_SPLITS}
+        fams = list(FAMILIES)
+        if any(oracle[sp] is None for sp in oracle) or any(data_by[sp][FAMILIES[f]] is None for sp in data_by for f in fams):
+            return L + ["incomplet : exécution de l'oracle ou d'un pair de l'essaim absente.", ""]
+        present = {sp: {m: v for m, v in data_by[sp].items() if v is not None} for sp in data_by}
+        check_same({f"{sp}/{m}": v["man"] for sp in present for m, v in present[sp].items()},
+                   SCI_EXEC_PROTOCOL, "scicode dev/test (exécution)")
+        for sp in present:
+            check_same({m: v["man"] for m, v in present[sp].items()}, SCI_EXEC_PROTOCOL,
+                       f"scicode {sp} (exécution)")
+            if sp in oracle:
+                check_same({"oracle": oracle[sp]["man"], **{m: v["man"] for m, v in present[sp].items()}},
+                           SCI_EXEC_PROTOCOL, f"scicode {sp} (oracle et modèles)")
+            gens = {m: read_manifest(path_for(m, suffix, "scicode", sp)) for m in present[sp]}
+            for m, g in gens.items():
+                if g is None or g["prompt"] != scicode.PROMPT_VERSION:
+                    raise SystemExit(f"scicode : {m} {sp} absent ou généré avec un autre prompt")
+                check_same({"generation": g, "execution": present[sp][m]["man"]["generation"]},
+                           SCI_PROTOCOL + IDENTITY + ("n", "n_steps"), f"scicode {m} {sp} (protocole noté)")
+                rows = {r["id"]: r for r in read_rows(path_for(m, suffix, "scicode", sp), key=("id",))}
+                if present[sp][m]["man"]["generation"].get("rows_sha256") != gen_digest(rows):
+                    raise SystemExit(f"scicode : {m} {sp} : les notes ne correspondent plus aux textes générés (régénéré ?)")
+            check_same(gens, SCI_PROTOCOL + ("n", "n_steps"), f"scicode {sp} (génération)")
+        for m in present["test"]:  # the same model files for a model's dev and test runs
+            if m in present["dev"]:
+                a, b = (read_manifest(path_for(m, suffix, "scicode", sp)) for sp in ("dev", "test"))
+                diff = {k: (a.get(k), b.get(k)) for k in IDENTITY if a.get(k) != b.get(k)}
+                if diff:
+                    raise SystemExit(f"scicode {m} : dev et test ne viennent pas du même modèle ou moteur : {diff}")
+        probs = {sp: scicode.problems(sp) for sp in ("dev", "test")}
+    else:
+        present, oracle, probs = (validated[k] for k in ("data_by", "oracle", "probs"))
+        fams = list(FAMILIES)
     excluded = {sp: {i for i, r in oracle[sp]["rows"].items() if not r["ok"]} if sp in oracle else set() for sp in probs}
     if not any(scicode.row_id(s) not in excluded["dev"] for p in probs["dev"] for s in p["steps"]
                if not scicode.is_skipped(p, s)):
@@ -250,75 +242,133 @@ def sci_section(suffix: str, summary: dict) -> list[str]:
     rate = lambda sp, m: st.mean(float(vec[sp][m][1][i]) for i in vec[sp][m][0])
     best = max(fams, key=lambda f: (rate("dev", FAMILIES[f]), -fams.index(f)))
     bm = FAMILIES[best]
-    L += [f"dev ({len(ids_dev)} sous-problèmes) ne sert qu'à choisir le meilleur pair : **{bm}** "
-          f"({100 * rate('dev', bm):.1f} %). Résultats sur test ({len(ids_test)} sous-problèmes, "
-          f"{len(vec['test'][bm][2])} problèmes) :", "",
-          "| système | sous-problèmes réussis (%) | IC 95 % (Wilson) | problèmes entièrement résolus |",
+    groups = {m: {p["id"]: [vec["test"][m][1][scicode.row_id(step)] for step in p["steps"]
+                            if not scicode.is_skipped(p, step)] for p in probs["test"]} for m in present["test"]}
+    L += [f"Meilleur pair choisi sur dev seulement : **{bm}** (départage selon FAMILIES).",
+          "Scores exacts pondérés par étape ; IC bootstrap descriptifs par problème (10 000 réplications, graine 12).",
+          "Comparaisons appariées exploratoires, sans correction de multiplicité ni verdict d'équivalence.", "",
+          "| système exécuté seul | étapes réussies (%) | IC 95 % par grappes | problèmes entiers |",
           "| --- | --- | --- | --- |"]
-    out, tests = {}, {}
-
-    def line(name, key, flags, solved):
-        k, n = int(sum(flags)), len(flags)
-        lo, hi = wilson(k, n)
-        s, t = sum(solved), len(solved)
-        out[key] = {"steps_pct": 100 * k / n, "lo95": lo, "hi95": hi, "steps": k, "n_steps": n,
-                    "problems_solved": s, "n_problems": t}
-        L.append(f"| {name} | {100 * k / n:.1f} ({k}/{n}) | [{lo:.1f} ; {hi:.1f}] | {s}/{t} |")
-
-    for f in fams:
-        m = FAMILIES[f]
-        line(f"{m} seul ({f})", m, [float(vec["test"][m][1][i]) for i in ids_test], list(vec["test"][m][2].values()))
-        tests[m] = [float(vec["test"][m][1][i]) for i in ids_test]
-    for m in EXTRA:
-        if m in vec["test"]:
-            line(f"{m} seul (hors essaim)", m, [float(vec["test"][m][1][i]) for i in ids_test], list(vec["test"][m][2].values()))
-    for m in REFS:
-        if m in vec["test"]:
-            tests[m] = [float(vec["test"][m][1][i]) for i in ids_test]
-            line(f"{m} seul (référence)", m, tests[m], list(vec["test"][m][2].values()))
-    orc = [float(any(vec["test"][FAMILIES[f]][1][i] for f in fams)) for i in ids_test]
-    orc_solved = [all(any(vec["test"][FAMILIES[f]][1][i] for f in fams)
-                      for i in ids_test if i.split(".")[0] == pid) for pid in vec["test"][bm][2]]
-    line("*plafond : au moins un pair juste par sous-problème (n'est pas une décision d'essaim)*", "oracle_upper_bound",
-         orc, orc_solved)
-    L.append("")
+    out = {}
+    for m, group in groups.items():
+        g = e12_costs.cluster_interval(group)
+        solved = sum(all(flags) for flags in group.values())
+        k, n = sum(sum(v) for v in group.values()), sum(len(v) for v in group.values())
+        out[m] = {"steps_pct": g["mean"], "steps": k, "n_steps": n, "lo95": g["lo95"], "hi95": g["hi95"],
+                  "problems_solved": solved, "n_problems": len(group), "bootstrap": g, "executed": True}
+        role = "référence" if m in REFS else "frère hors essaim" if m in EXTRA else "pair"
+        L.append(f"| {m} ({role}) | {g['mean']:.2f} ({k}/{n}) | "
+                 f"[{g['lo95']:.2f} ; {g['hi95']:.2f}] | {solved}/{len(group)} |")
+    coverage, chains = e12_costs.oracle_chains({m: groups[m] for m in FAMILIES.values()})
+    coverage_stats = e12_costs.cluster_interval(coverage)
+    L += ["", f"Couverture par étape (plafond descriptif) : {coverage_stats['mean']:.2f} %. "
+          "Ces réussites peuvent venir de chaînes incompatibles ; aucun sélecteur réalisable n'est évalué.",
+          f"Au moins un même pair résout toute sa chaîne : {sum(chains.values())}/{len(chains)} problèmes.",
+          "Aucun essaim SciCode exécuté. La couverture n'est pas un compte de problèmes résolus.", "",
+          "| meilleur pair dev moins référence | différence [IC 95 % par grappes] |",
+          "| --- | --- |"]
     comps = {}
-    L += [f"Meilleur pair de dev ({bm}) moins chaque référence (paires par sous-problème, marge ±{DELTA} points) :", "",
-          "| moins | différence [IC 95 %] | p exact (marge basse ; haute) | verdict |", "| --- | --- | --- | --- |"]
     for m in REFS:
-        if m in tests:
-            g = compare(tests[bm], tests[m], DELTA)
+        if m in groups:
+            g = e12_costs.cluster_interval(groups[bm], groups[m])
             comps[m] = g
-            L.append(f"| {m} | {g['mean']:+.1f} [{g['lo95']:+.1f} ; {g['hi95']:+.1f}] | "
-                     f"{g['p_low_margin']:.3f} ; {g['p_high_margin']:.3f} | {g['verdict']} |")
-    L += ["", "Aucune décision d'essaim n'est évaluée sur SciCode (voir l'en-tête) : le plafond dit seulement ce qu'une "
-          "sélection parfaite pourrait espérer.", ""]
+            L.append(f"| {m} | {g['mean']:+.2f} [{g['lo95']:+.2f} ; {g['hi95']:+.2f}] |")
+    costs, dev_costs = {}, {}
+    if validated is not None:
+        from colab_jobs import SOLO
+        for m in groups:
+            c = e12_costs.accounting(validated["traces"]["test"][m], validated["attempts"], len(groups[m]),
+                                     max(1, SOLO[m][3] * 3072 // 8192))
+            rows = validated["data_by"]["test"][m]["generation_rows"]
+            c["truncated_rows"] = sum(r["finish"] == "length" for r in rows.values())
+            for pid, pc in c["problems"].items():
+                pc["truncated_rows"] = sum(r["finish"] == "length" for r in rows.values() if r["problem"] == pid)
+            costs[m] = c
+            dc = e12_costs.accounting(validated["traces"]["dev"][m], validated["attempts"], len(probs["dev"]),
+                                      max(1, SOLO[m][3] * 3072 // 8192))
+            dev_rows = validated["data_by"]["dev"][m]["generation_rows"]
+            dc["truncated_rows"] = sum(r["finish"] == "length" for r in dev_rows.values())
+            for pid, pc in dc["problems"].items():
+                pc["truncated_rows"] = sum(r["finish"] == "length" for r in dev_rows.values() if r["problem"] == pid)
+            dev_costs[m] = dc
+        L += ["", "Durées d'appels, workers et batch distinctes ; concurrence GPU partagée non attribuée. "
+              "Sommes observées distinctes des totaux : toute reprise rend les totaux inconnus. "
+              "Les durées contradictoires sont inexploitables et ne produisent aucun point temps/coût. "
+              "Solde Colab ≠ facture campagne. Énergie PC et temps WAN non mesurés.", ""]
+    L += ["", "Bac de notation académique : candidat et cibles dans un même processus ; pas une attestation adversariale.",
+          "Réutilisation historique et contamination potentielle limitent la portée ; aucune supériorité générale.", ""]
     summary["scicode"] = {"n_steps_test": len(ids_test), "excluded": {k: sorted(v) for k, v in excluded.items()},
-                          "best_dev_peer": bm, "systems": out, "comparisons": comps}
+                          "best_dev_peer": bm, "dev_step_pct": {m: 100 * rate("dev", m) for m in present["dev"]},
+                          "systems": out, "comparisons": comps, "costs": costs, "dev_costs": dev_costs,
+                          "step_coverage": coverage_stats, "single_model_chain_oracle": {
+                              "problems_solved": sum(chains.values()), "n_problems": len(chains)},
+                          "swarm_executed": False}
     return L
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suffix", default="_colab")
-    ap.add_argument("--benches", nargs="+", default=None, choices=["gpqa", "scicode"])
+    ap.add_argument("--benches", nargs="+", default=None, choices=["gpqa", "scicode"],
+                    help="report filter; the entire attested delivery is validated")
+    ap.add_argument("--delivery", type=Path)
+    ap.add_argument("--delivery-sha256")
+    ap.add_argument("--dataset-dir", type=Path)
+    ap.add_argument("--results-dir", type=Path, default=RESULTS)
+    ap.add_argument("--output-dir", type=Path, default=RESULTS)
+    ap.add_argument("--scenario-watts", type=float)
+    ap.add_argument("--scenario-eur-kwh", type=float)
     a = ap.parse_args()
+    if not all(c.isalnum() or c in "_-" for c in a.suffix):
+        raise SystemExit("E12 : suffixe invalide")
     gpqa_path = gpqa.local_path()
     if a.benches is None:
         a.benches = ["gpqa", "scicode"] if gpqa_path is not None else ["scicode"]
+    validated = validate_e12.validate(a.results_dir, a.suffix, a.delivery, a.delivery_sha256,
+                                      a.dataset_dir, a.benches, gpqa_path)
+    a.benches = validated["report_benches"]
+    if (a.scenario_watts is None) != (a.scenario_eur_kwh is None) or any(
+            x is not None and (not math.isfinite(x) or x < 0) for x in (a.scenario_watts, a.scenario_eur_kwh)):
+        raise SystemExit("E12 : scénario puissance/tarif invalide")
     summary: dict = {"swarm": FAMILIES, "refs": REFS, "delta": DELTA}
-    L = ["# E12 : l'essaim E4 sur des bancs plus réels (GPQA Diamond, SciCode)", "",
-         "Mêmes 7 petits modèles de 7 familles et mêmes références qu'E4. Tests exacts non conditionnels "
-         f"(essaim/stats.py) ; marge d'équivalence ±{DELTA} points. Rapport d'agrégats : aucune question de GPQA "
-         "n'y figure (conditions d'accès de GPQA).", ""]
+    summary["provenance"] = {k: validated[k] for k in (
+        "delivery_sha256", "source_sha256", "attempts", "available_benches", "report_benches")}
+    summary["provenance"]["analysis_sources"] = {
+        name: validate_e12.sha(Path(__file__).with_name(name).read_bytes())
+        for name in ("analyze_e12.py", "validate_e12.py", "e12_costs.py", "analyze_e4.py")}
+    title = " / ".join(b.upper() if b == "gpqa" else "SciCode" for b in a.benches)
+    L = [f"# E12 : analyse complète {title}", "", "Agrégats seulement ; aucune inférence exécutée par l'analyse.", ""]
     if "gpqa" in a.benches:
-        if gpqa_path is not None:
-            gpqa.check_file(gpqa_path.read_bytes())
-        L += gpqa_section(a.suffix, summary)
+        L += gpqa_section(a.suffix, summary, validated["gpqa"])
     if "scicode" in a.benches:
-        L += sci_section(a.suffix, summary)
-    (RESULTS / f"e12_report{a.suffix}.md").write_text("\n".join(L) + "\n", encoding="utf-8")
-    (RESULTS / f"e12_summary{a.suffix}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
+        L += sci_section(a.suffix, summary, validated)
+    # Stage all products before publishing: a refusal never overwrites valid reports.
+    a.output_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=a.output_dir) as directory:
+        stage = Path(directory)
+        if "scicode" in summary:
+            for split_costs in (summary["scicode"]["costs"], summary["scicode"]["dev_costs"]):
+                for cost in split_costs.values():
+                    cost["energy_scenario"] = e12_costs.energy_scenario(
+                        cost["batch_amortized_seconds_per_problem"], a.scenario_watts, a.scenario_eur_kwh) \
+                        if a.scenario_watts is not None else None
+            summary["scicode"]["figures"] = e12_costs.figures(
+                summary["scicode"]["systems"], summary["scicode"]["costs"], stage / f"e12{a.suffix}",
+                a.scenario_watts, a.scenario_eur_kwh)
+        summary["energy_scenario"] = {"assumed_watts": a.scenario_watts, "assumed_eur_kwh": a.scenario_eur_kwh,
+                                      "measured": False, "pc_extrapolation": False}
+        (stage / f"e12_report{a.suffix}.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+        (stage / f"e12_summary{a.suffix}.json").write_text(
+            json.dumps(summary, indent=1, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
+        products = {path.name for path in stage.iterdir()}
+        for path in sorted(stage.iterdir()):
+            os.replace(path, a.output_dir / path.name)
+        # The managed set is explicit and suffix-specific; only remove after all products were built.
+        for axis in ("time", "cost"):
+            for ext in ("svg", "png", "pdf"):
+                name = f"e12{a.suffix}_{axis}.{ext}"
+                if name not in products:
+                    (a.output_dir / name).unlink(missing_ok=True)
     print("\n".join(L))
 
 
