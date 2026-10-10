@@ -2,8 +2,9 @@
 
     uv run --project ../phase0 python make_numbers.py
 
-No number in main.tex is typed by hand: each one is a macro defined here from a results file, so the
-paper always matches the data. Missing results produce a visible "??" instead of a stale value, except for
+Empirical values in main.tex are macros extracted from existing summaries, reports or stored answers.
+This synchronises the paper with those sources, but does not certify that every summary matches the raw
+answers and current grader. Missing results produce a visible "??" instead of a stale value, except for
 E4 (the main result) and E10: missing, preview or incomplete sources, or undefined macros used by
 main.tex, stop the script with an error.
 """
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -48,6 +50,58 @@ def parse_gain(s: str) -> tuple[float, float, float] | None:
     return tuple(float(x) for x in m.groups()) if m else None
 
 
+def put_e1_reference(report: str, summary: dict):
+    """The historical JSON omits reference intervals; extract them from its companion report."""
+    for bench, tag, heading in (("arc", "Arc", "ARC-Challenge"), ("mmlupro", "Mmlu", "MMLU-Pro")):
+        sections = re.findall(rf"^## {heading}[^\n]*\n(.*?)(?=^## |\Z)", report, re.M | re.S)
+        if len(sections) != 1 or sections[0].count("Gain sur la référence locale (") != 1:
+            raise SystemExit(f"E1 : comparaison de référence absente ou ambiguë ({bench})")
+        reference = sections[0].split("Gain sur la référence locale (", 1)[1]
+        gains = re.findall(r"^- mélange calibré : 1 passage ([^,\n]+),", reference, re.M)
+        g = parse_gain(gains[0]) if len(gains) == 1 else None
+        if g is None or not all(math.isfinite(x) for x in g) or not g[1] <= g[0] <= g[2]:
+            raise SystemExit(f"E1 : gain de référence invalide ({bench})")
+        systems = summary["benches"][bench]["systems"]
+        refs = [k for k in systems if k.startswith("ref:")]
+        if len(refs) != 1:
+            raise SystemExit(f"E1 : référence absente ou ambiguë ({bench})")
+        fusion, ref = (systems[k]["pass"] for k in ("fusion:mélange calibré", refs[0]))
+        if (not fusion or len(fusion) != len(ref)
+                or not all(isinstance(x, (int, float)) and math.isfinite(x) and 0 <= x <= 1
+                           for x in fusion + ref)):
+            raise SystemExit(f"E1 : scores du résumé invalides ou non appariés ({bench})")
+        difference = 100 * (sum(fusion) / len(fusion) - sum(ref) / len(ref))
+        if abs(g[0] - difference) > 0.051:
+            raise SystemExit(f"E1 : gain du rapport incompatible avec le résumé ({bench})")
+        put(f"eOne{tag}RefGain", signed(g[0]))
+        put(f"eOne{tag}RefGainCI", ci(g[1], g[2]))
+
+
+def put_e7_quality(source: dict, rps: str):
+    """Attach quality and duration to the same historical plateau as the report's throughput."""
+    if source.get("protocol_version") != "essaim/1.1":
+        raise SystemExit("E7 : source de débit historique incompatible")
+    scenarios = [s for s in source["scenarios"] if s["scenario"]["name"] == "tput_n64_rtt100"]
+    if len(scenarios) != 1:
+        raise SystemExit("E7 : scénario 64 nœuds absent ou ambigu")
+    s = scenarios[0]
+    if s["scenario"]["nodes"] != 64 or s["scenario"]["rtt_ms"] != 100:
+        raise SystemExit("E7 : configuration du scénario incompatible")
+    phases = [p for p in s["phases"] if f"{p['goodput_rps']:.1f}" == rps]
+    if len(phases) != 1:
+        raise SystemExit("E7 : palier de débit absent ou ambigu")
+    p = phases[0]
+    duration, failed, accuracy, asked = p["phase"]["duration"], p["failed"], p["accuracy_all"], p["peers_asked_mean"]
+    if (not all(isinstance(x, (int, float)) and math.isfinite(x) for x in (duration, failed, accuracy, asked))
+            or duration <= 0 or failed < 0 or int(failed) != failed or not 0 <= accuracy <= 1
+            or not 0 <= asked <= s["scenario"]["k"]):
+        raise SystemExit("E7 : qualité ou durée du palier invalide")
+    put("eSevenStageSeconds", duration, "{:.0f}")
+    put("eSevenFailedSixtyFour", failed, "{:.0f}")
+    put("eSevenAccuracySixtyFour", 100 * accuracy)
+    put("eSevenAskedSixtyFour", asked, "{:.2f}")
+
+
 # --- E1: multiple choice, calibrated fusion of 4 families (phase 0) --------------------------------
 mc = load("mc_summary_test.json")
 for bench, tag in (("arc", "Arc"), ("mmlupro", "Mmlu")):
@@ -64,6 +118,8 @@ for bench, tag in (("arc", "Arc"), ("mmlupro", "Mmlu")):
     g = b["gain_vs_best"]["mélange calibré"]["pass"]
     put(f"eOne{tag}Gain", signed(g["points"]))
     put(f"eOne{tag}GainCI", ci(*g["ci95"]))
+if mc:
+    put_e1_reference((RES / "mc_report_test.md").read_text(encoding="utf-8"), mc)
 think = load("think_summary_test.json")
 for bench, tag in (("arc", "Arc"), ("mmlupro", "Mmlu")):
     b = (think or {}).get("benches", {}).get(bench)
@@ -209,6 +265,8 @@ if rep7.exists():
             put("eSevenCertGain", float(r[3].rstrip(" %")), "{:.0f}")
         if r[0] == "lat_rtt100_k4_hetero":
             put("eSevenCertGainHetero", float(r[3].rstrip(" %")), "{:.0f}")
+    source7 = json.loads(rep7.with_name("e7_v11_throughput.json").read_text(encoding="utf-8"))
+    put_e7_quality(source7, macros["eSevenRpsSixtyFour"])
 
 # --- E5: minority appeal ---------------------------------------------------------------------------
 for bench, tag in (("arc", "Arc"), ("mmlupro", "Mmlu")):
