@@ -1,0 +1,42 @@
+{
+  "model": "microsoft/Phi-4-mini-instruct",
+  "revision": "cfbefacb99257ffa30c83adab238a50856ac3083",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+  "weights": {
+    "name": "microsoft_Phi-4-mini-instruct-Q8_0.gguf",
+    "size": 4084611456,
+    "sha256": "a12f242c4ee379b9da91673e5d78b30bfacfe4fd86a0b2259d2ecad5d93cb6c7"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "evalplus/humanevalplus",
+    "revision": "d32357cf319e50e9c8d8dab5ea876c72b0fd321b",
+    "sha256": "786d49ec2612b2b7fee5b4e964c2f84622edad0a9039b851bd5e75ff54832231",
+    "license": "apache-2.0 (EvalPlus; HumanEval itself: MIT)"
+  },
+  "bench": "humanevalplus",
+  "split": "dev",
+  "n": 82,
+  "prompt": "code-v1",
+  "max_tokens": 1024,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "samples": 4,
+  "greedy": {
+    "temperature": 0.0,
+    "seed": 7
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "seeds": [
+      1001,
+      1002,
+      1003,
+      1004
+    ]
+  }
+}

@@ -27,7 +27,8 @@ Agreement needs common VALID observations: a program's signature is "!" on an in
 or returned nothing; a program with no valid output at all is never grouped with another (no functional
 evidence, so a cascade calls the reference), and such programs are left out of the rates c and a.
 Reported on TEST, per benchmark and pooled: accuracy (pass@1 of the selected program), Tango's score 95 %
-intervals and exact TOST verdicts (margin DELTA points, essaim/stats.py) against the best single model and each reference
+intervals and unconditional TOST verdicts (numerically maximised p-values, margin DELTA points, essaim/stats.py)
+against the best single model and each reference
 (greedy, and with the same selection over its own samples), scaling over all subsets of k families, and the
 number of programs executed per problem.
 Writes results/e11_report<suffix>.md and results/e11_summary<suffix>.json.
@@ -47,6 +48,7 @@ from analyze_e4 import DELTA, EXTRA, FAMILIES, PARAMS_B, REFS
 from essaim import code, data
 from essaim.stats import compare
 from essaim.results import read_manifest, read_rows
+from e11_costs import cost_report, generation_observations, observable_costs, plot_costs
 
 RESULTS = Path(__file__).resolve().parent / "results"
 PROTOCOL = ("prompt", "max_tokens", "thinking", "ctx_per_slot", "samples", "greedy", "sampling", "bench", "n")
@@ -115,7 +117,7 @@ def cluster_score(g: list[Cand], score: str, w) -> float:
         return len(g)
     if score == "families":
         return len(fams)
-    return sum(w.get(f, 0.0) for f in fams)
+    return sum(w.get(f, 0.0) for f in sorted(fams))
 
 
 def clusters(cs: list[Cand], F: dict[Cand, Feat]) -> tuple[list[list[Cand]], bool, list[Cand]]:
@@ -214,6 +216,15 @@ def load(bench: str, split: str, suffix: str, tag: str, models: dict[str, str]):
     items = data.CODE_LOADERS[bench](man0["n"], split=split)
     if data.dataset_identity(bench) != man0["data"]:
         raise SystemExit(f"{bench} {split} : données locales différentes de celles des générations")
+    for m, gs in gens.items():
+        expected = {(it["id"], s) for it in items for s in range(mans[m]["samples"] + 1)}
+        if {(g["id"], g["sample"]) for g in gs} != expected:
+            raise SystemExit(f"{m} {bench} {split} : couverture IDs/samples divergente")
+        for g in gs:
+            it = next(it for it in items if it["id"] == g["id"])
+            src, _ = code.extract_code(g["text"], code.entry_point(bench, it))
+            if (g["id"], code.prog_id(src)) not in ex:
+                raise SystemExit(f"{epath.name} : programme absent pour {g['id']}, sample {g['sample']}")
     ids, cands, feats, excluded, missing = [], {}, {}, [], 0
     for it in items:
         qid, entry = it["id"], code.entry_point(bench, it)
@@ -244,7 +255,7 @@ def load(bench: str, split: str, suffix: str, tag: str, models: dict[str, str]):
                 cands[qid].append(c)
     if missing:
         raise SystemExit(f"{epath.name} : {missing} programmes jamais exécutés (extraction changée ?), relancer exec_code.py")
-    info = {"manifests": mans, "exec": eman, "excluded": excluded,
+    info = {"manifests": mans, "generations": gens, "exec": eman, "excluded": excluded,
             "visible_counts": {it["id"]: sum(ex[(it["id"], "reference")]["visible"]) for it in items},
             "n_visible_rejected": sum(len(ex[(it["id"], "reference")]["visible"]) - sum(ex[(it["id"], "reference")]["visible"])
                                       for it in items)}
@@ -257,7 +268,9 @@ EXEC_SETTINGS = ("tests", "extract", "extra_n", "isolation", "python", "numpy")
 def check_splits(bench: str, fit: dict, test: dict):
     """Weights and rules fitted on one split are applied to the other: same model files and engine, same
     generation protocol, same execution settings, for every model present in both."""
-    for m in set(fit["manifests"]) & set(test["manifests"]):
+    if set(fit["manifests"]) != set(test["manifests"]):
+        raise SystemExit(f"{bench} : modèles différents entre les partitions")
+    for m in fit["manifests"]:
         a, b = fit["manifests"][m], test["manifests"][m]
         diff = {k: (a.get(k), b.get(k)) for k in IDENTITY + PROTOCOL if k != "n" and a.get(k) != b.get(k)}
         if diff:
@@ -286,6 +299,12 @@ def main():
     order = {f: -i for i, f in enumerate(fams)}  # earlier families win the last ties
     smoke = a.fit_split == "test"
     out_suffix = a.suffix + ("_fittest" if smoke else "")
+    canonical = (a.swarm is None and a.refs is None and a.benches == list(code.BENCHES)
+                 and a.fit_split == "dev" and a.suffix == "_colab" and a.tag == "e11")
+    validation = None
+    if canonical:
+        from validate_code import campaign
+        validation = campaign(a.suffix, a.tag)
     L = ["# E11 : un essaim de petits modèles qui choisit un programme en l'EXÉCUTANT, contre des modèles plus gros",
          ""]
     if smoke:
@@ -294,15 +313,38 @@ def main():
     L += [f"Candidats : la solution gloutonne de chaque modèle et ses solutions tirées (température "
           f"{code.SAMPLING['temperature']}). Règles et poids choisis sur **{a.fit_split}**, rapportés sur **test**. "
           f"Exactitude = pass@1 du programme choisi sur les tests cachés EvalPlus. IC 95 % : score de Tango pour la "
-          f"différence appariée ; verdicts : tests exacts non conditionnels (essaim/stats.py), équivalence (TOST) "
+          f"différence appariée ; tests non conditionnels avec p maximisés numériquement (essaim/stats.py), TOST "
           f"avec une marge de ±{DELTA} points, deux tests unilatéraux à 5 %.", ""]
     summary = {"benches": {}, "families": swarm, "refs": refs, "delta": DELTA, "fit_split": a.fit_split}
+    if validation:
+        summary["validation"] = validation
+        L += ["Campagne canonique complète : empreintes SHA-256 des bruts, manifestes et modules dans "
+              "e11_validation_colab.json ; validation offline des caches épinglés, des IDs/samples, de l'extraction "
+              "et de la couverture exec exacte (y compris les exclusions).", "",
+              "| partition | problèmes bruts | générations | programmes + références | exclus | length |",
+              "| --- | --- | --- | --- | --- | --- |"]
+        for name, v in validation["partitions"].items():
+            label = name.replace("|", " / ")
+            L.append(f"| {label} | {len(v['ids'])} | {v['generations']['generations']} | {v['exec_rows']} | "
+                     f"{list(v['excluded'])} | {v['generations']['length']} |")
+        L += ["", "Bac déclaré : sandbox-v3, namespace réseau unshare --net, audit hook Python, rlimits et "
+              "délais par appel. **Landlock unavailable** dans les quatre manifestes ; aucune protection "
+              "LocalLinuxEnv/seccomp n'est attribuée à cette campagne. L'audit hook n'est pas une barrière OS "
+              "contre du code natif hostile. Aucun résultat n'a été renforcé ou réécrit rétroactivement.", "",
+              "Oracle historique tests-v4 : Mbpp/737, 787 et 794 ajoutent l'assertion exact_match omise dans "
+              "l'export ; HumanEval/32 utilise le contrôle de racine prévu mais échoue aussi pour la référence "
+              "et est exclu sur dev. Les résultats sont ceux de ce harnais, pas une exécution officielle EvalPlus "
+              "inchangée. Les signatures sont des hashes typés tronqués (repli digest pour grands objets), "
+              "arrondissent les flottants et peuvent aussi séparer des solutions justes hors préconditions.", ""]
+    L += ["Tests exploratoires sans correction de multiplicité ; pooling descriptif. Les poids sont régularisés "
+          "(p borné à [0,02 ; 0,98], collision à [0,001 ; 0,999], poids négatifs annulés). "
+          "Les mesures ne démontrent pas un passage à l'échelle distribué.", ""]
     pooled: dict[str, list[float]] = defaultdict(list)
     for bench in a.benches:
         models = {swarm[f]: f for f in fams}
         models.update({m: m for m in extra + list(refs)})
         got = {}
-        for split in {a.fit_split, "test"}:
+        for split in dict.fromkeys((a.fit_split, "test")):
             avail = {m: f for m, f in models.items()
                      if read_manifest(code.gen_path(m, a.suffix, bench, split)) is not None}
             got[split] = load(bench, split, a.suffix, a.tag, avail) if all(swarm[f] in avail for f in fams) else None
@@ -358,6 +400,12 @@ def main():
                                                 -SCORES.index(s)))
         primary = max([("visible", None), ("cluster", score_best)],
                       key=lambda r: acc_of(a.fit_split, rule(a.fit_split, r[0], score=r[1] or "wfamilies")[0]))
+        def own(split, model, score):
+            _, cc, FF, _ = got[split]
+            return {q: functional([c for c in cc[q] if c.model == model], FF, w, order, score)[0] for q in cc}
+
+        own_scores = {model: max(SCORES, key=lambda s: (acc_of(a.fit_split, own(a.fit_split, model, s)),
+                                                       -SCORES.index(s))) for model in [swarm[best_f]] + R}
         casc_ref = max(R, key=lambda m: PARAMS_B.get(m, 0)) if R else None
         m_best = None
         if casc_ref:
@@ -367,11 +415,12 @@ def main():
         # --- reported on test ---
         ids, cands, F, info = got["test"]
         corr = lambda sel: [float(sel[q] is not None and F[sel[q]].correct) for q in ids]
-        rows, systems = [], {}
+        rows, systems, selections = [], {}, {}
 
         def add(label, sel, calls=None, key=None, pool_note=""):
             v = corr(sel)
             systems[key or label] = v
+            selections[key or label] = sel
             rows.append((label, 100 * st.mean(v), calls, pool_note))
 
         for f in fams:
@@ -381,9 +430,8 @@ def main():
                 add(f"{m} seul" + (f" (référence, {PARAMS_B.get(m, '?')} G)" if m in R else " (hors essaim)") + ", glouton",
                     solo("test", m), key=f"alone|{m}")
         add(f"(a) meilleur pair de {a.fit_split} ({swarm[best_f]}), glouton", rule("test", "best")[0], key="best")
-        own = lambda model: {q: functional([c for c in cands[q] if c.model == model], F, w, order, score_best)[0] for q in ids}
         add(f"(a') meilleur pair, sélection sur ses {1 + info['manifests'][swarm[best_f]]['samples']} solutions",
-            own(swarm[best_f]), key="best_self")
+            own("test", swarm[best_f], own_scores[swarm[best_f]]), key="best_self")
         for greedy_only, note in ((True, "gloutons"), (False, "gloutons + tirages")):
             g = "g" if greedy_only else "all"
             add(f"(b) vote sur le texte, {note}", rule("test", "text", greedy_only=greedy_only)[0], key=f"text|{g}")
@@ -393,7 +441,8 @@ def main():
                     rule("test", "cluster", greedy_only=greedy_only, score=s)[0], key=f"cluster-{s}|{g}")
         primary_key = "visible|all" if primary[0] == "visible" else f"cluster-{score_best}|all"
         for m in R:
-            add(f"{m} + sélection sur ses propres solutions", own(m), key=f"refself|{m}")
+            add(f"{m} + sélection sur ses propres solutions ({own_scores[m]}, choisi sur dev)",
+                own("test", m, own_scores[m]), key=f"refself|{m}")
         casc_calls = None
         if casc_ref:
             for mm in CASCADE_M:
@@ -471,15 +520,30 @@ def main():
               f"{pct(v['precision_visible'])} |" for m, v in per_model.items()]
         L += ["", f"Tests visibles : {sum(1 for q in ids if info['visible_counts'][q] == 0)} problèmes sans aucun test "
               f"visible valide ; {info['n_visible_rejected']} tests visibles ignorés (la référence y échoue).", ""]
+        reference_greedy = solo("test", casc_ref) if casc_ref else {}
+        costs = observable_costs(ids, info["generations"], systems, selections, swarm, swarm[best_f], casc_ref,
+                                 lambda q, mm: cascade(pool("test", q, fams, False), F, w, order, score_best,
+                                                      reference_greedy[q], mm)[1])
         summary["benches"][bench] = {
             "n": len(ids), "excluded": info["excluded"], "weights": w, "p_fit": p_fit, "best_fit": swarm[best_f],
             "cluster_score": score_best, "primary": primary_key, "cascade": {"ref": casc_ref, "m": m_best, "calls": casc_calls},
             "systems": {k: 100 * st.mean(v) for k, v in systems.items()}, "oracle": 100 * st.mean(oracle),
             "comparisons": comps, "scaling": scale, "collisions_fit": rates_fit, "collisions_test": rates_test,
             "programs_per_problem": {"visible": n_vis, "extra": n_ext}, "per_model": per_model,
-            "isolation": info["exec"]["isolation"], "extra_n": info["exec"]["extra_n"]}
+            "isolation": info["exec"]["isolation"], "extra_n": info["exec"]["extra_n"],
+            "own_scores": own_scores, "costs": costs,
+            "generation_observations": {s: generation_observations(got[s][3]["generations"]) for s in got},
+            "dev_systems": {"primary": acc_of(a.fit_split, rule(a.fit_split, primary[0],
+                                score=primary[1] or "wfamilies")[0]),
+                            "visible": acc_of(a.fit_split, rule(a.fit_split, "visible")[0]),
+                            "clusters": {s: acc_of(a.fit_split, rule(a.fit_split, "cluster", score=s)[0]) for s in SCORES},
+                            "cascade": {mm: acc_of(a.fit_split, rule(a.fit_split, "cascade", score=score_best,
+                                m=mm, ref=casc_ref)[0]) for mm in CASCADE_M} if casc_ref else {},
+                            "own": {m: {s: acc_of(a.fit_split, own(a.fit_split, m, s)) for s in SCORES}
+                                    for m in own_scores}}}
+        L += cost_report(costs, primary_key, m_best, swarm[best_f], R)
     if len(summary["benches"]) > 1:
-        L += ["## Les deux benchmarks réunis (problèmes test mis bout à bout)", "",
+        L += ["## Pooling descriptif (problèmes test mis bout à bout, MBPP pèse davantage)", "",
               "| comparaison | différence [IC 95 %] | p exact (marge basse ; haute) | verdict |", "| --- | --- | --- | --- |"]
         summary["pooled"] = {}
         for k, parts in pooled.items():
@@ -494,6 +558,10 @@ def main():
         cs = {b: v.get("collision") for b, v in json.loads(e4.read_text(encoding="utf-8"))["benches"].items()}
         L += ["", "Pour comparaison, collision des réponses fausses en mathématiques et QCM (E4, dev) : " +
               ", ".join(f"{b} {c:.3f}" for b, c in cs.items() if c is not None) + "."]
+    if validation:
+        (RESULTS / "e11_validation_colab.json").write_text(json.dumps(validation, indent=1, ensure_ascii=False) + "\n",
+                                                         encoding="utf-8")
+        plot_costs(summary)
     (RESULTS / f"e11_report{out_suffix}.md").write_text("\n".join(L) + "\n", encoding="utf-8")
     (RESULTS / f"e11_summary{out_suffix}.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, default=str),
                                                            encoding="utf-8")

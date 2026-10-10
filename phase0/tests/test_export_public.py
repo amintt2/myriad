@@ -113,6 +113,28 @@ class TestScan(unittest.TestCase):
                     self.assertTrue(self.scan({"app/tests/unreviewed.py": line}))
         self.assertEqual(checked, 15)
 
+    def test_e11_decorators_require_exact_path_line_and_hash(self):
+        entries = [(p, n) for p, n, _ in ex.SYNTHETIC_RESULT_LINES if p.startswith("phase0/results/code_")]
+        self.assertEqual(len(entries), 11)
+        for rel, line in entries:
+            data = (ROOT / rel).read_bytes()
+            lines = data.splitlines(keepends=True)
+            with self.subTest(rel=rel, line=line):
+                self.assertEqual(self.scan({rel: data}), [])
+                changed = b"".join(lines[:line - 1] + [b" " + lines[line - 1]] + lines[line:])
+                self.assertTrue(self.scan({rel: changed}))
+                self.assertTrue(self.scan({rel: data + b"\n" + FAKE_TOKEN.encode()}))
+                self.assertTrue(self.scan({rel: b"\n" + data}))
+                self.assertTrue(self.scan({rel.replace("_colab_", "_other_"): data}))
+
+    def test_e11_artifact_whitelist_is_exact_and_scanned(self):
+        for name in ex.E11_FILES:
+            rel = "phase0/results/" + name
+            self.assertTrue(ex.selected(rel))
+            self.assertTrue(self.scan({rel: FAKE_TOKEN.encode()}))
+        for name in ("e11_validation_private.json", "e11_accuracy_energy_colab.svg", "e11_accuracy_ms_smoke.pdf"):
+            self.assertFalse(ex.selected("phase0/results/" + name))
+
     def test_any_extension_and_notebooks(self):
         # Audit 2026-10-09 (paper, 1): a token in a .ipynb or a .env variant gave zero alerts.
         for rel, data in (("phase0/colab/x.ipynb", json.dumps({"cells": [{"source": [FAKE_TOKEN]}]}).encode()),

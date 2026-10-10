@@ -5,7 +5,7 @@
 Empirical values in main.tex are macros extracted from existing summaries, reports or stored answers.
 This synchronises the paper with those sources, but does not certify that every summary matches the raw
 answers and current grader. Missing results produce a visible "??" instead of a stale value, except for
-E4 (the main result) and E10: missing, preview or incomplete sources, or undefined macros used by
+E4 (the main result), E10 and E11: missing, preview or incomplete sources, or undefined macros used by
 main.tex, stop the script with an error.
 """
 from __future__ import annotations
@@ -584,15 +584,109 @@ if e10 is None:
     raise SystemExit("E10 : sot_summary_colab.json absent (lancer phase0/analyze_sot.py)")
 put_e10(e10)
 
+from analyze_code import DELTA as E11_DELTA, FAMILIES as E11_FAMILIES, REFS as E11_REFS  # noqa: E402
+from validate_code import verify_provenance as verify_e11  # noqa: E402
+
+
+def put_e11(e: dict):
+    """Only the complete canonical DEV-selected campaign can supply E11 paper numbers."""
+    if (e.get("fit_split") != "dev" or e.get("families") != E11_FAMILIES or e.get("refs") != E11_REFS
+            or e.get("delta") != E11_DELTA or set(e.get("benches", {})) != {"humanevalplus", "mbppplus"}):
+        raise SystemExit("E11 : résumé incomplet ou protocole divergent")
+    verify_e11(e, RES.parent)
+    v = e["validation"]
+    for bench, b in e["benches"].items():
+        ids = v["partitions"][f"{bench}|test"]["ids"]
+        excluded = v["partitions"][f"{bench}|test"]["excluded"]
+        expected = set(ids) - set(excluded)
+        dev = b.get("dev_systems", {})
+        if set(dev.get("clusters", {})) != {"count", "families", "wfamilies"}:
+            raise SystemExit(f"E11 : choix dev {bench} absents")
+        score = max(("count", "families", "wfamilies"), key=lambda s: dev["clusters"][s])
+        primary = "visible|all" if dev["visible"] >= dev["clusters"][score] else f"cluster-{score}|all"
+        if (b["n"] != len(expected) or set(b["excluded"]) != set(excluded)
+                or set(b["per_model"]) != set(v["models"]) or b["primary"] not in b["systems"]
+                or b["best_fit"] != max(E11_FAMILIES.values(), key=lambda m: b["p_fit"][
+                    next(f for f in E11_FAMILIES if E11_FAMILIES[f] == m)])
+                or b["cascade"]["ref"] != E11_REFS[-1] or b["cascade"]["m"] not in (1, 2, 3)
+                or b["cluster_score"] != score or b["primary"] != primary
+                or b["cascade"]["m"] != max((1, 2, 3), key=lambda m: dev["cascade"][str(m)])
+                or set(b["costs"]) != set(b["systems"])):
+            raise SystemExit(f"E11 : partition {bench} incohérente")
+        if set(b["own_scores"]) != {b["best_fit"], *E11_REFS} or any(
+                chosen != max(("count", "families", "wfamilies"), key=lambda s: dev["own"][model][s])
+                for model, chosen in b["own_scores"].items()):
+            raise SystemExit(f"E11 : sélection propre {bench} différente du choix dev")
+        for key, c in b["costs"].items():
+            ps = c["problems"]
+            if (len(ps) != b["n"] or {p["id"] for p in ps} != expected
+                    or abs(b["systems"][key] - 100 * sum(p["correct"] for p in ps) / len(ps)) > 1e-9):
+                raise SystemExit(f"E11 : scores/coûts {bench} {key} incohérents")
+    put("eElevenModels", len(v["models"]), "{}")
+    put("eElevenFamilies", len(e["families"]), "{}")
+    put("eElevenCandidates", len(e["families"]) * (v["partitions"]["humanevalplus|dev"]
+                                                  ["manifests"][next(iter(e["families"].values()))]["samples"] + 1), "{}")
+    put("eElevenGenerations", sum(p["generations"]["generations"] for p in v["partitions"].values()), "{}")
+    put("eElevenLength", sum(p["generations"]["length"] for p in v["partitions"].values()), "{}")
+    put("eElevenMissing", sum(p["generations"]["missing_ms"] + p["generations"]["missing_n_tokens"]
+                             + p["generations"]["missing_prompt_tokens"] for p in v["partitions"].values()), "{}")
+    man = v["partitions"]["humanevalplus|dev"]["manifests"][next(iter(e["families"].values()))]
+    put("eElevenSamples", man["samples"], "{}")
+    put("eElevenBudget", man["max_tokens"], "{}")
+    put("eElevenTemperature", man["sampling"]["temperature"])
+    put("eElevenMargin", e["delta"], "{:g}")
+    put("eElevenExtra", v["partitions"]["humanevalplus|dev"]["exec"]["extra_n"], "{}")
+    for bench, word in (("humanevalplus", "Human"), ("mbppplus", "Mbpp")):
+        b, pre = e["benches"][bench], f"eEleven{word}"
+        put(pre + "RawN", len(v["partitions"][f"{bench}|test"]["ids"]), "{}")
+        put(pre + "DevN", len(v["partitions"][f"{bench}|dev"]["ids"]) -
+            len(v["partitions"][f"{bench}|dev"]["excluded"]), "{}")
+        put(pre + "N", b["n"], "{}")
+        put(pre + "Excluded", len(b["excluded"]), "{}")
+        put(pre + "BestName", b["best_fit"].split("/")[-1])
+        put(pre + "Primary", b["primary"].split("|")[0])
+        put(pre + "Best", b["systems"]["best"])
+        put(pre + "BestSelf", b["systems"]["best_self"])
+        put(pre + "Swarm", b["systems"][b["primary"]])
+        put(pre + "Oracle", b["oracle"])
+        put(pre + "Threshold", b["cascade"]["m"], "{}")
+        put(pre + "Calls", b["cascade"]["calls"], "{}")
+        put(pre + "CallPct", 100 * b["cascade"]["calls"] / b["n"])
+        put(pre + "Cascade", b["systems"][f"cascade|{b['cascade']['m']}"])
+        for m, tag in zip(e["refs"], ("Nine", "Twelve", "Fourteen", "TwentySeven")):
+            put(pre + tag, b["systems"][f"alone|{m}"])
+            put(pre + tag + "Self", b["systems"][f"refself|{m}"])
+        for metric, tag in (("c", "Collision"), ("a", "CorrectAgreement")):
+            put(pre + tag, b["collisions_test"]["all"][metric], "{:.3f}")
+        for k, vals in b["scaling"].items():
+            word_k = ("One", "Two", "Three", "Four", "Five", "Six", "Seven")[int(k) - 1]
+            put(pre + "Scale" + word_k, vals["cluster"])
+        for system, tag in (("best", "Solo"), (b["primary"], "Swarm"),
+                            (f"cascade|{b['cascade']['m']}", "Cascade"), (f"alone|{e['refs'][-1]}", "Ref")):
+            cost = b["costs"][system]["metrics"]
+            put(pre + tag + "Tokens", cost["n_tokens"]["mean_per_problem"], "{:.0f}")
+            ms = cost["ms"]["mean_per_problem"]
+            put(pre + tag + "Seconds", None if ms is None else ms / 1000, "{:.2f}")
+        for other, tag in (("best", "BestGain"), (f"alone|{e['refs'][-1]}", "RefGain")):
+            c = b["comparisons"][f"{b['primary']}|{other}"]
+            put(pre + tag, c["mean"], "{:+.1f}")
+            put(pre + tag + "CI", f"[{c['lo95']:+.1f}, {c['hi95']:+.1f}]")
+
+
+e11 = load("e11_summary_colab.json")
+if e11 is None:
+    raise SystemExit("E11 : e11_summary_colab.json absent (lancer phase0/analyze_code.py)")
+put_e11(e11)
+
 # Every result macro used by the paper is defined: a missing results file shows "??" instead of
 # breaking the compilation.
-used = set(re.findall(r"\\(e(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Gemma|Small)[A-Za-z]*)",
+used = set(re.findall(r"\\(e(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Gemma|Small)[A-Za-z]*)",
                       (HERE / "main.tex").read_text(encoding="utf-8")))
 for name in sorted(used - set(macros)):
     macros[name] = "??"
-broken = sorted(n for n in used if n.startswith(("eFour", "eTen")) and macros[n] == "??")
-if broken:  # E4 and E10 never compile with a placeholder.
-    raise SystemExit(f"E4/E10 : macros utilisées par main.tex mais non définies : {broken}")
+broken = sorted(n for n in used if n.startswith(("eFour", "eTen", "eEleven")) and macros[n] == "??")
+if broken:  # Canonical campaigns never compile with a placeholder.
+    raise SystemExit(f"E4/E10/E11 : macros utilisées par main.tex mais non définies : {broken}")
 OUT.write_text("% Generated by make_numbers.py from phase0/results -- do not edit.\n" +
                "".join(f"\\newcommand{{\\{k}}}{{{v}}}\n" for k, v in sorted(macros.items())), encoding="utf-8")
 print(f"{len(macros)} macros -> {OUT.name}")

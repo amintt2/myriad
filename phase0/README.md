@@ -131,7 +131,7 @@ rôle de la dispersion des réponses en mathématiques ?
   aucun de lisible), les `assert` de MBPP. Les **tests cachés** (entrées de base + « plus » d'EvalPlus) ne
   servent qu'à noter. LiveCodeBench est écarté : licence « cc » sans variante, problèmes copiés de LeetCode,
   AtCoder et Codeforces, chargement par un script distant.
-- **Génération** (`run_code.py`, un modèle à la fois sur le GPU, llama-server comme E4) : une solution gloutonne
+- **Génération** (`run_code.py`, chaque modèle via son llama-server sur le GPU, comme E4) : une solution gloutonne
   et 4 tirages à température 0,8 (graines fixes) par problème, 1024 jetons au plus, réflexion coupée. Le code
   est extrait du bloc ```` ```python ```` qui définit la fonction, puis nettoyé (exemples d'usage, `print`,
   `assert` et blocs `__main__` retirés ; une initialisation dont la solution se sert, `solver = Solver()`,
@@ -162,9 +162,11 @@ rôle de la dispersion des réponses en mathématiques ?
   familles, ou somme des poids des familles) ; (e) cascade vers la plus grosse référence quand aucun candidat
   ne passe les tests visibles ou que le groupe gagnant a moins de m familles. Un accord exige au moins une
   sortie valide en commun : des programmes qui échouent sur toutes les entrées ne forment jamais un groupe.
-  pass@1 sur les tests cachés, intervalle du score de Tango et tests d'équivalence exacts non conditionnels
+  pass@1 sur les tests cachés, intervalle du score de Tango et tests d'équivalence non conditionnels
+  avec p maximisés numériquement
   (TOST, ±2 points, `essaim/stats.py`) contre le meilleur modèle et chaque référence (seule, et avec la
-  même sélection sur ses propres solutions), passage à l'échelle k = 1..7 familles, programmes exécutés par
+  sélection fonctionnelle sur ses propres solutions, variante choisie sur dev), évolution offline k = 1..7 familles,
+  programmes exécutés par
   problème, et le **taux de collision fonctionnelle** c (deux programmes faux de familles différentes, qui
   passent les tests visibles, d'accord sur toutes les entrées), l'analogue du c de la théorie du vote.
 
@@ -186,6 +188,68 @@ Un superviseur Python envoie `TERM` au groupe local, puis `KILL` au plus tard 5 
 Les codes d'erreur remontent au surveillant ; la campagne distante reste active. Cette borne ne concerne pas `up`.
 Le superviseur reste hors du groupe du CLI : il termine aussi les enfants qui ignorent `TERM`, sans dépendre
 du comportement de l'utilitaire système `timeout` (uutils sous WSL sur ce PC).
+
+### Campagne E11 finale et reproduction offline
+
+La campagne finale est terminée. Les bruts et manifestes sont conservés sans réécriture ;
+`e11_validation_colab.json` recense leurs SHA-256, les identités des treize modèles, les versions du harnais,
+les partitions et chaque exclusion. `validate_code.py` exige tous les modèles attendus, références et
+frères hors essaim compris, les clés (id, sample) exactes, les extractions et leurs hashes, toutes les références
+de dataset et la couverture exec exacte, y compris sur les problèmes exclus. Les comptes cachés sont vérifiés
+par lecture de l'AST des listes stockées, sans exécuter les sources dataset. Les caches épinglés
+`data/{humanevalplus,mbppplus}_all_s0_v2.{jsonl,meta.json}` restent ignorés par Git. L'analyse canonique refuse
+un cache absent ou modifié avant tout chargement : aucun téléchargement implicite, modèle ou code candidat exécuté.
+Sur un nouveau clone, il faut fournir ces caches ou les préparer explicitement depuis les parquets épinglés
+avec les chargeurs `essaim.data.humanevalplus` et `mbppplus`.
+
+```powershell
+cd phase0
+uv sync --group paper
+uv run python analyze_code.py --suffix _colab
+uv run python -m unittest tests.test_e11_analysis -q
+cd ..
+uv run --project phase0 python paper/make_numbers.py
+```
+
+Le rapport est `results/e11_report_colab.md`, son résumé `e11_summary_colab.json`. Les choix de dev
+(variantes, poids, meilleur pair, seuil de cascade et variantes propres des références) y sont enregistrés
+avec leurs scores de dev ; aucun choix n'est optimisé sur test.
+Le score `count` compte les candidats générés, y compris un programme identique proposé plusieurs fois ;
+`families` et `wfamilies` comptent chaque famille une seule fois dans un groupe. La déduplication concerne
+l'exécution, pas le vote des candidats.
+Les modes de fumée et les sous-ensembles explicites restent disponibles et ne peuvent pas alimenter
+l'article canonique. `paper/make_numbers.py`
+exige les empreintes de toutes les sources et des modules locaux qui produisent le résumé ; les hashes de ces
+modules attestent la reproduction locale, pas le checkout distant de Colab, dont le hash de source n'est pas
+enregistré dans les anciens manifestes. Les identités GGUF, données et versions déclarées sont conservées.
+
+Le bac déclaré par Colab est **sandbox-v3, unshare --net, audit hook Python, Landlock unavailable** :
+pas les protections du nouveau LocalLinuxEnv. L'audit hook seul ne garantit pas le confinement de code natif
+hostile. L'oracle historique tests-v4 ajoute l'assertion `exact_match` absente de l'export pour Mbpp/737,
+787 et 794 ; son contrôle de racine HumanEval/32 échoue pour la référence (exclusion dev). Mbpp/255 est
+exclu sur test après un délai de la référence (88/112 cas cachés réussis). Aucune réparation rétroactive des notes.
+Tous les tests visibles échoués par la référence sont recensés séparément. Ces scores concernent le harnais
+versionné décrit ici, pas un passage inchangé de la suite officielle EvalPlus.
+
+Les compteurs `n_tokens`, `prompt_tokens`, `ms`, `finish` alimentent des détails par problème/mode,
+des observations par modèle/split et des totaux connus/manquants. Pour une cascade rejouée offline, on attribue
+la génération de référence seulement sur les problèmes qui l'appellent ; la campagne a néanmoins généré
+toutes les réponses de référence. Les problèmes exclus restent dans les observations de génération.
+Les figures matplotlib `e11_accuracy_{n_tokens,ms}_colab.{png,svg,pdf}` confrontent l'exactitude test aux jetons
+et à la **somme des durées d'appels de génération par problème (proxy)**. Les requêtes sont parallèles
+(`run_code.py`, défaut 16), avec contention GPU : cette somme n'est ni le temps mur de campagne ni la latence
+d'un essaim/WAN. Même un maximum de durées serait une projection.
+La concurrence ne figure pas dans les anciens manifestes ; le lanceur local demande 16 slots (8 pour le 27B)
+et autorise jusqu'à trois jobs de modèles simultanés selon les ressources, sans journal de temps mur par problème.
+Le ms d'exec inclut visible, extra et HIDDEN,
+et n'est pas un coût mesuré de sélection en ligne. Énergie, coût réel total et temps mur restent inconnus ;
+aucun scénario énergétique ni comparaison à calcul égal n'est inféré. Les jetons emploient les tokenizers des
+producteurs. Les sorties sont déterministes, y compris les figures sans dates/IDs aléatoires.
+
+Les tests statistiques sont exploratoires, sans correction de multiplicité ; pooling descriptif, dominé
+en nombre par MBPP. Les courbes moyennes sur tous les sous-ensembles de familles décrivent des candidats
+pré-générés ; elles ne constituent pas une mesure du passage à l'échelle distribué. Les bruts des résultats
+négatifs, les collisions et les divergences entre programmes justes sont conservés.
 
 ## E12 : des bancs plus réels (GPQA Diamond, SciCode ; essai Terminal-Bench préparé, DeepSWE en conception)
 

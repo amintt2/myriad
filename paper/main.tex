@@ -634,6 +634,70 @@ expansions and \eTenTestSoloCut{} solo answers reach their length cap; there are
 word limit. Thus the projected latency saving accompanies longer output and substantially worse
 judged quality against the dev-selected solo under this protocol.
 
+\subsection{E11: selecting code by execution}\label{sec:e11}
+We generated \eElevenGenerations{} answers from \eElevenModels{} Q8 models on pinned HumanEval+ and MBPP+
+exports \cite{liu2023evalplus,evalplushumaneval,evalplusmbpp}:
+one greedy answer and \eElevenSamples{} samples at temperature \eElevenTemperature{}, with thinking
+disabled and a \eElevenBudget{} output-token cap. The swarm uses \eElevenFamilies{} families from E4
+(Gemma E4B has the total size stated there), hence \eElevenCandidates{} candidates per problem;
+the smaller Qwen and Gemma siblings are reported outside the swarm. The pinned, seeded partitions have
+\eElevenHumanRawN{} and \eElevenMbppRawN{} problems each. The reference solution fails the historical
+root oracle on HumanEval/32 (dev) and times out on Mbpp/255 (test); excluding these leaves
+\eElevenHumanDevN{}/\eElevenHumanN{} HumanEval dev/test and \eElevenMbppDevN{}/\eElevenMbppN{} MBPP.
+Our versioned grader also repairs omitted assertions in the exported MBPP tests; these are results of
+this documented harness, not an unchanged official EvalPlus evaluation.
+
+Execution-based selection has precedents in CodeT and AlphaCode \cite{chen2022codet,li2022alphacode}.
+Our experiment evaluates the filtering and signature rules below, without reproducing either system.
+DEV alone determines the best greedy peer (\eElevenHumanBestName{} / \eElevenMbppBestName{}),
+regularised family weights, the primary rule (visible-test filtering or functional clustering),
+clustering score and cascade threshold. Clustering compares output signatures on visible inputs and
+up to \eElevenExtra{} deterministic mutations; programs failing on every input provide no agreement.
+Each reference's clustering variant over its own samples is independently chosen on dev.
+Hidden tests grade the frozen choices. The primary rules are \texttt{\eElevenHumanPrimary{}} and
+\texttt{\eElevenMbppPrimary{}}: count scores include repeated programs among generated candidates,
+whereas family scores count each family once. Test selected-program accuracy is:
+\begin{center}\small
+\begin{tabular}{lrr}
+\toprule System & HumanEval+ (\eElevenHumanN{}) & MBPP+ (\eElevenMbppN{}) \\
+\midrule
+Best dev peer, greedy & \eElevenHumanBest\% & \eElevenMbppBest\% \\
+Best dev peer, own selection & \eElevenHumanBestSelf\% & \eElevenMbppBestSelf\% \\
+Dev-selected swarm & \eElevenHumanSwarm\% & \eElevenMbppSwarm\% \\
+Swarm + cascade to Qwen3.8-27B & \eElevenHumanCascade\% & \eElevenMbppCascade\% \\
+Qwen3.5-9B, greedy / own selection & \eElevenHumanNine / \eElevenHumanNineSelf\% & \eElevenMbppNine / \eElevenMbppNineSelf\% \\
+Gemma-4-12B, greedy / own selection & \eElevenHumanTwelve / \eElevenHumanTwelveSelf\% & \eElevenMbppTwelve / \eElevenMbppTwelveSelf\% \\
+Ministral-3-14B, greedy / own selection & \eElevenHumanFourteen / \eElevenHumanFourteenSelf\% & \eElevenMbppFourteen / \eElevenMbppFourteenSelf\% \\
+Qwen3.8-27B, greedy / own selection & \eElevenHumanTwentySeven / \eElevenHumanTwentySevenSelf\% & \eElevenMbppTwentySeven / \eElevenMbppTwentySevenSelf\% \\
+Swarm oracle & \eElevenHumanOracle\% & \eElevenMbppOracle\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+The primary swarm's paired differences from the dev-best greedy peer are
+\eElevenHumanBestGain{} points (Tango score CI \eElevenHumanBestGainCI) and
+\eElevenMbppBestGain{} (\eElevenMbppBestGainCI); against greedy Qwen3.8-27B they are
+\eElevenHumanRefGain{} (\eElevenHumanRefGainCI) and \eElevenMbppRefGain{} (\eElevenMbppRefGainCI).
+Exploratory unconditional margin tests use numerically maximised nuisance p-values and the
+\eElevenMargin{}-point margin, without multiplicity correction; pooling is descriptive.
+The cascades call the reference on \eElevenHumanCalls{}/\eElevenHumanN{} and
+\eElevenMbppCalls{}/\eElevenMbppN{} problems (\eElevenHumanCallPct\% / \eElevenMbppCallPct\%).
+Functional collision rates among wrong, visibly passing cross-family candidates are
+\eElevenHumanCollision{} / \eElevenMbppCollision{}; agreement among correct candidates is
+\eElevenHumanCorrectAgreement{} / \eElevenMbppCorrectAgreement{}. Thus signatures also split correct
+programs, including outside apparent preconditions. The report retains every rule, exclusion and
+all-subset curve; these offline curves do not demonstrate distributed scaling.
+
+Generation counters have \eElevenMissing{} missing token/duration fields and
+\eElevenLength{} length-capped answers. On retained test problems, the primary swarm averages
+\eElevenHumanSwarmTokens{} / \eElevenMbppSwarmTokens{} output tokens, versus
+\eElevenHumanSoloTokens{} / \eElevenMbppSoloTokens{} for the best greedy peer (producer tokenizers).
+Its mean sums of generation-call durations are \eElevenHumanSwarmSeconds{} / \eElevenMbppSwarmSeconds{} s:
+these are proxies under batched GPU contention, not campaign wall time, network latency or measured
+energy. Execution durations include hidden grading and cannot isolate online selection cost.
+The campaign declares sandbox-v3, network namespaces and a Python audit hook, with Landlock unavailable;
+it did not use the later LocalLinuxEnv protections. Public benchmarks may overlap training data, and
+these results establish neither equal-compute comparisons nor general superiority or equivalence.
+
 \section{System}\label{sec:system}
 We release an implementation of the protocol as a desktop application (Python, llama.cpp).
 \paragraph{Roles.} Every participant runs a \emph{node}: it serves one GGUF model chosen by the user with

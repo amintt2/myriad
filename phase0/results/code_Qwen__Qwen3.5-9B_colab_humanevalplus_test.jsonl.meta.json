@@ -1,0 +1,42 @@
+{
+  "model": "Qwen/Qwen3.5-9B",
+  "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.5-9B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.5-9B-Q8_0.gguf",
+    "size": 9527502048,
+    "sha256": "809626574d0cb43d4becfa56169980da2bb448f2299270f7be443cb89d0a6ae4"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "evalplus/humanevalplus",
+    "revision": "d32357cf319e50e9c8d8dab5ea876c72b0fd321b",
+    "sha256": "786d49ec2612b2b7fee5b4e964c2f84622edad0a9039b851bd5e75ff54832231",
+    "license": "apache-2.0 (EvalPlus; HumanEval itself: MIT)"
+  },
+  "bench": "humanevalplus",
+  "split": "test",
+  "n": 82,
+  "prompt": "code-v1",
+  "max_tokens": 1024,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "samples": 4,
+  "greedy": {
+    "temperature": 0.0,
+    "seed": 7
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "seeds": [
+      1001,
+      1002,
+      1003,
+      1004
+    ]
+  }
+}

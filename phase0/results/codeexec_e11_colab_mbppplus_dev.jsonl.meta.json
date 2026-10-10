@@ -1,0 +1,65 @@
+{
+  "bench": "mbppplus",
+  "split": "dev",
+  "n": 189,
+  "data": {
+    "dataset": "evalplus/mbppplus",
+    "revision": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077",
+    "sha256": "489c1c0a334ba129144e360490c3e9e7ed4eef7b70501a9aa5c5d740fe8227ea",
+    "license": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)"
+  },
+  "tests": "tests-v4",
+  "extract": "extract-v2",
+  "extra_n": 16,
+  "isolation": {
+    "version": "sandbox-v3",
+    "platform": "linux",
+    "prefix": [
+      "/usr/bin/unshare",
+      "--net",
+      "--"
+    ],
+    "landlock": "unavailable",
+    "network": "unshare --net (no network namespace access)",
+    "memory": "RLIMIT_AS, MiB: {'visible': 2048, 'extra': 2048, 'hidden': 4096, 'grade': 4096}",
+    "per_case_timeout": true,
+    "filesystem": "audit hook (writes in a fresh temp dir only, no dir_fd, reads in the Python installation only) + Landlock unavailable",
+    "grading": "separate trusted process; the candidate only receives inputs",
+    "limits_s": {
+      "visible": [
+        2.0,
+        20.0
+      ],
+      "extra": [
+        2.0,
+        30.0
+      ],
+      "hidden": [
+        10.0,
+        300.0
+      ],
+      "grade": [
+        60.0,
+        900.0
+      ]
+    }
+  },
+  "python": "3.13.15",
+  "numpy": "2.5.3",
+  "models": [
+    "HuggingFaceTB/SmolLM3-3B",
+    "Qwen/Qwen3.5-2B",
+    "Qwen/Qwen3.5-4B",
+    "Qwen/Qwen3.5-9B",
+    "Qwen/Qwen3.8-27B",
+    "allenai/OLMo-2-0425-1B-Instruct",
+    "google/gemma-4-12B-it",
+    "google/gemma-4-E2B-it",
+    "google/gemma-4-E4B-it",
+    "ibm-granite/granite-4.2-3b",
+    "microsoft/Phi-4-mini-instruct",
+    "mistralai/Ministral-3-14B-Instruct-2512",
+    "mistralai/Ministral-3-3B-Instruct-2512"
+  ],
+  "reference_only": false
+}

@@ -1,0 +1,42 @@
+{
+  "model": "ibm-granite/granite-4.2-3b",
+  "revision": "e459acceac81e5fe67c07d9cfc72329a332e7eb1",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "granite-4.2-3b-Q8_0.gguf",
+  "weights": {
+    "name": "granite-4.2-3b-Q8_0.gguf",
+    "size": 3892651552,
+    "sha256": "fbe986738041418e26de9e123ba740cb654931f85bf572a71bd01f9e6b85e53d"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "evalplus/mbppplus",
+    "revision": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077",
+    "sha256": "489c1c0a334ba129144e360490c3e9e7ed4eef7b70501a9aa5c5d740fe8227ea",
+    "license": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)"
+  },
+  "bench": "mbppplus",
+  "split": "test",
+  "n": 189,
+  "prompt": "code-v1",
+  "max_tokens": 1024,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "samples": 4,
+  "greedy": {
+    "temperature": 0.0,
+    "seed": 7
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "seeds": [
+      1001,
+      1002,
+      1003,
+      1004
+    ]
+  }
+}

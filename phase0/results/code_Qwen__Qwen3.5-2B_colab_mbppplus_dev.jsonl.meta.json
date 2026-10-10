@@ -1,0 +1,42 @@
+{
+  "model": "Qwen/Qwen3.5-2B",
+  "revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+  "backend": "llama.cpp (--jinja, OpenAI chat)",
+  "gguf": "Qwen3.5-2B-Q8_0.gguf",
+  "weights": {
+    "name": "Qwen3.5-2B-Q8_0.gguf",
+    "size": 2012012800,
+    "sha256": "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1"
+  },
+  "engine": "version: 0.6.0-dev (build 11505, commit ff5888f99) | built with GNU 13.3.0 for Linux x86_64",
+  "data": {
+    "dataset": "evalplus/mbppplus",
+    "revision": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077",
+    "sha256": "489c1c0a334ba129144e360490c3e9e7ed4eef7b70501a9aa5c5d740fe8227ea",
+    "license": "apache-2.0 (EvalPlus; MBPP itself: CC-BY-4.0)"
+  },
+  "bench": "mbppplus",
+  "split": "dev",
+  "n": 189,
+  "prompt": "code-v1",
+  "max_tokens": 1024,
+  "thinking": false,
+  "ctx_per_slot": 3072,
+  "samples": 4,
+  "greedy": {
+    "temperature": 0.0,
+    "seed": 7
+  },
+  "sampling": {
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "min_p": 0.05,
+    "seeds": [
+      1001,
+      1002,
+      1003,
+      1004
+    ]
+  }
+}
