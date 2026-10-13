@@ -310,6 +310,15 @@ def run_episodes(plan, args, client, output, deadline, manifest, registry, pilot
         client.close()
 
 
+def execution_provenance(plan, hardware):
+    return {"models": {name: {**model, "model": name, "alias": name, "licence": "apache-2.0",
+        "declared_at": "pre-score R00 plan", "endpoint_kind": "direct-loopback-sequential",
+        "quantization": "Q8_0", "server": {k: v for k, v in plan["server"].items() if k != "assets"} |
+        {"artifact": ASSETS[0]["file"], "sha256": ASSETS[0]["sha256"]}, "hardware": hardware,
+        "energy": {"watts": 100, "eur_kwh": .25, "measured": False, "scope": "assumed VM power only"}}
+        for name, model in plan["models"].items()}}
+
+
 def execute(root, deadline):
     image = colab()
     from essaim import code_pilot as pilot
@@ -386,18 +395,15 @@ def execute(root, deadline):
     minimum_mib = 22000 if plan["gpu"] == "L4" else 39000
     if int(observed_gpu[0].split(",")[-1].strip()) < minimum_mib:
         raise ValueError("insufficient predeclared GPU capacity")
-    provenance = {"models": {name: {**model, "model": name, "alias": name, "licence": "apache-2.0",
-        "declared_at": "pre-score R00 plan", "endpoint_kind": "direct-loopback-sequential",
-        "quantization": "Q8_0", "server": {k: v for k, v in plan["server"].items() if k != "assets"} |
-        {"artifact": ASSETS[0]["file"], "sha256": ASSETS[0]["sha256"]}, "hardware": hardware,
-        "energy": {"watts": 100, "eur_kwh": .25, "measured": False, "scope": "assumed VM power only"}}
-        for name, model in plan["models"].items()}}
+    bootstrap = json.loads((output / "runtime.json").read_text())["uv_bootstrap"]
+    provenance = execution_provenance(plan, hardware)
     write(output / "provenance.json", provenance)
     from essaim.code_provenance import declarations
     declarations(output / "provenance.json", sorted(plan["models"]), 100, .25)
     import importlib.metadata
     runtime_info = {"python": sys.version, "executable_sha256": digest(Path(sys.executable).resolve().read_bytes()),
-                    "uv_version": "0.11.21", "lock_sha256": digest((root / "phase0/code_pilot/uv.lock").read_bytes()),
+                    "uv_version": bootstrap["artifact"]["version"], "uv_bootstrap": bootstrap,
+                    "lock_sha256": digest((root / "phase0/code_pilot/uv.lock").read_bytes()),
                     "uv_sha256": digest((root / "installer/bin/uv").read_bytes()),
                     "packages": {d.metadata["Name"]: d.version for d in importlib.metadata.distributions()},
                     "sources": {n: digest((root / "phase0" / n).read_bytes()) for n in request["sources"]},

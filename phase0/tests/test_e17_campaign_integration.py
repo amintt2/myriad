@@ -123,6 +123,32 @@ class BackendIntegration(unittest.TestCase):
 
 
 class AuditRegressions(unittest.TestCase):
+    def test_worker_provenance_real_declarations_and_recovery(self):
+        from essaim.code_provenance import declarations
+        from test_e17_campaign import Validation, synthetic
+        hardware = {"cpu": "synthetic", "host_memory_gib": 32, "execution": "synthetic VM",
+                    "gpu": "synthetic GPU", "cpu_threads": "1"}
+        bootstrap = {"artifact": {"version": "synthetic UV"}, "phase": "synthetic complete"}
+        for comparison in (False, True):
+            with self.subTest(comparison=comparison), tempfile.TemporaryDirectory() as temporary:
+                root, request = Path(temporary), Validation().request(comparison)
+                provenance = e17_vm.execution_provenance(request["plan"], hardware)
+                self.assertEqual(set(provenance), {"models"})
+                files, inventory = synthetic(request, provenance=provenance, bootstrap=bootstrap)
+                for name, data in files.items(): (root / name).write_bytes(data)
+                self.assertEqual(declarations(root / "provenance.json", sorted(request["plan"]["models"]),
+                                              100, .25), provenance["models"])
+                self.assertEqual(json.loads(files["runtime.json"])["uv_bootstrap"], bootstrap)
+                self.assertEqual(json.loads(files["manifest.json"])["runtime"]["uv_bootstrap"], bootstrap)
+                self.assertTrue(campaign.validate_retrieved(root, inventory, request))
+                forbidden = {**provenance, "uv_bootstrap": bootstrap}
+                files, inventory = synthetic(request, provenance=forbidden, bootstrap=bootstrap)
+                for name, data in files.items(): (root / name).write_bytes(data)
+                with self.assertRaisesRegex(ValueError, "exact documented nonsecret fields"):
+                    declarations(root / "provenance.json", sorted(request["plan"]["models"]), 100, .25)
+                with self.assertRaisesRegex(ValueError, "exact documented nonsecret fields"):
+                    campaign.validate_retrieved(root, inventory, request)
+
     def test_exportable_metadata_are_canonical_and_bound_to_both_plans(self):
         files = campaign.source_bundle()
         for name in ("e17-dev-single", "e17-dev-compare"):
@@ -142,23 +168,24 @@ class AuditRegressions(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "artifacts").mkdir()
-            request = {"plan": campaign.plan("e17-dev-single"), "work_seconds": 3600, "nonce": "synthetic"}
+            request = {"plan": campaign.plan("e17-dev-single"), "work_seconds": 1800, "nonce": "synthetic"}
             remote.save(root / "request.json", request)
             def run(command, **kwargs):
                 deadlines.append(kwargs["deadline"])
-                if command[-2] == str(root):
-                    self.assertEqual(float(command[-1]), 3700)
-                    self.assertEqual(kwargs["seconds"], 900)
+                if str(root / "phase0/e17_vm.py") in command:
+                    self.assertEqual(float(command[-1]), 1900)
+                    self.assertEqual(kwargs["seconds"], 600)
                     with self.assertRaisesRegex(TimeoutError, "whole R00 episode"):
                         e17_vm.run_episodes(request["plan"], None, client, root / "artifacts",
                                             float(command[-1]), {}, {"attempts": []}, pilot)
                 else:
-                    clock[0] += 900
+                    self.assertEqual(kwargs["seconds"], 600)
+                    clock[0] += 600
                 return 0
             with mock.patch.object(remote.time, "monotonic", side_effect=lambda: clock[0]), \
                  mock.patch.object(read_timeout, "run", side_effect=run), mock.patch.object(remote.signal, "signal"):
                 remote.worker(root)
-            self.assertEqual(deadlines, [3700]*4)
+            self.assertEqual(deadlines, [1900]*3)
             self.assertEqual(json.loads((root / "request.json").read_text()), request)
             pilot.run_one.assert_not_called()
             client.close.assert_called_once()

@@ -7,7 +7,109 @@ import signal
 import subprocess
 import sys
 import time
+import tarfile
+import traceback
+import urllib.request
 from pathlib import Path
+
+UV = {"version": "0.11.21", "python": "3.12.15",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "bytes": 24437894, "sha256": "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050"}
+UV_MEMBER = "uv-x86_64-unknown-linux-gnu/uv"
+
+
+def diagnostic(exc):
+    return {"type": type(exc).__name__, "trace": "".join(traceback.format_exception(exc))[-4096:]}
+
+
+def bootstrap_uv(root, deadline):
+    """Run only inside the worker watchdog; no system venv, ensurepip or pip is needed."""
+    output = root / "artifacts/runtime.json"
+    info = {"artifact": UV, "phase": "uv-download", "complete": False}
+    def record(phase):
+        info["phase"] = phase
+        save(output, {"uv_bootstrap": info})
+        if time.monotonic() >= deadline:
+            raise TimeoutError("UV preparation deadline")
+    archive = root / "uv.tar.gz.part"
+    try:
+        record("uv-download")
+        sha, size = hashlib.sha256(), 0
+        with urllib.request.urlopen(UV["url"], timeout=min(30, deadline - time.monotonic())) as response:
+            with archive.open("xb") as out:
+                while True:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("UV download deadline")
+                    block = response.read(1 << 20)
+                    if not block:
+                        break
+                    size += len(block)
+                    if size > UV["bytes"]:
+                        raise ValueError("UV archive exceeds pinned size")
+                    sha.update(block)
+                    out.write(block)
+        if size != UV["bytes"] or sha.hexdigest() != UV["sha256"]:
+            raise ValueError("UV archive size/hash mismatch")
+        info.update(archive_bytes=size, archive_sha256=sha.hexdigest())
+        record("uv-extract")
+        # Validate every member, but write only the expected binary, exclusively into a fresh target.
+        with tarfile.open(archive, "r:gz") as tar:
+            seen, total, binary = set(), 0, None
+            for member in tar:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("UV archive validation deadline")
+                name = member.name.rstrip("/")
+                parts = name.split("/")
+                if (name in seen or len(seen) >= 32 or "\\" in name or any(p in ("", ".", "..") for p in parts)
+                        or parts[0] != UV_MEMBER.split("/")[0] or member.size < 0
+                        or not (member.isdir() or member.isreg())):
+                    raise ValueError("unsafe UV archive member")
+                seen.add(name)
+                total += member.size
+                if total > 128 << 20:
+                    raise ValueError("UV extracted size limit")
+                if name == UV_MEMBER:
+                    if not member.isreg() or member.size <= 0:
+                        raise ValueError("invalid UV binary member")
+                    binary = member
+            if binary is None:
+                raise ValueError("missing expected UV binary")
+            install = root / "installer"
+            install.mkdir()
+            (install / "bin").mkdir()
+            target = install / "bin/uv"
+            sha = hashlib.sha256()
+            with tar.extractfile(binary) as src, target.open("xb") as out:
+                while block := src.read(1 << 20):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("UV extraction deadline")
+                    sha.update(block)
+                    out.write(block)
+            target.chmod(0o755)
+            info["binary_sha256"] = sha.hexdigest()
+        record("uv-version")
+        version_file = root / "uv-version.txt"
+        with version_file.open("xb") as out:
+            # Inherit the bootstrap group so its watchdog also kills this executable.
+            code = subprocess.run([str(target), "--version"], timeout=min(30, deadline - time.monotonic()),
+                                  stdout=out, stderr=subprocess.STDOUT).returncode
+        info["returncode"] = code
+        if code:
+            raise RuntimeError("UV version command failed")
+        if version_file.stat().st_size > 256:
+            raise ValueError("unbounded UV version output")
+        version = version_file.read_text(encoding="utf-8").strip()
+        if version.split()[:2] != ["uv", UV["version"]]:
+            raise ValueError("UV version mismatch")
+        info.update(version_observed=version, complete=True)
+        record("uv-ready")
+    except BaseException as exc:
+        info["complete"] = False
+        info["diagnostic"] = diagnostic(exc)
+        save(output, {"uv_bootstrap": info})
+        raise
+    finally:
+        archive.unlink(missing_ok=True)
 
 
 def save(path, value):
@@ -149,26 +251,34 @@ def worker(root):
     output = root / "artifacts"
     error = None
     deadline = time.monotonic() + request["work_seconds"]
+    phase, code, detail = "uv-bootstrap", None, None
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     try:
         install = root / "installer"
-        commands = [[sys.executable, "-m", "venv", str(install)],
-                    [str(install / "bin/python"), "-m", "pip", "install", "uv==0.11.21"],
-                    [str(install / "bin/uv"), "sync", "--frozen", "--python", "3.12.15",
+        save(output / "runtime.json", {"uv_bootstrap": {"artifact": UV, "phase": phase, "complete": False}})
+        commands = [[sys.executable, str(root / "phase0/colab/e17_campaign_remote.py"),
+                     "--bootstrap-uv", str(root), str(deadline)],
+                    [str(install / "bin/uv"), "sync", "--frozen", "--python", UV["python"],
                      "--project", str(root / "phase0/code_pilot")],
                     [str(root / "phase0/code_pilot/.venv/bin/python"), str(root / "phase0/e17_vm.py"), str(root),
                      str(deadline)]]
         with (output / "controller.log").open("wb") as log:
-            for command in commands:
+            for phase, command in zip(("uv-bootstrap", "uv-sync", "controller"), commands):
                 available = deadline - time.monotonic()
-                if available <= 0 or run(command, seconds=min(600, available) if command != commands[-1] else available,
-                                         grace=5, deadline=deadline, stdout=log, stderr=subprocess.STDOUT):
-                    raise RuntimeError("bounded VM preparation/runtime failed")
+                if available <= 0:
+                    raise TimeoutError("VM preparation/runtime deadline")
+                code = run(command, seconds=min(600, available) if command != commands[-1] else available,
+                           grace=5, deadline=deadline, stdout=log, stderr=subprocess.STDOUT)
+                if code:
+                    raise RuntimeError(f"VM {phase} returned {code}")
     except BaseException as exc:
         error = type(exc).__name__
+        detail = diagnostic(exc)
     finally:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         state = {"request": request, "state": "complete" if error is None else "incomplete", "error": error}
+        if error is not None:
+            state.update(phase=phase, returncode=code, diagnostic=detail)
         save(output / "vm-status.json", state)
         files, total = {}, 0
         for name in sorted(artifacts(request["plan"])):
@@ -185,3 +295,8 @@ def worker(root):
 
 if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "--worker":
     worker(Path(sys.argv[2]))
+elif __name__ == "__main__" and len(sys.argv) == 4 and sys.argv[1] == "--bootstrap-uv":
+    try:
+        bootstrap_uv(Path(sys.argv[2]), float(sys.argv[3]))
+    except BaseException:
+        sys.exit(1)  # The bounded diagnostic is already durable in runtime.json.

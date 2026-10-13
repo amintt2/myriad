@@ -226,3 +226,35 @@ Un appel candidat jamais lancé pour `verification_budget` est accepté seulemen
 `graded`, `passed=false`, appel complet, isolation explicitement nulle, durée exactement zéro,
 backend et crochet connus, sans diagnostics d'exécution. Tous les appels lancés exigent le reçu
 exact. Cela conserve l'échec candidat sans le transformer en succès ou en erreur d'infrastructure.
+
+## Correctif technique après la première tentative DEV
+
+La première tentative réelle L4 du 13 octobre 2026 a échoué avant dataset, smoke officiel,
+serveur et modèle : le Python système lançant `venv` a reçu un retour 1 d'`ensurepip`.
+Sa cause interne reste inconnue. Les deux artefacts clos ont été récupérés et hashés ;
+la VM a été libérée avec absence et clôture confirmées. Aucun score E17 n'en découle.
+
+Le worker évite désormais cette dépendance initiale : archive autonome officielle UV 0.11.21,
+`uv-x86_64-unknown-linux-gnu.tar.gz`, 24 437 894 octets,
+SHA-256 `8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050`, depuis
+`https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz`.
+Seul le membre régulier `uv-x86_64-unknown-linux-gnu/uv` est écrit dans une cible neuve
+`installer/bin/uv`, après validation de tous les membres : chemins sortants, liens,
+doublons et fichiers spéciaux refusés, tailles bornées, aucun remplacement de cible.
+La version est contrôlée avant `uv sync --frozen --python 3.12.15` sur le lock inchangé.
+L'archive UV a donc une épingle préalable ; l'empreinte de son exécutable extrait reste une observation,
+comme celle du Python installé, dont la distribution n'est pas épinglée par empreinte.
+
+Téléchargement, extraction et version consomment une seule étape de 600 s au plus,
+dans la même échéance absolue fixée avant préparation ; lectures réseau limitées à 30 s.
+Aucun fallback ni retry automatique. Le runtime partiel conserve l'épingle, les phases,
+les observations et une trace d'erreur bornée ; le statut conserve phase et retour.
+En cas de réussite, ces métadonnées UV restent dans `runtime.json` et dans le runtime du manifeste.
+`provenance.json` conserve l'enveloppe exacte `models` exigée par le validateur commun.
+En cas d'échec, les fichiers déjà clos restent inventoriés comme incomplets.
+
+Cette correction est vérifiée uniquement avec des archives et machines synthétiques,
+sans téléchargement du binaire réel sur PC. Elle ne constitue pas une nouvelle observation Colab.
+R00, modèles, lock, budgets, transport et isolement sont conservés. Pour les admissions futures,
+le parent retient une réserve prudente de 0,40 unité pour les tentatives précédentes ;
+ce montant n'est pas un coût exact. Un nouvel essai réel reste à faire par le parent après audit et fusion.

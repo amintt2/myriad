@@ -28,7 +28,7 @@ spec.loader.exec_module(supervisor)
 import e17_vm
 
 
-def synthetic(request, mode="success"):
+def synthetic(request, mode="success", *, provenance=None, bootstrap=None):
     plan = request["plan"]
     receipt = {"isolation_ready": "ephemeral-vm-v1", "landlock_abi": None, "seccomp": "on",
                "namespaces": ["user", "mount", "pid", "net", "ipc", "uts"]}
@@ -41,7 +41,7 @@ def synthetic(request, mode="success"):
                  "sandbox_backend": "ephemeral-vm", "calls": [call]}
         smoke["tasks"].append({"task": task, "reference": {**grade, "passed": True},
                                "incorrect": {**grade, "passed": False}})
-    provenance = {"models": {name: {**info, "declared_at": "synthetic", "model": name, "alias": name,
+    if provenance is None: provenance = {"models": {name: {**info, "declared_at": "synthetic", "model": name, "alias": name,
         "endpoint_kind": "synthetic-loopback", "licence": "apache-2.0", "quantization": "Q8_0",
         "server": {k: v for k, v in plan["server"].items() if k != "assets"} |
                   {"artifact": campaign.ASSETS[0]["file"], "sha256": campaign.ASSETS[0]["sha256"]},
@@ -53,6 +53,7 @@ def synthetic(request, mode="success"):
              "system": "Linux", "machine": "x86_64"}
     runtime = {"sources": request["sources"], "sandbox_backend": "ephemeral-vm", "colab_image": image,
                "cuda_devices": "CUDA0: synthetic device", "library_path": "/synthetic/server:/usr/lib64-nvidia"}
+    if bootstrap is not None: runtime["uv_bootstrap"] = bootstrap
     dataset = e17_vm.dev_manifest(json.loads((ROOT / "code_pilot/tasks.json").read_text(encoding="utf-8")))
     manifest = {"request": request, "runtime": runtime, "execution_provenance": provenance,
                 "dataset_hash": campaign.digest(campaign.canonical(dataset)),
