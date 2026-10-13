@@ -147,6 +147,17 @@ une interruption laisse `complete=false`, éventuellement
 partielle n'est une note de campagne. Les traces gardent le comportement R00, y compris refus de soumission
 sans test officiel vert et traitement des réponses tronquées.
 
+Le budget est revérifié après création du client de santé, avant tout appel HTTP : une expiration devient
+`generation_timeout` après arrêt confirmé du serveur possédé. Le relais draine exactement la réponse tardive
+avant la demande suivante ; une panne reste bloquante et son type d'exception figure dans le diagnostic.
+Pendant le chargement, seuls le refus de connexion du serveur encore non joignable et les timeouts de santé
+sont réessayés dans le budget existant ; les autres erreurs de transport restent des pannes d'infrastructure.
+Ces contrats sont vérifiés par horloge, clients et processus factices, sans serveur ni accès réseau.
+Le worker BigCode enregistre aussi le module officiel dans `sys.modules` avant son exécution :
+`setUpModule` et `tearDownModule` s'appliquent, et leurs erreurs empêchent un verdict vert.
+La composition de ces deux correctifs reçoit une suite phase0 complète et un audit parent commun ;
+les preuves WSL indépendantes ne valent pas validation de l'interop Windows ni smoke officiel GPU.
+
 Le chemin Windows natif et les pipes ont été testés avec des processus et réponses synthétiques. La
 connexion réelle au modèle, l'allocation Vulkan à ce contexte, le smoke officiel sur cette combinaison et
 la mesure DEV attendent l'audit parent. BigCodeBench est raccordé techniquement en DEV seulement.

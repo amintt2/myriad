@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import json
 import math
@@ -157,11 +158,31 @@ class WindowsClient(SequentialClient):
                         raise TimeoutError("Windows sequential server loading exhausted the request budget")
                     try:
                         with httpx.Client(trust_env=False) as client:
+                            remaining = deadline - time.monotonic()
+                            if remaining <= 0:
+                                raise TimeoutError("Windows health client creation exhausted the request budget")
                             response = client.get(f"http://127.0.0.1:{port}/health",
-                                                  timeout=min(1, deadline - time.monotonic()))
+                                                  timeout=min(1, remaining))
                         if response.status_code == 200:
                             break
-                    except httpx.TransportError:
+                    except httpx.ConnectError as error:
+                        cause = error
+                        seen = set()
+                        # Prefer explicit causes; from None can leave the system error only in context.
+                        for _ in range(16):
+                            if id(cause) in seen or isinstance(cause, OSError):
+                                break
+                            seen.add(id(cause))
+                            next_cause = cause.__cause__ if cause.__cause__ is not None else cause.__context__
+                            if next_cause is None:
+                                break
+                            cause = next_cause
+                        else:
+                            raise  # More than 16 exception nodes is not a confirmed startup refusal.
+                        # A not-yet-listening owned server is expected during startup; other failures are not.
+                        if not isinstance(cause, OSError) or cause.errno not in (errno.ECONNREFUSED, 10061):
+                            raise
+                    except httpx.TimeoutException:
                         pass
                     time.sleep(min(.2, max(0, deadline - time.monotonic())))
                 self.client = self.client_factory(f"http://127.0.0.1:{port}/v1", "")
@@ -381,7 +402,8 @@ class PipeClient:
             self.accounting(result)  # A late response is drained only; it never supplies the next task's answer.
             if result.get("outcome") not in ("response", "generation_timeout"):
                 self.broken = True
-                raise RuntimeError("late stdio response reports infrastructure failure")
+                raise RuntimeError("late stdio response reports infrastructure failure: " +
+                                   str(result.get("exception_type")))
 
     def post(self, path, json, timeout):
         if path != "chat/completions" or json.get("model") not in (QWEN, GRANITE):

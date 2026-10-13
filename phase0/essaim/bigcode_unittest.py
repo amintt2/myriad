@@ -43,6 +43,7 @@ def worker(raw: str, fd: int) -> None:
             out["phase"] = "collection"
             try:
                 module = types.ModuleType("official")
+                sys.modules[module.__name__] = module
                 module.__dict__[cfg["entry_point"]] = function
                 text = Path("_official.py").read_text(encoding="utf-8")
                 exec(compile(text, "_official.py", "exec"), module.__dict__)
