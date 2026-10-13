@@ -1,6 +1,5 @@
 """Exclusive E12 supervisor. Every cloud operation goes through the versioned bash wrapper."""
 import argparse
-import fcntl
 import json
 import math
 import os
@@ -43,7 +42,10 @@ def log(message):
     print(time.strftime("%Y-%m-%d %H:%M:%S"), message, flush=True)
 
 
-def state(snapshot):
+def state(snapshot, plan="aa-1"):
+    if plan not in ("aa-1", "e16-1", "e16-mc"):
+        raise Failure("unsupported supervised plan", 65)
+    expected = {" ".join(j) for j in PLANS[plan]}
     if not isinstance(snapshot, dict) or snapshot.get("schema") != 1:
         raise Failure("invalid snapshot", 65)
     boot, jobs, diag = (snapshot.get(k) for k in ("bootstrap", "jobs", "diagnostics"))
@@ -54,15 +56,15 @@ def state(snapshot):
         raise Failure("bootstrap refused an existing campaign", 73)
     if step.startswith("ÉCHEC"):
         raise Failure("bootstrap failed")
-    if step != "lanceur en marche" or boot.get("plan") != "aa-1" or type(boot.get("pid")) is not int:
-        raise Failure("bootstrap did not acknowledge aa-1", 65)
+    if step != "lanceur en marche" or boot.get("plan") != plan or type(boot.get("pid")) is not int:
+        raise Failure("bootstrap did not acknowledge selected plan", 65)
     if not isinstance(diag, dict) or type(diag.get("launcher_alive")) is not bool:
         raise Failure("missing launcher liveness", 65)
     if jobs is None:
         if not diag["launcher_alive"]:
             raise Failure("launcher exited during downloads/preflight")
         return "downloads/preflight"
-    if not isinstance(jobs, dict) or set(jobs) != EXPECTED or not all(isinstance(v, str) for v in jobs.values()):
+    if not isinstance(jobs, dict) or set(jobs) != expected or not all(isinstance(v, str) for v in jobs.values()):
         raise Failure("incomplete or unexpected jobs state", 65)
     if any(v.startswith(("ÉCHEC", "annulé")) for v in jobs.values()):
         raise Failure("job failed or cancelled")
@@ -304,6 +306,8 @@ class Supervisor:
 
 
 def main():
+    import fcntl
+
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--gpu", choices=("auto", "L4", "A100", "H100", "T4"), default="auto")
     ap.add_argument("--budget-units", type=float, default=float(os.environ.get("DLLM_BUDGET_UNITS", "nan")))

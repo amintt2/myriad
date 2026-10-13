@@ -295,6 +295,7 @@ class WrapperTransfer(unittest.TestCase):
     def setup_root(self, root, mode, large=False):
         shutil.copytree(COLAB, root / "phase0" / "colab")
         shutil.copyfile(COLAB.parent / "colab_jobs.py", root / "phase0" / "colab_jobs.py")
+        shutil.copyfile(COLAB.parent / "e16_quant.py", root / "phase0" / "e16_quant.py")
         shutil.copyfile(COLAB.parent / "colab_bootstrap.py", root / "phase0" / "colab_bootstrap.py")
         data = root / "phase0" / "data"
         data.mkdir()

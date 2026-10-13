@@ -89,7 +89,7 @@ class Probe:
             raise TimeoutError("operation deadline exceeded")
         with tempfile.TemporaryFile() as output:
             code = run([sys.executable, str(HERE / "safe_cli.py"), *args],
-                       seconds=min(self.a.read_seconds if args[0] != "exec" else 60, available),
+                       seconds=min(self.operation_seconds(args), available),
                        grace=self.a.grace, deadline=self.deadline, stdout=output,
                        monitor=self.monitor if monitor else None,
                        preexec_fn=cli_signals,
@@ -101,6 +101,9 @@ class Probe:
         if code:
             raise RuntimeError(f"colab {args[0]}: exit {code}")
         return text
+
+    def operation_seconds(self, args):
+        return self.a.read_seconds if args[0] != "exec" else 60
 
     def session(self):
         return lifecycle.parse(self.cli(["sessions"]))["phase0"]
@@ -139,7 +142,7 @@ class Probe:
         self.check_receipt()
         current = self.session()
         if current is not None and self.owner is None:
-            if not self.new_confirmed or current["hardware"] != "L4":
+            if not self.new_confirmed or current["hardware"] != self.gpu:
                 raise PermissionError("allocation ambiguous: no stop authorized")
             self.owner = current
         if current is not None and current != self.owner:
@@ -170,6 +173,38 @@ class Probe:
             time.sleep(min(self.a.retry_seconds, max(0, self.deadline - time.monotonic())))
         raise TimeoutError("cleanup/accounting pending; receipt retained")
 
+    gpu = "L4"
+    plan = "e17-probe"
+
+    def prepare(self):
+        pass
+
+    def perform(self):
+        source = (HERE.parent / "essaim/local_linux.py").read_text(encoding="utf-8")
+        request = {"campaign_id": self.campaign, "allocation_id": self.pending["allocation_id"],
+                   "phase0": self.owner, "nonce": uuid.uuid4().hex,
+                   "sandbox_backend": getattr(self.a, "sandbox_backend", "strict"),
+                   "local_linux_sha256": hashlib.sha256(source.encode()).hexdigest()}
+        payload = (HERE / "e17_probe_remote.py").read_text(encoding="utf-8")
+        request["probe_sha256"] = hashlib.sha256(payload.encode()).hexdigest()
+        ephemeral_source = None
+        if getattr(self.a, "sandbox_backend", "strict") == "ephemeral-vm":
+            ephemeral_source = (HERE.parent / "essaim/ephemeral_vm.py").read_text(encoding="utf-8")
+            request.update(sandbox_backend="ephemeral-vm",
+                           ephemeral_vm_sha256=hashlib.sha256(ephemeral_source.encode()).hexdigest())
+        payload += ("\nprint('E17_PROBE ' + json.dumps("
+                    f"observe({request!r}, {source!r}, {ephemeral_source!r}), sort_keys=True))\n")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as script:
+            script.write(payload)
+            script.flush()
+            if self.reconcile() != self.owner:
+                raise ValueError("owned session absent before probe")
+            raw = self.cli(["exec", "-s", "phase0", "--timeout", "50", "-f", script.name], True)
+        lines = raw.strip().splitlines()
+        if len(lines) != 1 or not lines[0].startswith("E17_PROBE "):
+            raise ValueError("missing or duplicate probe acknowledgement")
+        return validate_result(json.loads(lines[0][10:]), request)
+
     def execute(self):
         result, error = None, None
         try:
@@ -178,13 +213,14 @@ class Probe:
             if self.session() is not None:
                 raise PermissionError("existing session refused")
             self.before = self.usage(False)
+            self.prepare()
             preflight(self.before, self.policy)
             self.pending = {"schema": 1, "status": "allocation-unconfirmed", "phase0": None,
                             "campaign_id": self.campaign, "allocation_id": uuid.uuid4().hex,
-                            "plan": "e17-probe", "usage_before": self.before, "budget_policy": self.policy}
+                            "plan": self.plan, "usage_before": self.before, "budget_policy": self.policy}
             lifecycle.save(self.a.receipt, self.pending)
             with defer_signals():
-                self.cli(["new", "-s", "phase0", "--gpu", "L4"])
+                self.cli(["new", "-s", "phase0", "--gpu", self.gpu])
                 self.new_confirmed = True
             lifecycle.save(self.a.receipt, {**self.pending, "allocation_returned": True})
             if self.reconcile() is None:
@@ -203,30 +239,7 @@ class Probe:
                 raise PermissionError("preexisting campaign: no execution or stop authorized")
             if snapshot.get("schema") != 1 or snapshot.get("campaign_present") is not False:
                 raise ValueError("snapshot absent or preexisting campaign")
-            source = (HERE.parent / "essaim/local_linux.py").read_text(encoding="utf-8")
-            request = {"campaign_id": self.campaign, "allocation_id": self.pending["allocation_id"],
-                       "phase0": self.owner, "nonce": uuid.uuid4().hex,
-                       "sandbox_backend": getattr(self.a, "sandbox_backend", "strict"),
-                       "local_linux_sha256": hashlib.sha256(source.encode()).hexdigest()}
-            payload = (HERE / "e17_probe_remote.py").read_text(encoding="utf-8")
-            request["probe_sha256"] = hashlib.sha256(payload.encode()).hexdigest()
-            ephemeral_source = None
-            if getattr(self.a, "sandbox_backend", "strict") == "ephemeral-vm":
-                ephemeral_source = (HERE.parent / "essaim/ephemeral_vm.py").read_text(encoding="utf-8")
-                request.update(sandbox_backend="ephemeral-vm",
-                               ephemeral_vm_sha256=hashlib.sha256(ephemeral_source.encode()).hexdigest())
-            payload += ("\nprint('E17_PROBE ' + json.dumps("
-                        f"observe({request!r}, {source!r}, {ephemeral_source!r}), sort_keys=True))\n")
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as script:
-                script.write(payload)
-                script.flush()
-                if self.reconcile() != self.owner:
-                    raise ValueError("owned session absent before probe")
-                raw = self.cli(["exec", "-s", "phase0", "--timeout", "50", "-f", script.name], True)
-            lines = raw.strip().splitlines()
-            if len(lines) != 1 or not lines[0].startswith("E17_PROBE "):
-                raise ValueError("missing or duplicate probe acknowledgement")
-            result = validate_result(json.loads(lines[0][10:]), request)
+            result = self.perform()
         except BaseException as exc:
             error = type(exc).__name__
         finally:
