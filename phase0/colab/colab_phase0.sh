@@ -109,7 +109,8 @@ case "${1:-}" in
     # local copies of earlier cloud results (checkpoints), so a new VM resumes instead of restarting
     for f in "$REPO"/phase0/results/mc_*_colab_*.jsonl "$REPO"/phase0/results/gen_*_colab_*.jsonl "$REPO"/phase0/results/solo_*_colab_*.jsonl "$REPO"/phase0/results/sot_*_colab_*.jsonl \
              "$REPO"/phase0/results/code_*_colab_*.jsonl "$REPO"/phase0/results/codeexec_*_colab_*.jsonl \
-             "$REPO"/phase0/results/aa_*_colab_*.jsonl "$REPO"/phase0/results/sciexec_*_colab_*.jsonl; do
+             "$REPO"/phase0/results/aa_*_colab_*.jsonl "$REPO"/phase0/results/sciexec_*_colab_*.jsonl \
+             "$REPO"/phase0/results/e18_*_colab_*.jsonl; do
       [[ "$f" = *.timing.jsonl ]] && continue
       checkpoint_allowed "$(basename "$f")" || continue
       if [ -e "$f" ] && [ -e "$f.meta.json" ]; then
@@ -158,7 +159,7 @@ case "${1:-}" in
     stage=$(mktemp -d)
     listing=$(printf '%s\n' "import glob, os" \
       "print('LISTE-OK')" \
-      "print('\n'.join(os.path.basename(f) for f in sorted(glob.glob('$REMOTE/mc_*_colab_*.jsonl') + glob.glob('$REMOTE/gen_*_colab_*.jsonl') + glob.glob('$REMOTE/solo_*_colab_*.jsonl') + glob.glob('$REMOTE/sot_*_colab_*.jsonl') + glob.glob('$REMOTE/code_*_colab_*.jsonl') + glob.glob('$REMOTE/codeexec_*_colab_*.jsonl') + glob.glob('$REMOTE/aa_*_colab_*.jsonl') + glob.glob('$REMOTE/sciexec_*_colab_*.jsonl'))))" \
+      "print('\n'.join(os.path.basename(f) for f in sorted(glob.glob('$REMOTE/mc_*_colab_*.jsonl') + glob.glob('$REMOTE/gen_*_colab_*.jsonl') + glob.glob('$REMOTE/solo_*_colab_*.jsonl') + glob.glob('$REMOTE/sot_*_colab_*.jsonl') + glob.glob('$REMOTE/code_*_colab_*.jsonl') + glob.glob('$REMOTE/codeexec_*_colab_*.jsonl') + glob.glob('$REMOTE/aa_*_colab_*.jsonl') + glob.glob('$REMOTE/sciexec_*_colab_*.jsonl') + glob.glob('$REMOTE/e18_*_colab_*.jsonl'))))" \
       | colab exec -s "$S" --timeout 60 | tr -d '\r')
     echo "$listing" | grep -q '^LISTE-OK$' || { echo "listing impossible"; exit 1; }
     status=0
@@ -179,7 +180,7 @@ if boot.get("campaign_id") != json.loads(sys.argv[2])["campaign_id"]:
 PY
       cp "$stage/e12_campaign_sources.json" "$stage/colab_status.json" "$stage/colab_bootstrap_status.json" "$dest/"
     fi
-    for f in $(echo "$listing" | grep -E '^(mc|gen|solo|sot|code|codeexec|aa|sciexec)_.*_colab_.*\.jsonl$'); do
+    for f in $(echo "$listing" | grep -E '^(mc|gen|solo|sot|code|codeexec|aa|sciexec|e18)_.*_colab_.*\.jsonl$'); do
       [[ "$f" = *.timing.jsonl ]] && continue
       checkpoint_allowed "$f" || continue
       if colab download -s "$S" "$REMOTE/$f" "$stage/$f" >/dev/null && \

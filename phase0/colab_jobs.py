@@ -559,5 +559,79 @@ def prepare_e16(jobs: list[tuple]):
         resolve_revision(m)
 
 
+# E18 (docs/14_e18_lean.md): Lean-checked proofs of miniF2F by a swarm of small open provers. Additive: the provers'
+# GGUF files live in e18_lean.PROVERS (none of the tables above changes). Kinds: e18-lean (e18_setup.py: Lean,
+# Mathlib, controls and oracle on the CPU, stage 0), e18-prove / e18-pilot (run_e18.py, one model and split, stage 1).
+# Their GPU reservation goes through the E16 hook below (run_job and colab/session_json.capacity dispatch the kinds of
+# E16_KINDS to e16_need), so that no shared function is edited.
+import e18_lean  # noqa: E402
+
+NO_MODEL = NO_MODEL + e18_lean.KINDS  # prepare_e18 downloads and checks their files itself
+STAGE.update(e18_lean.STAGES)
+PLANS["e18-1"] = e18_lean.plan()  # stage 0 Lean; stage 1: 3 small provers on dev and test, the reference on test
+PLANS["e18-pilot"] = e18_lean.plan(pilot=True)  # stage 0 Lean; stage 1: 20 dev problems, lengths and speeds
+E16_KINDS = E16_KINDS + e18_lean.KINDS
+_e16_need_before_e18 = e16_need
+
+
+def e16_need(kind: str, model: str, tag: str) -> int:  # noqa: F811  (extends the function above)
+    if kind in e18_lean.KINDS:
+        return e18_lean.reserve_gib(kind, model, tag)
+    return _e16_need_before_e18(kind, model, tag)
+
+
+def e18_lean_workers() -> int:
+    """Lean processes of one job: one per CPU left by llama-server, at most one per 6 GiB of available RAM."""
+    return max(2, min(8, (os.cpu_count() or 4) - 2, exec_workers(6)))
+
+
+_job_cmd_before_e18 = job_cmd
+
+
+def job_cmd(kind: str, model: str, split: str) -> list[str]:  # noqa: F811  (extends the function above)
+    if kind == "e18-lean":
+        return [sys.executable, "e18_setup.py", "--suffix", SUFFIX, "--workers", str(e18_lean_workers())]
+    if kind in ("e18-prove", "e18-pilot"):
+        spec, p = e18_lean.PROVERS[model], e18_lean.protocol(kind, model, split)
+        cmd = [sys.executable, "run_e18.py", "--model", model, "--gguf", str(spec.local(MODELS)), "--suffix",
+               p["suffix"], "--splits", split, "--samples", str(p["samples"]), "--chains", str(p["chains"]),
+               "--revisions", str(p["revisions"]), "--parallel", str(spec.slots), "--lean-workers",
+               str(e18_lean_workers()), "--oracle-suffix", SUFFIX]
+        return cmd + (["--n", str(p["n"])] if p["n"] else [])
+    return _job_cmd_before_e18(kind, model, split)
+
+
+_prepare_e16_before_e18 = prepare_e16
+
+
+def prepare_e16(jobs: list[tuple]):  # noqa: F811  (main calls it before any job: E16, then E18)
+    _prepare_e16_before_e18(jobs)
+    prepare_e18(jobs)
+
+
+def prepare_e18(jobs: list[tuple]):
+    """Download the provers' GGUF files of the plan, check them against the hashes pinned in e18_lean.PROVERS, pin
+    the models' tokenizer/config revisions, and fetch the miniF2F file (its hash is pinned too)."""
+    wanted = list(dict.fromkeys(m for k, m, _ in jobs if k in ("e18-prove", "e18-pilot")))
+    if not wanted and not any(j[0] == "e18-lean" for j in jobs):
+        return
+    sys.path.insert(0, str(HERE))
+    from essaim.common import resolve_revision
+    from essaim.results import file_identity
+    for m in wanted:
+        spec = e18_lean.PROVERS[m]
+        path = spec.local(MODELS)
+        if not path.exists():
+            r = sh([sys.executable, str(HERE / "fastdl.py"), spec.repo, spec.file, str(path.parent), "16"])
+            if r.returncode != 0:
+                raise RuntimeError(f"téléchargement {spec.file} : {r.stdout[-400:]} {r.stderr[-400:]}")
+        ident = file_identity(path)
+        if ident["sha256"] != spec.sha256 or ident["size"] != spec.size:
+            raise SystemExit(f"{spec.file} ne correspond pas à l'empreinte épinglée dans e18_lean.PROVERS : {ident}")
+        resolve_revision(m)
+    for split in e18_lean.SPLITS:
+        e18_lean.problems(split)
+
+
 if __name__ == "__main__":
     main()
