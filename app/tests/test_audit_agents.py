@@ -145,7 +145,7 @@ def test_dependency_results_keep_their_room():
 
 # ------------------------------------------------------------------ 6. deadline during the plan or the merge
 async def _slow_orchestrator_swarm(tmp_path, plan=PLAN_JSON):
-    s = await start_swarm(tmp_path)
+    s = await start_swarm(tmp_path, starter_credit=1_000_000.0)
     await s.add_node("fast", FakeEngine(MODELS["qwen"], agent_reply("fast", plan=plan), tokens=10), MODELS["qwen"])
     await s.add_node("slow", FakeEngine(MODELS["smollm"], agent_reply("slow", plan=plan), delay_s=6.0, tokens=10),
                      MODELS["smollm"], cls=tagged(["orchestrator"]))
@@ -188,7 +188,7 @@ async def test_auto_plan_with_reserved_id_gets_its_second_chance(tmp_path):
             return PLAN_JSON if "Invalid plan" in messages[-1]["content"] else bad
         return agent_reply("n", plan=PLAN_JSON)(messages)
 
-    s = await start_swarm(tmp_path)
+    s = await start_swarm(tmp_path, starter_credit=1_000_000.0)
     try:
         for i, fam in enumerate(["qwen", "smollm"]):
             await s.add_node(f"n{i}", FakeEngine(MODELS[fam], reply, tokens=10), MODELS[fam],

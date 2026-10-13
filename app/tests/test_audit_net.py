@@ -23,7 +23,8 @@ from .test_scale_v11 import MATH, fake_conn, sent_frames, signed_job
 
 @pytest.fixture
 def tracker(tmp_path):
-    t = Tracker(db_path=tmp_path / "t.sqlite", spot_rate=0.0, seed=3, receipt_grace_s=60.0)
+    t = Tracker(db_path=tmp_path / "t.sqlite", spot_rate=0.0, seed=3, receipt_grace_s=60.0,
+                free_daily_tokens=0.0)
     yield t
     t.ledger.close()
 

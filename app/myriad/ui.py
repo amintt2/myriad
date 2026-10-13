@@ -109,7 +109,8 @@ def make_ui_app(node=None, gateway=None, config: Config | None = None, home: Pat
             return {**base, "node": None, "balance": None, "history": [], "gateway": None, "default_k": 4}
         st = n.status()
         st["tokens_per_s"] = my_tokens_per_s(st.get("recent", []))
-        return {**base, "node": st, "balance": await gw.balance(), "history": gw.history[:20],
+        return {**base, "node": st, "balance": await gw.balance(), "account": await gw.account(),
+                "history": gw.history[:20],
                 "gateway": f"http://127.0.0.1:{rt.config.gateway_port}/v1", "default_k": gw.default_k}
 
     @app.get("/api/hardware")

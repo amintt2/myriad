@@ -82,7 +82,10 @@ class Swarm:
 
 
 async def start_swarm(tmp_path, **tracker_kw) -> Swarm:
-    kw = dict(starter_credit=1000.0, spot_rate=0.0, receipt_grace_s=60.0, sweep_s=0.05)
+    # The free tier (allowance, availability rewards) is off here: the economy tests count credits exactly.
+    # tests/test_free_tier.py turns it on.
+    kw = dict(starter_credit=1000.0, spot_rate=0.0, receipt_grace_s=60.0, sweep_s=0.05, free_daily_tokens=0.0,
+              avail_interval_s=0.0)
     kw.update(tracker_kw)
     tracker = Tracker(db_path=tmp_path / "tracker.sqlite", **kw)
     port = free_port()

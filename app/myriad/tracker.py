@@ -86,9 +86,11 @@ from . import canary as canaries
 from .crypto import Identity, account_authorized, pubkey_matches
 from .e2e import E2EError, dispute_session, kx_problem, open_result, seal_job, sealed_size
 from .fusion import FORMAT_INSTRUCTIONS, detect_task_hint, extract_answer
-from .ledger import Ledger
+from .ledger import AVAIL_FULL_PASSES, FREE_AGE_FULL_S, Ledger
 from .netem import WanDelay
-from .priors import MILLI, beta_mean, credit_factor, family_of, prior_accuracy, trusted_params
+from .priors import (AVAIL_CAP_FLOOR, AVAIL_DAILY_CAP, AVAIL_FACTOR_MAX, AVAIL_INTERVAL_S, AVAIL_TYPICAL_TOKENS,
+                     FREE_DAILY_TOKENS, FREE_FLOOR, MILLI, beta_mean, credit_factor, family_of, prior_accuracy,
+                     trusted_params)
 from .protocol import (MAX_FRAME_BYTES, MAX_POLICY_IDS, MAX_PROMPT_CHARS, Assigned, Cancel, Challenge, Dispute, ErrorFrame,
                        Hello, Job, JobError, JobFrame, JobResult, KxFrame, NodeInfo, NodeReport, PeerCard, Ping, Pong,
                        ReceiptFrame, Reserve, ResultFrame, Route, SealedJob, SealedJobFrame, SealedResult,
@@ -121,6 +123,11 @@ CANARY_DELAY_S = (0.5, 8.0)  # a canary leaves this long after the real job it i
 CANARY_RETRIES = 4  # a canary for a busy peer is postponed this many times before it is dropped
 TRUNCATION_CHARS_PER_TOKEN = 1.0  # a "length" answer shorter than this per allowed token was not cut short
 INCONCLUSIVE_LIMIT = 3  # cut-short audits of one peer before one counts as a disagreement
+# Header of an availability canary: drawn among plausible request headers. The canary is paid like any job
+# (tokens x factor), so max_tokens also bounds what one canary can pay.
+AVAIL_MAX_TOKENS = (128, 192, 256)
+AVAIL_DEADLINES_MS = (60_000, 120_000)
+ALLOWANCE_CACHE_S = 30.0
 REPORT_WINDOW_S = 30 * 86400
 REPORT_FLAG_SCORE = 3.0  # weighted score from which a node is deprioritised (never banned)
 REPORT_MIN_REPORTERS = 3
@@ -174,6 +181,8 @@ class CanaryPair:
     reasons: dict = field(default_factory=dict)  # job id -> finish_reason
     expected: str | None = None  # the known answer (used when there is no checker)
     jobs: list = field(default_factory=list)  # TrackedJob of each copy
+    avail: bool = False  # an availability canary: paid within the node's daily cap, only if answered right
+    outcome: str | None = None  # availability canary: "pass", "fail" or "inconclusive"
 
 
 async def read_limited(request: Request, limit: int) -> bytes:
@@ -360,7 +369,8 @@ class Tracker:
                  peers_snapshot_s: float = 3.0, release_repo: str | None = None, release_poll_s: float = 600.0,
                  release_http=None, landing: bool = True, public_url: str | None = None,
                  ban_file: str | Path | None = None, canary_delay_s: tuple = CANARY_DELAY_S,
-                 max_overdraft: float | None = None):
+                 max_overdraft: float | None = None, free_daily_tokens: float = FREE_DAILY_TOKENS,
+                 avail_interval_s: float = AVAIL_INTERVAL_S, avail_daily_cap: float = AVAIL_DAILY_CAP):
         self.landing = landing  # serve the public landing page at / (myriad/landing.py)
         self.public_url = public_url  # honeytoken URLs and e-mail domain (none without it)
         self.ban_file = Path(ban_file) if ban_file else None
@@ -386,6 +396,12 @@ class Tracker:
         # max_inflight jobs. (Committing each job's MAXIMUM cost at admission would refuse ordinary parallel
         # requests: k jobs of 512 tokens already exceed the starter credit.)
         self.max_overdraft = int(round((max_overdraft or 0.0) * MILLI))
+        # Free tier: a daily allowance per account (scaled by its standing), and rewards for serving nodes
+        # that are online and pass availability canaries (0 disables either).
+        self.free_daily = int(round(max(0.0, free_daily_tokens) * MILLI))
+        self.avail_interval_s = max(0.0, avail_interval_s)
+        self.avail_daily_cap = int(round(max(0.0, avail_daily_cap) * MILLI))
+        self._allow: dict[str, tuple[int, float]] = {}  # account -> (allowance in thousandths, computed at)
         self._committed: Counter = Counter()
         self._retained: Counter = Counter()  # jobs kept in self.jobs, per requesting account
         self._groups_of: Counter = Counter()  # request groups alive, per account
@@ -539,6 +555,16 @@ class Tracker:
             if b is None:
                 raise HTTPException(404, "compte inconnu")
             return {"node_id": node_id, "balance": b}
+
+        @app.get("/v1/account/{node_id}")
+        async def account(node_id: str, ts: int | None = None, sig: str | None = None):
+            """Balance, free allowance left today, in-flight cap and availability earnings of an account,
+            for its owner only (query signed with the account's key, like /v1/balance)."""
+            if not account_authorized(node_id, self.ledger.pubkey(node_id), ts, sig):
+                raise HTTPException(403, "requête signée par le titulaire du compte attendue")
+            if self.ledger.balance(node_id) is None:
+                raise HTTPException(404, "compte inconnu")
+            return self.account_view(node_id)
 
         @app.get("/v1/ledger")
         async def ledger(limit: int = 50):
@@ -1123,6 +1149,7 @@ class Tracker:
         if info.model:
             self._reindex(conn)
             self._schedule_ping(conn, self.rng.uniform(0.2, 1.0))  # the first ping tells an essaim/1.1 node
+            self._schedule_avail(conn, first=True)
         log.info("node %s connected (%s)", info.node_id[:8], info.model or "client")
         try:
             while not conn.closed:
@@ -1326,7 +1353,10 @@ class Tracker:
         if job_id in self.jobs or self.ledger.has_job(job_id):
             return "duplicate_job"
         bal = self.ledger.balance_milli(req.node_id)
-        if bal is None or bal < 0 or bal - self._committed.get(req.node_id, 0) < -self.max_overdraft:
+        if bal is None:
+            return "insufficient_credits"
+        bal += self.free_left_milli(req.node_id)  # what the free daily allowance still covers counts as balance
+        if bal < 0 or bal - self._committed.get(req.node_id, 0) < -self.max_overdraft:
             return "insufficient_credits"
         if req.submitted >= self._inflight_cap(req) or self._retained.get(req.node_id, 0) >= MAX_RETAINED_PER_ACCOUNT:
             return "too_many_jobs"
@@ -1348,6 +1378,76 @@ class Tracker:
         cap = base + int((self.max_inflight - base) * w)
         req._cap = (cap, now)
         return cap
+
+    # ---------- free tier: standing, daily allowance, availability rewards ----------
+    def _age_factor(self, node_id: str, now: float) -> float:
+        created = self.ledger.created_at(node_id)
+        return 0.0 if created is None else max(0.0, min(1.0, (now - created) / FREE_AGE_FULL_S))
+
+    def standing(self, node_id: str, now: float | None = None) -> tuple[float, float]:
+        """(account age factor, verified availability factor), each in [0, 1]. Availability is verified by
+        the availability canaries the node passed over the last 3 days (24 make it full); a node that failed
+        canaries has none."""
+        now = time.time() if now is None else now
+        if self.ledger.avail_blocked(node_id, now):
+            return self._age_factor(node_id, now), 0.0
+        passes = self.ledger.avail_passes(node_id, now)
+        return self._age_factor(node_id, now), min(1.0, passes / AVAIL_FULL_PASSES)
+
+    def free_allowance_milli(self, node_id: str) -> int:
+        """The account's free allowance per day: free_daily_tokens x (floor + (1 - floor) x age x verified
+        availability). A brand-new account, or one whose availability nobody has verified, gets the floor (5 %);
+        an account that has been serving reliably for 3 days gets all of it. Cached for a few seconds."""
+        if self.free_daily <= 0 or node_id in self.banned:
+            return 0
+        now = time.monotonic()
+        hit = self._allow.get(node_id)
+        if hit is not None and now - hit[1] < ALLOWANCE_CACHE_S:
+            return hit[0]
+        age, avail = self.standing(node_id)
+        value = int(self.free_daily * (FREE_FLOOR + (1.0 - FREE_FLOOR) * age * avail))
+        if len(self._allow) > 20_000:
+            self._allow.clear()
+        self._allow[node_id] = (value, now)
+        return value
+
+    def free_left_milli(self, node_id: str) -> int:
+        allowance = self.free_allowance_milli(node_id)
+        return max(0, allowance - self.ledger.free_used(node_id)) if allowance else 0
+
+    def _avail_cap(self, node_id: str, model: str | None, params_b: float | None) -> tuple[int, float]:
+        """(daily cap in thousandths, credit factor) of the availability canaries of a node serving `model`:
+        the cap is scaled by the (capped) credit factor of its model and by its account age (a quarter on
+        the first day, full after 3 days)."""
+        factor = min(AVAIL_FACTOR_MAX, credit_factor(trusted_params(model, params_b)))
+        age = self._age_factor(node_id, time.time())
+        return int(self.avail_daily_cap * factor * (AVAIL_CAP_FLOOR + (1.0 - AVAIL_CAP_FLOOR) * age)), factor
+
+    def account_view(self, node_id: str) -> dict:
+        """What the owner of an account sees: balance, free allowance left today, inflight cap and the
+        availability earnings. The availability figures only count completed hours (see Ledger): a peer
+        that polls its own account cannot tell which job it just served was a canary."""
+        now = time.time()
+        conn = self.conns.get(node_id)
+        allowance = self.free_allowance_milli(node_id)
+        used = self.ledger.free_used(node_id, now)
+        paid, passed = self.ledger.avail_visible(node_id, now)
+        age, avail = self.standing(node_id, now)
+        serving = conn is not None and bool(conn.info.model)
+        cap, factor = self._avail_cap(node_id, conn.info.model, conn.info.params_b) if serving else (0, 0.0)
+        blocked = self.ledger.avail_blocked(node_id, now)
+        per_day = int(86400 / self.avail_interval_s) if self.avail_interval_s > 0 else 0
+        usual = int(per_day * AVAIL_TYPICAL_TOKENS * factor * MILLI)  # what a day of canaries usually pays
+        est = 0 if (not serving or blocked or node_id in self.banned) else min(cap, usual)
+        return {"node_id": node_id, "balance": self.ledger.balance(node_id),
+                "free": {"daily": allowance / MILLI, "used_today": used / MILLI,
+                         "left_today": max(0, allowance - used) / MILLI, "age_factor": round(age, 3),
+                         "availability_factor": round(avail, 3),
+                         "resets_in_s": int(max(0.0, 86400 - (now % 86400)))},
+                "availability": {"serving": serving, "blocked": blocked, "earned_24h": paid / MILLI,
+                                 "passed_24h": passed, "estimated_daily": est / MILLI, "max_daily": cap / MILLI,
+                                 "interval_s": self.avail_interval_s},
+                "inflight_cap": self._inflight_cap(conn) if conn is not None else self.new_account_inflight}
 
     def _commit(self, tj: TrackedJob, amount: int) -> None:
         """Set the credits this job holds on its requester's account (see max_overdraft)."""
@@ -1589,11 +1689,14 @@ class Tracker:
             return  # late duplicate, deadline passed or already failed
         sealed = isinstance(res, SealedResult)
         if sealed != tj.sealed:
+            self._avail_cheat(tj)
             return self._fail(tj, "bad_result_kind")
         if not res.verify(node.info.pubkey):
             node.send(ErrorFrame(error=f"bad_signature: {res.job_id}"))
+            self._avail_cheat(tj)
             return self._fail(tj, "bad_result_signature")
         if res.model != tj.model:
+            self._avail_cheat(tj)
             return self._fail(tj, "model_mismatch")
         # Self-reported token counts are bounded by the request and by the text actually returned (for
         # an encrypted result: by its padded size, all the tracker can see).
@@ -1634,11 +1737,49 @@ class Tracker:
         lo, hi = self.canary_delay_s
         self._schedule(time.monotonic() + self.rng.uniform(lo, hi), "canary", (tj.target, tmpl))
 
+    def _schedule_avail(self, c: Conn, first: bool = False) -> None:
+        """Availability canaries: a serving node gets one every ~avail_interval_s even when no user job
+        arrives, so that its availability is verified and paid (see _canary_result). One chain per
+        connection: a timer whose connection is gone, or replaced, ends it."""
+        if self.avail_interval_s <= 0 or not c.info.model:
+            return
+        delay = self.avail_interval_s * (self.rng.uniform(0.2, 1.0) if first else self.rng.uniform(0.75, 1.25))
+        tmpl = {"avail": True, "conn": c, "max_tokens": self.rng.choice(AVAIL_MAX_TOKENS),
+                "deadline_ms": self.rng.choice(AVAIL_DEADLINES_MS), "bucket": 0}
+        self._schedule(time.monotonic() + delay, "canary", (c.node_id, tmpl))
+
+    def _avail_failed(self, node_id: str, hard: bool = False) -> None:
+        """A failed availability canary (wrong answer, or one that does not open or verify): counted
+        against the node; `hard` failures (cheating-like) block it for a day."""
+        self.ledger.avail_fail(node_id, time.time(), hard=hard)
+        self._allow.pop(node_id, None)
+        self.canary_stats["avail_failed"] += 1
+
+    def _avail_cheat(self, tj: TrackedJob) -> None:
+        """An availability canary answered with a bad signature, kind or model (before any decryption)."""
+        if tj.canary is not None and tj.canary[0].avail:
+            self._avail_failed(tj.target, hard=True)
+
     def _run_canary(self, target_id: str, tmpl: dict) -> None:
         t = self.conns.get(target_id)
+        avail = bool(tmpl.get("avail"))
+        if avail:
+            if t is None or t is not tmpl.get("conn") or not self._current(t):
+                return  # the node left, or reconnected (its new connection has its own chain)
+            if not tmpl.get("attempt"):
+                self._schedule_avail(t)
         if t is None or not self._current(t) or not t.kx_ok():
             self.canary_stats["skipped"] += 1
             return
+        if avail:  # nothing is sent to a node that cannot earn from it: banned, blocked, or at its daily cap
+            now = time.time()
+            cap, _ = self._avail_cap(target_id, t.info.model, t.info.params_b)
+            if target_id in self.banned or self.ledger.avail_blocked(target_id, now):
+                self.canary_stats["avail_withheld"] += 1
+                return
+            if self.ledger.avail_paid_today(target_id, now) >= cap:
+                self.canary_stats["avail_capped"] += 1
+                return
         if self._tier(t) is None:
             # Busy (or paused): the audit is postponed, not dropped, so that a peer cannot dodge it by
             # holding its slots during the canary window (Codex review).
@@ -1651,10 +1792,12 @@ class Tracker:
                 self.canary_stats["skipped"] += 1
             return
         pool = self._pools.get(t.info.model)
-        checker = self._spot_checker(pool, t.info.gguf, {target_id}, e2e=True) if pool is not None else None
-        if checker is None:  # no other peer with this model file: the known answer is the reference
+        # An availability canary is judged by the known answer alone (one job, no second peer).
+        checker = (self._spot_checker(pool, t.info.gguf, {target_id}, e2e=True)
+                   if pool is not None and not avail else None)
+        if checker is None and not avail:  # no other peer with this model file: the known answer is the reference
             self.canary_stats["no_checker"] += 1
-        pair = CanaryPair(params=canaries.draw(self.rng))
+        pair = CanaryPair(params=canaries.draw(self.rng), avail=avail)
         seed = self.rng.randrange(2**31 - 1)
         for node in ((t, checker) if checker is not None else (t,)):
             tokens = canaries.honeytokens(self.public_url, pair.params["name"])
@@ -1692,16 +1835,24 @@ class Tracker:
             pair.texts[jid] = None
             self.canary_stats["undecryptable"] += 1
             self._record_spot(tj.model, [(tj.target, tj.model)], False, baseline=False)  # this peer only
+            if pair.avail:
+                self._avail_failed(node.node_id, hard=True)
             return False
         if len(pair.jobs) == 1:  # no checker for this model file: the known answer decides, for this peer only
             if pair.reasons[jid] == "length":
                 self.canary_stats["inconclusive"] += 1
                 self._inconclusive_by(tj.target, tj.model)
+                pair.outcome = "inconclusive"  # paid like any answer, but not counted as a pass
                 return True
             got = extract_answer(pair.texts[jid], "math")
             ok = got is not None and got == pair.expected
             self.canary_stats["known_ok" if ok else "known_wrong"] += 1
             self._record_spot(tj.model, [(tj.target, tj.model)], ok, baseline=False)
+            if pair.avail:
+                pair.outcome = "pass" if ok else "fail"
+                if not ok:  # a wrong availability canary is not paid and counts against the node
+                    self._avail_failed(node.node_id)
+                    return False
             return True
         if len(pair.texts) < 2 or any(v is None for v in pair.texts.values()):
             return True
@@ -1818,9 +1969,15 @@ class Tracker:
         with the same kind as a real job so that the public ledger does not tell canaries apart."""
         amount = int(round(tj.tokens * tj.factor * MILLI))
         self.ledger.settle(tj.job.job_id, None if minted else tj.requester, tj.target, tj.model, tj.tokens, amount,
-                           kind, receipt=receipt, result=tj.result.model_dump(mode="json"))
+                           kind, receipt=receipt, result=tj.result.model_dump(mode="json"),
+                           free_cap=0 if minted else self.free_allowance_milli(tj.requester))
         tj.settled = True
         self._commit(tj, 0)
+        if tj.canary is not None and tj.canary[0].avail and minted:
+            self.ledger.avail_accrue(tj.target, time.time(), amount, tj.canary[0].outcome == "pass")
+            self._allow.pop(tj.target, None)
+            self.canary_stats["avail_passed"] += tj.canary[0].outcome == "pass"
+            self.canary_stats["avail_paid_milli"] += amount
         if tj.canary is None:
             self._strip(tj)
 

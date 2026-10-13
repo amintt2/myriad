@@ -40,7 +40,25 @@ CREATE INDEX IF NOT EXISTS reports_node_idx ON reports(node_id, ts);
 CREATE TABLE IF NOT EXISTS honeytokens (token TEXT PRIMARY KEY, node_id TEXT NOT NULL, job_id TEXT NOT NULL,
   kind TEXT NOT NULL, ts REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS sightings (token TEXT NOT NULL, node_id TEXT NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS free_use (node_id TEXT NOT NULL, day INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (node_id, day));
+CREATE TABLE IF NOT EXISTS avail (node_id TEXT NOT NULL, hour INTEGER NOT NULL, paid INTEGER NOT NULL DEFAULT 0,
+  passed INTEGER NOT NULL DEFAULT 0, failed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (node_id, hour));
+CREATE TABLE IF NOT EXISTS avail_fail (node_id TEXT PRIMARY KEY, ts REAL NOT NULL);
 """
+DAY_S = 86400
+HOUR_S = 3600
+FREE_AGE_FULL_S = 3 * DAY_S  # an account's free allowance and availability reward ramp up over 3 days
+AVAIL_FULL_PASSES = 24  # passed availability canaries over 3 days that make an account's availability "verified"
+AVAIL_FAIL_BAN_S = DAY_S  # a failed canary withholds availability rewards and most of the allowance for a day
+
+
+def day_of(ts: float) -> int:
+    return int(ts // DAY_S)
+
+
+def hour_of(ts: float) -> int:
+    return int(ts // HOUR_S)
 REPORT_AGE_FULL_S = 7 * 86400  # a reporter's account weighs fully after a week...
 REPORT_SPENT_FULL = 50.0  # ...and once it has spent this many credits on other nodes' work
 
@@ -54,7 +72,13 @@ class Ledger:
         self.db.row_factory = sqlite3.Row
         if self.path != ":memory:":
             self.db.execute("PRAGMA journal_mode=WAL")
+        # A development version of the availability table (per day, with pending rewards) was never released.
+        if "hour" not in {r["name"] for r in self.db.execute("PRAGMA table_info(avail)")} and                 {r["name"] for r in self.db.execute("PRAGMA table_info(avail)")}:
+            self.db.execute("DROP TABLE avail")
         self.db.executescript(SCHEMA)
+        cols = {r["name"] for r in self.db.execute("PRAGMA table_info(ledger)")}
+        if "free" not in cols:  # credits of this settlement paid by the free daily allowance (not the balance)
+            self.db.execute("ALTER TABLE ledger ADD COLUMN free INTEGER NOT NULL DEFAULT 0")
         self.starter = int(round(starter_credit * MILLI))
         self._lock = threading.Lock()
 
@@ -107,17 +131,24 @@ class Ledger:
 
     # ---------- settlement ----------
     def settle(self, job_id: str, requester_id: str | None, node_id: str, model: str, tokens: int, amount: int,
-               kind: str, receipt: dict | None = None, result: dict | None = None) -> bool:
+               kind: str, receipt: dict | None = None, result: dict | None = None, free_cap: int = 0) -> bool:
         """Credit `node_id` and debit `requester_id` (None: minted by the network, e.g. spot checks).
+        `free_cap`: the requester's free daily allowance (thousandths); the part of `amount` that fits in
+        what it has not used today is paid by the network (minted) instead of debited from the balance.
         A job id is settled at most once; returns False if it already was."""
+        now = time.time()
         with self._lock:
             self.db.execute("BEGIN IMMEDIATE")
             try:
+                free = 0
+                day = day_of(now)
+                if requester_id is not None and requester_id != node_id and free_cap > 0:
+                    free = min(amount, max(0, free_cap - self._free_used(requester_id, day)))
                 cur = self.db.execute(
-                    "INSERT OR IGNORE INTO ledger(ts, job_id, requester_id, node_id, model, tokens, amount, kind, receipt, result)"
-                    " VALUES (?,?,?,?,?,?,?,?,?,?)",
-                    (time.time(), job_id, requester_id, node_id, model, tokens, amount, kind,
-                     json.dumps(receipt) if receipt else None, json.dumps(result) if result else None))
+                    "INSERT OR IGNORE INTO ledger(ts, job_id, requester_id, node_id, model, tokens, amount, kind, "
+                    "receipt, result, free) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (now, job_id, requester_id, node_id, model, tokens, amount, kind,
+                     json.dumps(receipt) if receipt else None, json.dumps(result) if result else None, free))
                 if cur.rowcount != 1:
                     self.db.execute("ROLLBACK")
                     return False
@@ -125,7 +156,11 @@ class Ledger:
                     self.db.execute("UPDATE accounts SET balance = balance + ? WHERE node_id=?", (amount, node_id))
                     if requester_id is not None:
                         self.db.execute("UPDATE accounts SET balance = balance - ? WHERE node_id=?",
-                                        (amount, requester_id))
+                                        (amount - free, requester_id))
+                        if free:
+                            self.db.execute("INSERT INTO free_use(node_id, day, used) VALUES (?,?,?) "
+                                            "ON CONFLICT(node_id, day) DO UPDATE SET used = used + excluded.used",
+                                            (requester_id, day, free))
                 self.db.execute("INSERT OR IGNORE INTO node_stats(node_id) VALUES (?)", (node_id,))
                 self.db.execute("UPDATE node_stats SET jobs_ok = jobs_ok + 1 WHERE node_id=?", (node_id,))
                 self.db.execute("COMMIT")
@@ -133,6 +168,68 @@ class Ledger:
             except BaseException:
                 self.db.execute("ROLLBACK")
                 raise
+
+    # ---------- free allowance and availability rewards ----------
+    def _free_used(self, node_id: str, day: int) -> int:
+        r = self.db.execute("SELECT used FROM free_use WHERE node_id=? AND day=?", (node_id, day)).fetchone()
+        return int(r["used"]) if r else 0
+
+    def free_used(self, node_id: str, now: float | None = None) -> int:
+        """Thousandths of the free daily allowance this account has used today (UTC day)."""
+        return self._free_used(node_id, day_of(time.time() if now is None else now))
+
+    def created_at(self, node_id: str) -> float | None:
+        r = self.db.execute("SELECT created_at FROM accounts WHERE node_id=?", (node_id,)).fetchone()
+        return r["created_at"] if r else None
+
+    # Availability bookkeeping is per UTC hour. What an account can SEE of it (the allowance's availability
+    # factor, the figures of GET /v1/account) only counts completed hours: a node that polls its account
+    # cannot tell which job was a canary from a counter that moves right after it.
+    def avail_passes(self, node_id: str, now: float, days: int = 3) -> int:
+        """Availability canaries this node passed during the completed hours of the last `days` days."""
+        h = hour_of(now)
+        r = self.db.execute("SELECT COALESCE(SUM(passed), 0) AS n FROM avail WHERE node_id=? AND hour>=? AND hour<?",
+                            (node_id, h - 24 * days, h)).fetchone()
+        return int(r["n"])
+
+    def avail_paid_today(self, node_id: str, now: float) -> int:
+        """Thousandths paid for availability canaries since the start of the UTC day (the daily cap's meter)."""
+        r = self.db.execute("SELECT COALESCE(SUM(paid), 0) AS n FROM avail WHERE node_id=? AND hour>=?",
+                            (node_id, day_of(now) * 24)).fetchone()
+        return int(r["n"])
+
+    def avail_visible(self, node_id: str, now: float) -> tuple[int, int]:
+        """(thousandths paid, canaries passed) over the last 24 completed hours: what the owner is shown."""
+        h = hour_of(now)
+        r = self.db.execute("SELECT COALESCE(SUM(paid), 0) AS p, COALESCE(SUM(passed), 0) AS n FROM avail "
+                            "WHERE node_id=? AND hour>=? AND hour<?", (node_id, h - 24, h)).fetchone()
+        return int(r["p"]), int(r["n"])
+
+    def avail_blocked(self, node_id: str, now: float) -> bool:
+        """No availability canaries, and only the floor of the free allowance, for a node that cheated or
+        failed canaries: an answer that does not open or is badly signed blocks it for a day; wrong answers
+        block it once they are neither rare nor a minority (3 or more over 2 days, and 1 in 4 or more)."""
+        r = self.db.execute("SELECT ts FROM avail_fail WHERE node_id=?", (node_id,)).fetchone()
+        if r is not None and now - r["ts"] < AVAIL_FAIL_BAN_S:
+            return True
+        r = self.db.execute("SELECT COALESCE(SUM(failed), 0) AS f, COALESCE(SUM(passed), 0) AS p FROM avail "
+                            "WHERE node_id=? AND hour>?", (node_id, hour_of(now) - 48)).fetchone()
+        return r["f"] >= 3 and r["f"] * 4 >= r["f"] + r["p"]
+
+    def avail_fail(self, node_id: str, now: float, hard: bool = False) -> None:
+        """A failed availability canary: `hard` (cheating-like) blocks for a day, else it is counted."""
+        if hard:
+            self.db.execute("INSERT OR REPLACE INTO avail_fail(node_id, ts) VALUES (?,?)", (node_id, now))
+        else:
+            self.db.execute("INSERT INTO avail(node_id, hour, failed) VALUES (?,?,1) "
+                            "ON CONFLICT(node_id, hour) DO UPDATE SET failed = failed + 1", (node_id, hour_of(now)))
+
+    def avail_accrue(self, node_id: str, now: float, paid: int, passed: bool) -> None:
+        """An availability canary was paid `paid` thousandths (the ordinary payment of its job: the ledger
+        row is a normal receipt, so peers cannot tell it from a real job); `passed`: its answer was right."""
+        self.db.execute("INSERT INTO avail(node_id, hour, paid, passed) VALUES (?,?,?,?) "
+                        "ON CONFLICT(node_id, hour) DO UPDATE SET paid = paid + excluded.paid, "
+                        "passed = passed + excluded.passed", (node_id, hour_of(now), paid, 1 if passed else 0))
 
     def recent(self, limit: int = 50) -> list[dict]:
         rows = self.db.execute("SELECT ts, job_id, requester_id, node_id, model, tokens, amount, kind FROM ledger"

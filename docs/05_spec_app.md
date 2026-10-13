@@ -153,6 +153,102 @@ Fonction **`update`** (mises à jour de l'app, ajout compatible, même `protocol
 - Tout est journalisé avec des reçus signés, pour qu'une v2 puisse remplacer le registre central par une
   vérification entre pairs.
 
+### Usage gratuit (quota quotidien et récompense de disponibilité)
+
+**Problème de départ.** Avec le seul crédit de départ (1000), un compte neuf ne payait qu'un millier de
+jetons d'un modèle de 2 G : un run de sous-agents (plusieurs sous-tâches, k candidats chacune) commençait
+puis s'arrêtait en route, faute de crédits. Trois causes, toutes reproduites dans `tests/test_free_tier.py` :
+
+1. **Crédits épuisés en cours de route** (`insufficient_credits`) : le coût réel (jetons × facteur) dépasse
+   le solde, et le traqueur ne refuse un job que lorsque le solde est déjà négatif.
+2. **Plafond de jobs en vol d'un compte neuf** (`NEW_ACCOUNT_INFLIGHT` = 8) : 6 sous-tâches × k = 2 font
+   12 jobs d'un coup ; les 4 derniers recevaient `too_many_jobs`, que la passerelle ne remplace pas, et leurs
+   sous-tâches échouaient.
+3. **Pairs occupés plus longtemps que la fenêtre de reprise** (7,5 s fixes) : la sous-tâche abandonnait
+   avec `no_peers` alors que les pairs étaient seulement occupés.
+
+**Correctifs côté passerelle et sous-agents.**
+
+- La passerelle connaît le plafond de jobs en vol de son compte (`GET /v1/account/{id}`) et fait **attendre
+  dans une file FIFO** les requêtes au-delà (`_Slots`) : `too_many_jobs` ne tue plus une sous-tâche (si le
+  traqueur et la file divergent un instant, la sous-tâche attend et redemande). Une requête de chat qui
+  attend plus que son délai reçoit 429.
+- Une sous-tâche dont les pairs sont tous occupés attend **jusqu'à la date limite du run** (pauses de 0,5 à
+  2 s) ; elle n'échoue tout de suite que si personne ne sert ce modèle ou cette famille.
+- **On ne lance pas ce qui ne peut pas finir.** Avant le départ du premier job, `AgentRun.check_funds`
+  estime le coût (somme des `max_tokens × k` des sous-tâches, plus la fusion, bornée par le budget de jetons
+  du run, × le facteur moyen des pairs atteignables, × 0,5 de remplissage typique) et le compare à
+  *solde + quota gratuit restant*. Sinon : refus HTTP 402 (`insufficient_credits`) avec l'estimation et les
+  options (moins de candidats k, moins de jetons par sous-tâche avec une valeur suggérée, moins de
+  sous-tâches, mode local, attendre ou servir le réseau). Un plan automatique est vérifié une fois écrit
+  (le run se termine alors en statut `refused`). L'interface affiche le même message.
+- Si les crédits manquent malgré tout en cours de route (l'estimation est typique, pas un maximum), le run
+  ne démarre plus rien, **garde les résultats obtenus** (statut `partial`, concaténation sans fusion) et le
+  dit.
+
+**Quota gratuit par jour** (`free_daily_tokens`, 40 000 crédits par défaut ; 1 crédit = 1 jeton d'un modèle
+de 2 G). Un job est d'abord payé sur ce quota, puis sur le solde ; le réseau crée la part gratuite (colonne
+`ledger.free`, table `free_use`), donc la création monétaire est bornée par le quota de chaque compte et par
+jour (UTC). Le quota dépend de la **réputation du compte**, pour résister aux Sybil :
+
+    quota = 40 000 × (0,05 + 0,95 × âge × disponibilité)
+
+- âge = min(1, âge du compte / 3 jours) ;
+- disponibilité = min(1, canaris de disponibilité réussis sur 3 jours / 24), et 0 si le nœud a échoué
+  des canaris (réponse qui ne s'ouvre pas : un jour ; réponses fausses ni rares ni minoritaires) ;
+- un compte neuf, ou dont personne n'a vérifié la disponibilité, reçoit donc le plancher de 5 % (2 000
+  crédits par jour) ; un compte banni, 0. Les protections existantes restent : plafond de jobs en vol
+  d'un compte neuf, découvert borné à une rafale (`max_overdraft`).
+
+**Récompense de disponibilité.** Un nœud qui sert un modèle, est en ligne, accepte des jobs et passe les
+**canaris de disponibilité** gagne des crédits même sans aucune demande d'utilisateur, ce qui permet
+d'amorcer un petit réseau.
+
+- Le traqueur envoie à chaque nœud servant un canari (même trame chiffrée, même format qu'un vrai job :
+  `canary.py` ; l'en-tête `max_tokens` est tiré parmi 128, 192 ou 256) toutes les ~15 min
+  (`avail_interval_s` = 900, ±25 %), en plus des canaris qui suivent les vrais jobs. Un nœud occupé, en
+  pause ou suspendu est reporté puis ignoré : pas de récompense.
+- **La récompense est le paiement du canari, et seulement s'il est réussi** : la réponse s'ouvre et égale la
+  réponse connue (sans second pair). Elle est réglée comme un job ordinaire (jetons × facteur, soit
+  quelques dizaines de crédits pour un modèle de 2 G), créée par le réseau, et la ligne du registre est un
+  reçu comme un autre : un pair ne peut pas y lire quels jobs étaient des canaris. Une réponse fausse est
+  réglée à zéro et compte contre le nœud. Le total est **plafonné par nœud et par jour** à 9 600 × facteur
+  du modèle (plafonné à 4) × rampe d'âge (0,25 le premier jour, 1 à 3 jours) : une fois atteint, le
+  traqueur n'envoie plus de canari de disponibilité ce jour-là.
+- Rien pour un nœud banni ni pour un nœud bloqué (aucun canari ne lui est envoyé) : une réponse qui ne
+  s'ouvre pas, ou mal signée, bloque un jour ; des réponses fausses bloquent quand elles sont au moins 3 sur
+  2 jours et au moins 1 sur 4. Un canari tronqué est payé comme une réponse mais ne compte pas comme réussi.
+- Les chiffres de disponibilité que le propriétaire voit (facteur de disponibilité du quota,
+  `availability.earned_24h`) ne comptent que les **heures révolues** : un compteur qui bougerait juste après
+  un canari apprendrait au pair, qui interroge son propre compte, quel job vient d'être un canari.
+- Tout est visible par le propriétaire : `GET /v1/account/{id}` (signé comme `/v1/balance`) rend le solde, le
+  quota restant aujourd'hui, le plafond de jobs en vol et les gains de disponibilité (24 h révolues,
+  estimation par jour, maximum par jour) ; la passerelle les relaie dans `/v1/myriad/status` et
+  `/api/status`, affichés sous « Crédits gagnés ».
+
+Réglages du traqueur : `--free-daily-tokens`, `--avail-interval`, `--avail-daily-cap` (0 désactive le
+quota, ou les canaris de disponibilité).
+
+**Cohérence avec la condition d'incitation de l'article** (`paper/main.tex`, théorème d'incitation :
+servir honnêtement est une meilleure réponse ssi q(β−α)(P+R) ≥ g_H − g_d, le paiement ne dépendant pas de
+la stratégie). La récompense de disponibilité ne paie pas un nœud qui triche :
+
+1. Elle est versée seulement sur un canari réussi, c'est-à-dire sur une réponse honnête (de coût g_H),
+   et les canaris sont indiscernables des vrais jobs (même trame, même taille, en-têtes plausibles, même
+   ligne de registre). Avec λ canaris de disponibilité par job réel et une récompense ρ, l'utilité honnête gagne
+   λρ(1 − α) et celle d'une déviation d gagne λρ(1 − β_d) : l'écart U_H − U_d devient
+   q(β_d − α)(P+R) + λρ(β_d − α) − (g_H − g_d). Le terme ajouté est positif dès que β_d ≥ α, c'est-à-dire
+   la condition que le théorème exige déjà. La récompense **renforce** donc l'incitation à l'honnêteté
+   au lieu de l'affaiblir : tricher fait perdre ρ à chaque canari détecté, et un nœud bloqué ne touche plus rien.
+2. Elle ne dépend pas du paiement des vrais jobs : l'hypothèse « paiement indépendant de la stratégie » reste
+   vraie pour la partie vrai job. Elle rémunère la disponibilité vérifiée (coût d'opportunité), non un calcul
+   non fait : un nœud qui ne sert plus ses jobs est suspendu et ne reçoit plus de canaris.
+3. Limites assumées : un nœud ne perd la récompense qu'avec la probabilité qu'un canari voie sa
+   déviation ; si la déviation ne s'applique que hors de la distribution des canaris (corollaire sur
+   l'ensemble U), l'argument vaut comme dans l'article, pas davantage. Un nœud qui réussit les canaris avec un
+   petit modèle ne gagne qu'au facteur de ce modèle (plafonné) ; faire tourner N nœuds en Sybil rapporte au
+   plus N plafonds quotidiens, au facteur du modèle, avec la rampe d'âge : borné, mais pas nul.
+
 ## CLI
 
 - `myriad init [--model Qwen/Qwen3-1.7B-GGUF:Qwen3-1.7B-Q8_0.gguf] [--tracker URL]` : clés, configuration,

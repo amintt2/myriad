@@ -360,7 +360,7 @@ de type `code`), `auto_k`, `planner` (route de l'orchestrateur).
 Événements du flux (`data: {...}`) : `start`, `planning` (orchestrateur), `plan` (l'arbre), `subtask`
 (état d'une sous-tâche), `job` (pair choisi : modèle, famille, `tag_match`), `answered`, `job_failed`,
 `verifying`, `verified` (résultat et fin de la sortie de la commande), `escalate`, `done` (le résultat
-complet), puis `data: [DONE]`. Le résultat : `status` (`ok`, `partial`, `failed`, `timeout`), `result`
+complet), puis `data: [DONE]`. Le résultat : `status` (`ok`, `partial`, `failed`, `timeout`, `refused` : coût estimé au-dessus du solde plus du quota gratuit, rien n’est parti ; un plan explicite trop cher reçoit directement HTTP 402 avec `estimate` et `options`), `result`
 (le texte assemblé), chaque sous-tâche (pair, candidats, vérifications, tentatives, jetons, durées),
 `usage` et `timing` (`wall_ms`, `subtasks_sum_ms`, `parallel_speedup`).
 
@@ -575,6 +575,21 @@ de tous les pairs interrogés (ceux qui ont refusé s'abstenant, les remplaçant
 - Le paiement se fait par **reçu signé** du demandeur. Sans reçu dans les 60 s, le traqueur paie le
   pair quand même, sur la foi du résultat signé qu'il a relayé.
 - Un solde négatif empêche de lancer de nouvelles requêtes.
+- **Usage gratuit.** Chaque compte a un **quota gratuit par jour** (40 000 crédits à plein statut, soit
+  autant de jetons d'un modèle de 2 G ; un compte neuf n'en reçoit que 5 %, 2 000, et le quota monte avec
+  l'âge du compte et la disponibilité vérifiée de son nœud). Un job est payé sur le quota d'abord, puis sur
+  le solde.
+- **Servir rapporte, même sans demande.** Un nœud en ligne, qui sert un modèle et réussit les **canaris de
+  disponibilité** du traqueur (un toutes les ~15 min) est payé pour chacun comme pour un job (quelques
+  dizaines de crédits pour un modèle de 2 G), jusqu'à 9 600 crédits par jour (proportionnel à la taille du
+  modèle, plafonné à 4×, et un quart le premier jour). Rien pour un nœud qui rate des canaris ou qui est banni.
+- `GET /v1/account/{node_id}` (signé, comme `/v1/balance`) : solde, quota restant aujourd'hui, plafond de
+  jobs en vol, gains de disponibilité ; le tableau de bord les affiche sous « Crédits gagnés ». Réglages du
+  traqueur : `--free-daily-tokens`, `--avail-interval`, `--avail-daily-cap` (0 désactive).
+- Les sous-agents estiment leur coût **avant** de partir : si le solde plus le quota gratuit ne suffisent pas,
+  le run est refusé (HTTP 402) avec le coût estimé et les options (moins de candidats, moins de jetons,
+  moins de sous-tâches, mode local), au lieu de s'arrêter en route. Les jobs au-delà du plafond de jobs en vol
+  d'un compte neuf (8) attendent dans une file de la passerelle au lieu d'échouer.
 - Chaque règlement est gardé avec ses preuves (reçu et résultat signés) : `GET /v1/ledger`,
   `GET /v1/evidence/{job_id}`, `GET /v1/balances`, `GET /v1/balance/{node_id}`.
 
@@ -780,7 +795,9 @@ petits modèles, dix questions), pas un résultat.
   secrets détectés sont masqués avant l'envoi, une question peut rester en local, les jetons-pièges
   des canaris détectent une fuite après coup. Détails : `docs/08_securite.md`.
 - **Attaques Sybil** : chaque nouvelle clé reçoit le crédit de départ. Il faudra une preuve de travail
-  ou une invitation.
+  ou une invitation. Le quota gratuit quotidien est minuscule pour un compte neuf (5 %) et la récompense de
+  disponibilité n'est versée que sur des canaris réussis, avec rampe d'âge et plafond par nœud : N clés
+  rapportent au plus N plafonds quotidiens, pas plus.
 - **Vérification du calcul** : un pair peut renvoyer une réponse bâclée. La fusion et les contrôles
   aléatoires limitent les dégâts, mais rien ne prouve le calcul. Les jetons déclarés ne sont que
   bornés.

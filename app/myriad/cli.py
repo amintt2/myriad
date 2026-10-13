@@ -123,7 +123,9 @@ def cmd_tracker(args) -> int:
         kw["release_repo"] = None if repo.lower() in ("", "off", "none", "0") else repo
     run(host=args.host, port=args.port, db=args.db, starter_credit=args.starter_credit, spot_rate=args.spot_rate,
         receipt_grace_s=args.receipt_grace, wan=wan_from_rtt(args.wan_rtt_ms, args.wan_sigma),
-        landing=not args.no_landing, public_url=args.public_url, ban_file=args.ban_file, **kw)
+        landing=not args.no_landing, public_url=args.public_url, ban_file=args.ban_file,
+        free_daily_tokens=args.free_daily_tokens, avail_interval_s=args.avail_interval,
+        avail_daily_cap=args.avail_daily_cap, **kw)
     return 0
 
 
@@ -362,6 +364,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--port", type=int, default=8500)
     p.add_argument("--db", default="tracker.sqlite")
     p.add_argument("--starter-credit", type=float, default=1000.0)
+    from .priors import AVAIL_DAILY_CAP, AVAIL_INTERVAL_S, FREE_DAILY_TOKENS
+    p.add_argument("--free-daily-tokens", type=float, default=FREE_DAILY_TOKENS,
+                   help="usage gratuit : crédits offerts par jour à un compte de plein statut (1 crédit = 1 jeton "
+                        "d'un modèle de 2 G ; 5 %% pour un compte neuf) ; 0 = désactivé")
+    p.add_argument("--avail-interval", type=float, default=AVAIL_INTERVAL_S,
+                   help="récompense de disponibilité : secondes entre deux canaris par nœud (chaque canari réussi est payé "
+                        "comme un job) ; 0 = désactivée")
+    p.add_argument("--avail-daily-cap", type=float, default=AVAIL_DAILY_CAP,
+                   help="plafond quotidien du paiement des canaris de disponibilité par nœud (modèle de 2 G)")
     p.add_argument("--spot-rate", type=float, default=0.05,
                    help="taux d'audit : part des jobs suivis d'un job canari (chiffrés) ou dupliqués (en clair)")
     p.add_argument("--public-url", default=None,

@@ -46,6 +46,7 @@ import math
 import random
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 
 import httpx
@@ -83,6 +84,82 @@ REPLACE_MIN_LEFT = 0.25  # share of the request's time that must be left to ask 
 SWARM_MODEL = "myriad"
 LEGACY_SWARM_MODEL = "essaim"
 SWARM_MODELS = frozenset({SWARM_MODEL, LEGACY_SWARM_MODEL})
+
+
+class _Slots:
+    """The in-flight jobs the tracker allows this account (its `inflight_cap`), as a FIFO counting
+    semaphore: requests wait their turn here instead of being refused with `too_many_jobs`. No cap known
+    (an older tracker, or one that does not answer): no limit."""
+
+    def __init__(self) -> None:
+        self.cap: int | None = None
+        self.used = 0
+        self._waiting: deque = deque()  # (slots wanted, future)
+
+    def set_cap(self, cap: int | None) -> None:
+        self.cap = cap if cap is None or cap > 0 else None
+        self._wake()
+
+    async def acquire(self, n: int, timeout: float) -> int:
+        """Take `n` slots (at most the cap: a request bigger than the cap would never run). Returns how many
+        were taken (0: no limit). Raises GatewayError(429) after `timeout` seconds of waiting."""
+        if self.cap is None:
+            return 0
+        n = max(1, min(n, self.cap))
+        if not self._waiting and self.used + n <= self.cap:
+            self.used += n
+            return n
+        fut = asyncio.get_running_loop().create_future()
+        entry = (n, fut)
+        self._waiting.append(entry)
+        try:
+            await asyncio.wait_for(fut, max(0.1, timeout))
+        except BaseException as e:
+            if fut.done() and not fut.cancelled():
+                self.release(n)  # granted just as we gave up
+            else:
+                try:
+                    self._waiting.remove(entry)
+                except ValueError:
+                    pass
+                self._wake()
+            if isinstance(e, asyncio.TimeoutError):
+                raise GatewayError(429, "trop de jobs en cours sur ce compte : la file d'attente est pleine",
+                                   "too_many_jobs") from None
+            raise
+        return n
+
+    def release(self, n: int) -> None:
+        self.used = max(0, self.used - n)
+        self._wake()
+
+    def _wake(self) -> None:
+        while self._waiting:
+            n, fut = self._waiting[0]
+            if fut.done():
+                self._waiting.popleft()
+                continue
+            if self.cap is not None and self.used + n > self.cap:
+                break
+            self._waiting.popleft()
+            self.used += n
+            fut.set_result(None)
+
+
+class _Gate:
+    """The slots one request holds; released when the request is over, whatever happens."""
+
+    def __init__(self, gw: "Gateway") -> None:
+        self.gw, self.held = gw, 0
+
+    async def take(self, n: int, timeout: float) -> None:
+        await self.gw.refresh_cap()
+        self.held += await self.gw.slots.acquire(n, timeout)
+
+    def release(self) -> None:
+        if self.held:
+            self.gw.slots.release(self.held)
+            self.held = 0
 
 
 class _PolicyError(Exception):
@@ -276,6 +353,9 @@ class Gateway:
         self.history: list[dict] = []
         # Sub-agents (agents.py): local verification commands allowed by the user, by name.
         self.verify_commands: dict[str, list[str]] = {}
+        # The tracker's in-flight cap for this account: requests queue here rather than being refused.
+        self.slots = _Slots()
+        self._acct: tuple[float, dict | None] | None = None
         self.app = self._make_app()
 
     async def close(self) -> None:
@@ -321,6 +401,27 @@ class Gateway:
         except (httpx.HTTPError, KeyError, ValueError):
             return None
 
+    async def account(self, fresh: bool = False) -> dict | None:
+        """The tracker's view of this account (balance, free allowance left today, in-flight cap,
+        availability earnings), cached for 30 s; None when the tracker does not answer (or is older)."""
+        now = time.monotonic()
+        if not fresh and self._acct is not None and now - self._acct[0] < 30.0:
+            return self._acct[1]
+        info = None
+        try:
+            r = await self.http.get(f"/v1/account/{self.node.node_id}", params=account_params(self.node.identity))
+            if r.status_code == 200 and isinstance(r.json(), dict):
+                info = r.json()
+        except (httpx.HTTPError, ValueError):
+            pass
+        self._acct = (now, info)
+        return info
+
+    async def refresh_cap(self) -> None:
+        info = await self.account()
+        cap = info.get("inflight_cap") if info else None
+        self.slots.set_cap(int(cap) if isinstance(cap, int) and not isinstance(cap, bool) else None)
+
     async def models(self) -> list[str]:
         peers, _ = await self.directory()
         return sorted({p["model"] for p in peers if p.get("model")})
@@ -334,7 +435,18 @@ class Gateway:
         """`tag`: peers advertising this skill tag (any peer for the jobs no such peer can take: flagged
         in meta["route"]); `family`: one peer of this model family; `avoid`: node ids not to choose
         (at most 64, e.g. peers busy with the other sub-tasks of an agent run). `confirm`: the user
-        agreed to send the sensitive content found this time; `local`: answer on this machine only."""
+        agreed to send the sensitive content found this time; `local`: answer on this machine only.
+        The request first takes its place in the account's in-flight queue (the tracker's cap on jobs in
+        flight): beyond it, requests wait their turn instead of being refused with `too_many_jobs`."""
+        gate = _Gate(self)
+        try:
+            return await self._ask(messages, max_tokens, temperature, seed, k, task_hint, model, format_instruction,
+                                   timeout_s, early_stop, tag, family, avoid, confirm, local, gate)
+        finally:
+            gate.release()
+
+    async def _ask(self, messages, max_tokens, temperature, seed, k, task_hint, model, format_instruction,
+                   timeout_s, early_stop, tag, family, avoid, confirm, local, gate: _Gate) -> SwarmAnswer:
         avoid = [a for a in avoid if isinstance(a, str)][:64]
         st = self.security.settings
         messages, trimmed = trim_history(messages, st.max_history_turns)
@@ -375,6 +487,9 @@ class Gateway:
             raise GatewayError(503, "le traqueur ne prend pas en charge le chiffrement de bout en bout ; la "
                                     "question n'est pas envoyée (réglage « Exiger le chiffrement de bout en bout »)",
                                "e2e_unavailable")
+        queued = time.monotonic()
+        await gate.take(k, timeout)  # wait for room under the tracker's in-flight cap (released by ask())
+        timeout = max(1.0, timeout - (time.monotonic() - queued))  # the wait is part of the request's time
 
         def make_job(deadline_s: float) -> Job:
             try:
@@ -703,6 +818,9 @@ class Gateway:
         if not ok:
             if not asked and order and all(o.error == "no_peer" for o in order):
                 raise GatewayError(503, "aucun pair disponible pour cette requête", "no_peers")
+            if order and all(o.error == "too_many_jobs" for o in order):
+                raise GatewayError(429, "trop de jobs en cours sur ce compte : réessayez dans un instant",
+                                   "too_many_jobs")
             errs = "; ".join(f"{o.peer['model'] if o.peer else 'aucun pair'}: {o.error or o.status}" for o in order)
             code = "insufficient_credits" if any(o.error == "insufficient_credits" for o in order) else "no_answer"
             raise GatewayError(402 if code == "insufficient_credits" else 502,
@@ -914,7 +1032,8 @@ class Gateway:
         @app.get("/v1/myriad/status")
         @app.get("/v1/essaim/status")  # deprecated alias
         async def status():
-            return {"node": self.node.status(), "balance": await self.balance(), "history": self.history[:20]}
+            return {"node": self.node.status(), "balance": await self.balance(), "account": await self.account(),
+                    "history": self.history[:20]}
 
         from .agents import install as install_agents
         install_agents(app, self)  # POST /v1/agents/run (sub-agents), GET /v1/agents/schema

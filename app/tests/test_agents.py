@@ -52,7 +52,7 @@ def agent_reply(name: str, code: str | None = None, plan: str = PLAN_JSON, log: 
 async def make_swarm(tmp_path, n=6, delay=0.0, codes=None, tags=None, log=None, plan=PLAN_JSON, max_parallel=1,
                      tokens=10):
     """n nodes cycling over the 4 test families; codes[i] / tags[i] per node."""
-    s = await start_swarm(tmp_path)
+    s = await start_swarm(tmp_path, starter_credit=1_000_000.0)
     fams = list(MODELS)
     for i in range(n):
         fam = fams[i % len(fams)]

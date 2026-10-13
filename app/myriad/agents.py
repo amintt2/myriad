@@ -79,6 +79,9 @@ VERIFY_CONCURRENCY = 4
 SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache",
              ".ruff_cache", ".tox", "dist", "build", ".idea", ".vscode"}
 RESERVED_IDS = {"plan", "merge"}
+NO_PEER_PAUSE_S = 0.5  # a sub-task whose peers are all busy waits (first pause, doubling...)
+NO_PEER_PAUSE_MAX_S = 2.0  # ...up to this long between two attempts, until the run's deadline
+ESTIMATE_FILL = 0.5  # typical share of a sub-task's max_tokens that the answer really uses
 
 Id = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$")]
 Tag = Annotated[str, Field(pattern=TAG_PATTERN)]
@@ -742,6 +745,92 @@ class AgentRun:
         self._jobs: dict[str, tuple] = {}  # job id -> (sub-task id, attempt)
         self._job_node: dict[str, str] = {}  # job id -> its peer, while the job is in flight
         self.deadline = time.monotonic() + req.budget.deadline_s
+        self.out_of_credits = False  # a call was refused for lack of credits: nothing more is started
+        self.estimate: dict | None = None  # cost estimate made before the sub-tasks leave (see check_funds)
+
+    # ---------- cost estimate: never start what cannot finish ----------
+    async def _factors(self, subtasks: list[SubTask]) -> dict[str, float]:
+        """Credits per token of each sub-task (and of the merge, key "merge"): the mean credit factor of the
+        live peers its route can reach (any peer when the route is unknown), 1.0 without a directory."""
+        from .gateway import peer_family
+        from .priors import credit_factor, trusted_params
+        try:
+            peers = [p for p in (await self.gw.directory())[0] if p.get("model")]
+        except Exception:  # noqa: BLE001
+            peers = []
+
+        def mean(skill, family, model) -> float:
+            sel = [p for p in peers if (model is None or p["model"] == model)
+                   and (family is None or peer_family(p) == family)
+                   and (skill is None or skill in (p.get("tags") or ()))]
+            sel = sel or [p for p in peers if (model is None or p["model"] == model)
+                          and (family is None or peer_family(p) == family)] or peers
+            if not sel:
+                return 1.0
+            return sum(credit_factor(trusted_params(p["model"], p.get("params_b"))) for p in sel) / len(sel)
+
+        out = {s.id: mean(s.skill, s.family, s.model) for s in subtasks}
+        m = self.req.merge or MergeSpec()
+        out["merge"] = mean(m.skill, m.family, m.model)
+        return out
+
+    async def check_funds(self, subtasks: list[SubTask]) -> dict | None:
+        """Estimate the run's cost in credits and compare it with what the account can spend (balance plus
+        the free allowance left today). Returns the refusal as an AgentsError (code "refused", status 402,
+        with the estimate and the options) or None when the run fits, or when nothing is known (a tracker
+        without accounts) or nothing leaves the machine (local-only)."""
+        sec = getattr(self.gw, "security", None)
+        if sec is not None and sec.settings.local_only:
+            return None
+        get = getattr(self.gw, "account", None)
+        info = await get(fresh=True) if get is not None else None  # not the dashboard's cached view
+        if not info or info.get("balance") is None:
+            return None
+        factors = await self._factors(subtasks)
+        def cands(s: SubTask) -> int:
+            return 1 if (s.model or s.family) else s.k  # the gateway sends a single job to a named model or family
+
+        tokens = sum(s.max_tokens * cands(s) for s in subtasks)
+        credits = sum(s.max_tokens * cands(s) * factors[s.id] for s in subtasks)
+        if self.combine == "merge" or self.req.combine == "merge":
+            m = self.req.merge or MergeSpec()
+            tokens += m.max_tokens
+            credits += m.max_tokens * factors["merge"]
+        cap = self.req.budget.max_tokens  # the run stops at this many completion tokens
+        if tokens > cap:
+            credits *= cap / tokens
+            tokens = cap
+        free = float((info.get("free") or {}).get("left_today") or 0.0)
+        balance = float(info["balance"])
+        est = {"tokens": tokens, "max_credits": round(credits, 1), "credits": round(credits * ESTIMATE_FILL, 1),
+               "available": round(max(0.0, balance + free), 1), "balance": round(balance, 1),
+               "free_left_today": round(free, 1), "subtasks": len(subtasks),
+               "candidates": max((cands(s) for s in subtasks), default=1)}
+        self.estimate = est
+        if est["credits"] <= est["available"]:
+            return None
+        scale = est["available"] / est["credits"] if est["credits"] > 0 else 0.0
+        avg = sum(s.max_tokens for s in subtasks) / max(1, len(subtasks))
+        fit = max(64, int(avg * scale)) if scale > 0 else None
+        reset_h = (info.get("free") or {}).get("resets_in_s")
+        options = [
+            {"id": "k", "text": f"demander moins de candidats par sous-tâche (k, actuellement jusqu'à {est['candidates']})"},
+            {"id": "max_tokens", "text": "baisser le budget de jetons de chaque sous-tâche (max_tokens"
+                                         + (f" : ~{fit} au lieu de ~{int(avg)}" if fit and fit < avg else "") + ")"},
+            {"id": "subtasks", "text": "réduire le nombre de sous-tâches"},
+            {"id": "local", "text": "utiliser le mode local (réglage « local uniquement » : gratuit, sur cette machine)"},
+            {"id": "wait", "text": "attendre"
+                                    + (f" (le quota gratuit du jour se renouvelle dans ~{max(1, round(reset_h / 3600))} h)"
+                                       if reset_h else "")
+                                    + " ou servir le réseau avec un modèle : cela rapporte des crédits, même sans demande"},
+        ]
+        est["options"] = options
+        est["suggested_max_tokens"] = fit
+        msg = (f"Tâche non lancée : elle coûterait environ {est['credits']:g} crédits (au plus {est['max_credits']:g}) "
+               f"et vous pouvez en dépenser {est['available']:g} (solde {est['balance']:g} + quota gratuit restant "
+               f"aujourd'hui {est['free_left_today']:g}). Lancée, elle s'arrêterait en route. Options : "
+               + " ; ".join(o["text"] for o in options) + ".")
+        return AgentsError(402, msg, "refused")
 
     # ---------- events ----------
     def ms(self) -> float:
@@ -820,7 +909,7 @@ class AgentRun:
                 if self._planner_state is not None:
                     self.planner = self._planner_state.public(self.t0)
             except AgentsError as e:
-                status, error = "failed", e.message
+                status, error = "refused" if e.code == "refused" else "failed", e.message
         finally:
             node.remove_observer(self._observe)
         result = self.result(status, error)
@@ -836,10 +925,16 @@ class AgentRun:
         lv = levels(subtasks)
         for s in subtasks:
             self.subs[s.id] = SubState(spec=s, level=lv[s.id])
+        refusal = await self.check_funds(subtasks)  # never start what cannot finish
         self.emit("plan", source=self.plan_source, planner=self.planner, combine=self.combine,
-                  subtasks=[self.subs[i].public(self.t0) for i in self.order], budget=self.req.budget.model_dump())
+                  subtasks=[self.subs[i].public(self.t0) for i in self.order], budget=self.req.budget.model_dump(),
+                  estimate=self.estimate)
+        if refusal is not None:
+            for st in self.subs.values():
+                st.status, st.error = "skipped", "tâche non lancée : crédits insuffisants"
+            raise refusal
         await self._schedule()
-        if self.combine == "merge" and any(st.status == "ok" for st in self.subs.values()):
+        if self.combine == "merge" and not self.out_of_credits and any(st.status == "ok" for st in self.subs.values()):
             await self._merge()
 
     async def _schedule(self) -> None:
@@ -851,7 +946,10 @@ class AgentRun:
                     if st.status != "pending":
                         continue
                     deps = [self.subs[d] for d in st.spec.depends_on]
-                    if any(d.status in ("failed", "skipped", "cancelled") for d in deps):
+                    if self.out_of_credits:  # partial results are kept; nothing more is started
+                        st.status, st.error = "skipped", "crédits épuisés en cours de route"
+                        self.emit("subtask", **self._brief(st))
+                    elif any(d.status in ("failed", "skipped", "cancelled") for d in deps):
                         st.status, st.error = "skipped", "une dépendance a échoué"
                         self.emit("subtask", **self._brief(st))
                     elif all(d.status == "ok" for d in deps) and len(running) < self.req.budget.max_parallel:
@@ -941,7 +1039,7 @@ class AgentRun:
         token = _SUB.set((self.id, sid, attempt))
         try:
             from .gateway import GatewayError
-            pause = 0.5
+            pause = NO_PEER_PAUSE_S
             while True:
                 try:
                     ans = await self.gw.ask(messages, max_tokens=max_tokens, temperature=temperature, k=k,
@@ -949,17 +1047,24 @@ class AgentRun:
                                             family=family, model=model, avoid=avoid)
                     break
                 except GatewayError as e:
-                    if e.code != "no_peers":
+                    if e.code == "insufficient_credits":
+                        raise AgentsError(402, e.message, "credits") from e
+                    if e.code == "no_peers":
+                        if avoid:  # every fitting peer is already busy with this run: any peer then
+                            avoid = []
+                            continue
+                        # Every peer busy (more parallel sub-tasks than free peers): wait for one, as long as
+                        # the run allows. A model, family or network nobody serves at all fails at once.
+                        if not await self._network_serves(family, model):
+                            raise
+                    elif e.code != "too_many_jobs":
                         raise
-                    if avoid:  # every fitting peer is already busy with this run: any peer then
-                        avoid = []
-                        continue
-                    # Every peer busy (more parallel sub-tasks than free peers): wait for one, a few times.
-                    # A model or family nobody serves fails at once.
-                    if model or family or pause > 4 or self.deadline - time.monotonic() < pause + 1.0:
+                    # too_many_jobs: the account's in-flight cap (the gateway queues for it; this is the rare
+                    # race with the tracker's own count): wait and ask again, never abandon the sub-task
+                    if self.deadline - time.monotonic() < pause + 1.0:
                         raise
                     await asyncio.sleep(pause)
-                    pause *= 2
+                    pause = min(pause * 2, NO_PEER_PAUSE_MAX_S)
                     timeout = min(timeout_s or self.gw.timeout_s, self.deadline - time.monotonic())
         finally:
             _SUB.reset(token)
@@ -968,6 +1073,17 @@ class AgentRun:
         used = sum(int(c.get("completion_tokens") or 0) for c in ans.candidates) or ans.completion_tokens
         self.tokens_used += used
         return ans, used, k
+
+    async def _network_serves(self, family: str | None, model: str | None) -> bool:
+        """Does any peer of the network serve what is asked (a busy one counts)? Unknown: yes."""
+        from .gateway import peer_family
+        try:
+            peers = (await self.gw.directory(fresh=True))[0]
+        except Exception:  # noqa: BLE001
+            return True
+        return any(p.get("model") and p.get("accepting") and not p.get("suspended")
+                   and (model is None or p["model"] == model) and (family is None or peer_family(p) == family)
+                   for p in peers)
 
     async def _run_sub(self, st: SubState) -> None:
         s = st.spec
@@ -994,7 +1110,9 @@ class AgentRun:
             except AgentsError as e:
                 a.update(status="failed", error=e.message, ended_ms=self.ms())
                 st.error = e.message
-                if e.code in ("budget", "deadline"):
+                if e.code == "credits":
+                    self.out_of_credits = True
+                if e.code in ("budget", "deadline", "credits"):
                     break
                 continue
             except Exception as e:  # GatewayError and the like: this attempt failed
@@ -1185,13 +1303,15 @@ class AgentRun:
             status = "ok" if subs and n_ok == len(subs) else "partial" if n_ok else "failed"
             if status == "ok" and self.merge_state is not None and not merged:  # results kept, concatenated
                 status, error = "partial", f"fusion finale échouée : {self.merge_state.error or '?'}"
+            if self.out_of_credits and error is None:
+                error = "crédits épuisés en cours de route : les résultats déjà obtenus sont conservés"
         text = self.merge_state.text if merged else self.concat()
         durations = [(s.ended - s.started) for s in subs if s.started and s.ended]
         wall = (time.perf_counter() - self.t0) * 1000
         sum_ms = sum(durations) * 1000
         return {"id": self.id, "object": "myriad.agents.run", "status": status, "error": error, "task": self.req.task,
                 "plan_source": self.plan_source, "planner": self.planner, "combine": self.combine,
-                "merged": merged, "result": text[:MAX_RESULT_CHARS],
+                "merged": merged, "estimate": self.estimate, "result": text[:MAX_RESULT_CHARS],
                 "subtasks": [s.public(self.t0) for s in subs],
                 "merge": self.merge_state.public(self.t0) if self.merge_state else None,
                 "usage": {"completion_tokens": self.tokens_used, "budget_tokens": self.req.budget.max_tokens,
@@ -1208,6 +1328,22 @@ async def run_agents(gateway, body: dict, emit: Callable[[dict], None] | None = 
 
 
 # ======================================================================== HTTP
+async def refusal_of(gateway, req: RunRequest) -> AgentsError | None:
+    """An explicit plan that the account cannot pay for is refused before anything starts (HTTP 402); an
+    automatic plan is checked once the orchestrator has written it (the run then ends "refused")."""
+    if req.plan == "auto":
+        return None
+    try:
+        run = AgentRun(gateway, req, None, getattr(gateway, "verify_commands", {}))
+        validate_plan(list(req.plan), req, run.allowed, run.contexts)
+    except AgentsError:
+        return None  # an invalid plan is reported by the run itself
+    err = await run.check_funds(list(req.plan))
+    if err is not None:
+        err.estimate = run.estimate  # type: ignore[attr-defined]
+    return err
+
+
 def sse_events(gateway, req: RunRequest):
     """Server-sent events of one run: every progress event, then `done` with the result. The run is
     cancelled if the client goes away."""
@@ -1256,6 +1392,11 @@ def install(app, gateway) -> None:
         if not gateway.node.connected.is_set():
             return JSONResponse({"error": {"message": "le nœud n'est pas connecté au traqueur", "type": "not_connected"}},
                                 status_code=503)
+        refusal = await refusal_of(gateway, req)
+        if refusal is not None:
+            est = refusal.estimate
+            return JSONResponse({"error": {"message": refusal.message, "type": "insufficient_credits",
+                                           "options": est["options"], "estimate": est}}, status_code=402)
         if req.stream:
             return StreamingResponse(sse_events(gateway, req), media_type="text/event-stream",
                                      headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -1283,6 +1424,11 @@ def install_ui(app, runtime) -> None:
             return JSONResponse({"error": e.message}, status_code=e.status)
         except AgentsError as e:
             return JSONResponse({"error": e.message}, status_code=e.status)
+        refusal = await refusal_of(gw, req)
+        if refusal is not None:
+            est = refusal.estimate
+            return JSONResponse({"error": refusal.message, "options": est["options"], "estimate": est},
+                                status_code=402)
         return StreamingResponse(sse_events(gw, req), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 

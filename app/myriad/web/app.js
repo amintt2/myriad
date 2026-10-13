@@ -238,7 +238,11 @@
     const acct = st && st.account;
     countTo($("s-earned"), acct ? acct.earned : null, 1);
     countTo($("s-spent"), acct ? acct.spent : null, 1);
-    $("s-balance").textContent = s && s.balance !== null && s.balance !== undefined ? t("stat.balance", { n: fmt(s.balance, 1) }) : "";
+    const ac = s && s.account, parts = [];
+    if (s && s.balance !== null && s.balance !== undefined) parts.push(t("stat.balance", { n: fmt(s.balance, 1) }));
+    if (ac && ac.free && ac.free.daily > 0) parts.push(t("stat.free_left", { n: fmt(ac.free.left_today, 0) }));
+    if (ac && ac.availability && ac.availability.estimated_daily > 0) parts.push(t("stat.est_earn", { n: fmt(ac.availability.estimated_daily, 0) }));
+    $("s-balance").textContent = parts.join(" · ");
     $("s-spent-sub").textContent = acct ? t("stat.bought", { n: fmt(acct.jobs_bought, 0) }) : "";
     if (acct) $("s-earned").title = t("stat.served_jobs", { n: acct.jobs_served });
   }

@@ -37,7 +37,7 @@ def aggregate_peers(peers: list[dict]) -> dict:
 def traffic(db, window_s: float = WINDOW_S, now: float | None = None) -> dict:
     now = time.time() if now is None else now
     r = db.execute("SELECT COUNT(*) AS n, COALESCE(SUM(tokens), 0) AS t, COUNT(DISTINCT requester_id) AS q "
-                   "FROM ledger WHERE ts >= ? AND kind != 'starter'", (now - window_s,)).fetchone()
+                   "FROM ledger WHERE ts >= ? AND kind NOT IN ('starter', 'avail')", (now - window_s,)).fetchone()
     return {"window_s": window_s, "tokens_per_s": round(r["t"] / window_s, 2),
             "jobs_per_min": round(r["n"] * 60.0 / window_s, 2),
             "requesters_per_min": round(r["q"] * 60.0 / window_s, 2)}
@@ -46,7 +46,7 @@ def traffic(db, window_s: float = WINDOW_S, now: float | None = None) -> dict:
 def account_stats(tracker, node_id: str) -> dict:
     """Credits earned by serving others, and spent asking them (serving yourself moves nothing)."""
     db = tracker.ledger.db
-    earned = db.execute("SELECT COALESCE(SUM(amount), 0) AS s, COUNT(*) AS n, COALESCE(SUM(tokens), 0) AS t "
+    earned = db.execute("SELECT COALESCE(SUM(amount), 0) AS s, COALESCE(SUM(kind != 'avail'), 0) AS n, COALESCE(SUM(tokens), 0) AS t "
                         "FROM ledger WHERE node_id=? AND kind != 'starter' "
                         "AND (requester_id IS NULL OR requester_id != node_id)", (node_id,)).fetchone()
     spent = db.execute("SELECT COALESCE(SUM(amount), 0) AS s, COUNT(*) AS n FROM ledger "

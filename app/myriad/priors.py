@@ -17,6 +17,15 @@ _SIZE_RE = re.compile(r"(?:^|[-_.])e?(\d+(?:\.\d+)?)b(?:$|[-_.])", re.I)
 # Credits are counted in thousandths, so the ledger only holds integers.
 MILLI = 1000
 
+# Free tier (docs/05_spec_app.md, "Usage gratuit"). Amounts are credits; 1 credit = 1 token of a 2B model.
+FREE_DAILY_TOKENS = 40_000.0  # free allowance per day of an account at full standing
+FREE_FLOOR = 0.05  # share of it a brand-new / unverified account gets (2 000 credits)
+AVAIL_INTERVAL_S = 900.0  # one availability canary per serving node every ~15 minutes (96 a day)
+AVAIL_DAILY_CAP = 9_600.0  # at most this paid per node and day for availability canaries, for a model of factor 1.0
+AVAIL_FACTOR_MAX = 4.0  # the model factor counted for availability is capped (the size is only declared)
+AVAIL_CAP_FLOOR = 0.25  # share of the cap a brand-new node gets; ramps to 1 over 3 days
+AVAIL_TYPICAL_TOKENS = 64  # tokens an honest answer to an availability canary usually takes (for the estimate)
+
 
 @lru_cache(maxsize=1)
 def load() -> dict:
