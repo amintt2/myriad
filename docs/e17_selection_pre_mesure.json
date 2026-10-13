@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "reserved_utc": "2026-10-13T03:33:07.747703+00:00",
+  "status": "metadata-only-reservation-before-new-scores",
+  "protocol": "docs/e17_proposition_p01.md",
+  "content_opened": false,
+  "holdout_executed": false,
+  "rule_aider": "lexicographic first two outside historical pilot",
+  "rule_bigcode_dev": "numeric first two historically selected DEV",
+  "rule_bigcode_test": "numeric first two historically not_examined; no content-based replacement",
+  "aider": {
+    "manifest_sha256": "7c031c566196d7f77f05429d70fafbd3eeea54e465991f18d3ab42fef67cc15f",
+    "commit": "7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f",
+    "archive_sha256": "331eb06fddbbc145e4a800b34c5afc2209b3664ce9a3267604fd9550b60bc68f",
+    "dev": [
+      "affine-cipher",
+      "beer-song",
+      "book-store"
+    ],
+    "test": [
+      "bottle-song",
+      "bowling"
+    ]
+  },
+  "bigcode": {
+    "private_branch_commit": "0f7110daef31097784cd3e708f771463523938b6",
+    "manifest_sha256": "be5d41a2df6d53c2e7a4f2d361f698eac1ee30babb50d0b5e2c894a49587eb0c",
+    "dataset": {
+      "repository": "bigcode/bigcodebench-hard",
+      "revision": "298d2cc7b96612e15e47313c3603ee124cee0c1f",
+      "split": "v0.1.4",
+      "variant": "instruct",
+      "population": 148,
+      "licence": "Apache-2.0",
+      "licence_evidence": "full_card",
+      "hard_subset_fields_match_full": true
+    },
+    "dev": [
+      "BigCodeBench_120",
+      "BigCodeBench_184"
+    ],
+    "test": [
+      "BigCodeBench/208",
+      "BigCodeBench/211"
+    ],
+    "test_metadata": {
+      "BigCodeBench/208": {
+        "state": "not_examined",
+        "reason": "selection_stopped_after_three",
+        "record_sha256": "4eed84fab0ca2cbea911686d5ef4d438ddd16120a226653b6f179ac4e857f7cb"
+      },
+      "BigCodeBench/211": {
+        "state": "not_examined",
+        "reason": "selection_stopped_after_three",
+        "record_sha256": "a965968094534fb6685fa4197e9f2443d62ecf98f1674e684069d121a507bf7b"
+      }
+    }
+  },
+  "limits": [
+    "Adapter coverage and eligibility unverified; unsupported TEST must remain incomplete, without replacement or tuning.",
+    "Only metadata inspected; no task instructions, references, tests or dataset loaded for this reservation.",
+    "Sixteen TEST episodes only after code/model/protocol freeze and sufficient budget.",
+    "E17 total cap 20 units including preparation and cleanup; absolute balance floor 15."
+  ],
+  "reservation_origin": {
+    "path": "docs/idees/e17_selection_pre_mesure.json",
+    "sha256": "b35e4bbb11d8337622e3698cbc7e8eb46d3a36df87423bd8770a51d086800c3f",
+    "protocol": "docs/idees/e17_proposition_p01.md"
+  }
+}

@@ -20,6 +20,13 @@ FAKE_TOKEN = "hf_" + "Ab3" * 12  # built at run time: this file is exported and 
 
 @unittest.skipIf(ex is None, "tools/export_public.py absent (public tree)")
 class TestScan(unittest.TestCase):
+    def test_e16_e17_guides_are_explicitly_selected_and_scanned(self):
+        for name in ("docs/13_e16_quantification.md", "docs/15_e17_campagne.md"):
+            self.assertTrue(ex.selected(name))
+            self.assertTrue(self.scan({name: FAKE_TOKEN.encode()}))
+            self.assertFalse(ex.selected(name + ".part"))
+        self.assertFalse(ex.selected("docs/PLAN_ORCHESTRATION.md"))
+
     def scan(self, files: dict[str, bytes]):
         with tempfile.TemporaryDirectory() as d:
             for rel, data in files.items():

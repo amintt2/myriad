@@ -32,6 +32,10 @@ checkpoint_allowed() {
 }
 
 case "${1:-}" in
+  e17-campaign)
+    shift
+    python3 "$COLAB_DIR/e17_campaign.py" "$@"
+    ;;
   e17-probe)
     shift
     python3 "$COLAB_DIR/e17_probe.py" "$@"
