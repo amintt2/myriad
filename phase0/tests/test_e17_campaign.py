@@ -82,7 +82,9 @@ def synthetic(request, mode="success", *, provenance=None, bootstrap=None):
     if mode == "false-success": rows.pop()
     files["verdicts.json"] = campaign.canonical(rows)
     files["registry.json"] = campaign.canonical(registry)
-    files["vm-status.json"] = campaign.canonical({"request": request, "state": "complete", "error": None})
+    files["vm-status.json"] = campaign.canonical({"request": request,
+        "state": "incomplete" if mode == "partial" else "complete",
+        "error": "synthetic worker failure" if mode == "partial" else None})
     if mode == "partial": files.pop("smoke.json")
     inventory = {"schema": 1, "request": request, "complete": mode != "partial",
                  "files": {name: {"bytes": len(data), "sha256": campaign.digest(data)} for name, data in files.items()}}
@@ -285,8 +287,9 @@ if op == 'sessions':
     print(f'[phase0] {endpoint} | Hardware: L4 | Shape: Standard | Variant: GPU' if active.exists()
           else '[colab] No active sessions found on server.')
 elif op == 'usage':
+    if mode == 'chunk-budget' and active.exists() and (root / 'inventory-sent').exists(): sys.exit(0)
     if mode == 'usage-unknown' and active.exists() and (root / 'remote-started').exists(): sys.exit(0)
-    if mode == 'final-unknown' and not active.exists() and (root / 'allocated').exists(): sys.exit(0)
+    if mode in ('final-unknown', 'start-chunk-final-fail') and not active.exists() and (root / 'allocated').exists(): sys.exit(0)
     print('Current balance: ' + ('16.00' if mode == 'low-balance' else '59.62') + ' compute units\nUsage rate: ' +
           ('5.30/hr\nActive assignments: 1' if active.exists() else '0.00/hr\nActive assignments: 0'))
 elif op == 'new':
@@ -302,24 +305,37 @@ elif op == 'exec':
     tree = ast.parse(Path(args[-1]).read_text())
     call = tree.body[-1].value.args[0]
     request, action, payload = [ast.literal_eval(a) for a in call.args]
+    with (root / 'rpc-actions').open('a') as out: out.write(action + '\n')
     value = {'request': request, 'operation': action}
     if action == 'start':
         if mode == 'foreign-start': value.update(foreign_campaign=True, started=False)
         (root / 'remote-started').touch()
         if mode != 'foreign-start': value['started'] = True
-        if mode == 'lost-start-ack': sys.exit(27)
-    elif action == 'cancel': value['cancel_requested'] = True
+        if mode in ('lost-start-ack', 'start-chunk-final-fail'): sys.exit(27)
+    elif action == 'cancel':
+        if mode in ('sealed-cancel-fail', 'partial-cancel-fail'): sys.exit(29)
+        (root / 'cancelled').touch()
+        value['cancel_requested'] = True
     elif action == 'status':
         if mode in ('term', 'timeout'): time.sleep(30)
         if mode == 'network-fail': sys.exit(27)
         if mode == 'replaced-session': (root / 'replaced').touch()
         sys.path.insert(0, os.environ['TEST_MODULES'])
         from test_e17_campaign import synthetic
-        _, value['inventory'] = synthetic(request, mode)
+        fixture_mode = 'partial' if mode in ('partial-cancel-fail', 'running') else mode
+        _, value['inventory'] = synthetic(request, fixture_mode)
+        if mode == 'running' and not (root / 'cancelled').exists(): sys.exit(30)
+        if mode == 'chunk-budget':
+            (root / 'inventory-sent').touch(); time.sleep(.15)
     elif action == 'chunk':
+        # Local receipt and sealed inventory must survive even a first transfer failure.
+        assert (root / 'report-artifacts/receipt.json').exists()
+        assert (root / 'report-artifacts/retrieval.json').exists()
+        if mode in ('chunk-network', 'start-chunk-final-fail'): sys.exit(28)
+        if mode == 'chunk-timeout': time.sleep(30)
         sys.path.insert(0, os.environ['TEST_MODULES'])
         from test_e17_campaign import synthetic
-        files, _ = synthetic(request, mode)
+        files, _ = synthetic(request, 'partial' if mode in ('partial-cancel-fail', 'running') else mode)
         value.update(name=payload['name'], offset=payload['offset'],
                      data=base64.b64encode(files[payload['name']][payload['offset']:payload['offset']+(4<<20)]).decode())
     if mode == 'foreign-ack': value['request'] = {}
@@ -347,6 +363,24 @@ sys.exit(module.main())
 '''
 
 
+class Diagnostics(unittest.TestCase):
+    def test_messages_are_bounded_sanitized_and_first_failure_is_retained(self):
+        instance = object.__new__(supervisor.Campaign)
+        instance.phase, instance.rpc_operation, instance.diagnostics = 'recovery', 'chunk', []
+        message = 'synthetic failure https://example.invalid/read?signature=private token=private Bearer private'
+        instance.diagnose(RuntimeError(message), 'exec')
+        self.assertNotIn('private', instance.diagnostics[0]['message'])
+        self.assertIn('synthetic failure', instance.diagnostics[0]['message'])
+        instance.diagnose(ValueError('x' * 65536 + 'token=private'), 'decode')
+        self.assertEqual(instance.diagnostics[1]['message'], '[oversized CLI diagnostic omitted]\n')
+        instance.diagnose(OSError('line\n' * 1000), 'save')
+        self.assertEqual(len(instance.diagnostics[2]['message']), 1024)
+        first = dict(instance.diagnostics[0])
+        for _ in range(30): instance.diagnose(TimeoutError('cleanup pending'), 'cleanup')
+        self.assertEqual(len(instance.diagnostics), 16)
+        self.assertEqual(instance.diagnostics[0], first)
+
+
 @unittest.skipUnless(sys.platform == "linux", "fake CLI lifecycle processes require Linux/WSL")
 class Processes(unittest.TestCase):
     def fixture(self, root, mode):
@@ -368,6 +402,61 @@ class Processes(unittest.TestCase):
                    "--read-seconds", "1", "--recover-seconds", "15", "--cleanup-seconds", "1.5",
                    "--usage-seconds", ".1", "--poll-seconds", ".01", "--retry-seconds", ".01", "--grace", ".1"]
         return env, command
+
+    def test_sealed_inventory_skips_cancel_and_status_but_running_worker_is_cancelled(self):
+        for mode in ('partial-cancel-fail', 'sealed-cancel-fail', 'running'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                env, command = self.fixture(root, mode)
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0 if mode == 'sealed-cancel-fail' else 1,
+                                 result.stdout + result.stderr)
+                report = json.loads((root / 'report.json').read_text())
+                actions = (root / 'rpc-actions').read_text().splitlines()
+                if mode == 'running': self.assertIn('cancel', actions)
+                else:
+                    self.assertNotIn('cancel', actions)
+                    self.assertEqual(actions.count('status'), 1)
+                inventory = json.loads((root / 'report-artifacts/retrieval.json').read_text())
+                for name, info in inventory['files'].items():
+                    self.assertEqual(campaign.digest((root / 'report-artifacts' / name).read_bytes()), info['sha256'])
+                self.assertTrue(json.loads((root / 'report-artifacts/recovery.json').read_text())[
+                    'all_inventory_hashes_verified'])
+                if mode != 'sealed-cancel-fail':
+                    self.assertFalse(report['retrieved_complete'])
+                    self.assertTrue(any('incomplete recovery is not scientific success' in d['message']
+                                        for d in report['diagnostics']))
+                    remote = json.loads((root / 'report-artifacts/vm-status.json').read_text())
+                    self.assertEqual(remote['error'], 'synthetic worker failure')
+                self.assertTrue(report['closed'])
+                self.assertFalse((root / 'active').exists())
+
+    def test_chunk_failures_budget_and_first_error_survive_cleanup(self):
+        for mode in ('chunk-network', 'chunk-timeout', 'chunk-budget', 'start-chunk-final-fail'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                env, command = self.fixture(root, mode)
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                report = json.loads((root / 'report.json').read_text())
+                self.assertFalse(report['retrieved_complete'])
+                self.assertFalse((root / 'active').exists())
+                self.assertTrue(report['absence_confirmed'])
+                self.assertEqual(report['closed'], mode != 'start-chunk-final-fail')
+                self.assertLessEqual(len(report['diagnostics']), 16)
+                if mode == 'start-chunk-final-fail':
+                    first = report['diagnostics'][0]
+                    self.assertEqual((first['phase'], first['operation'], first['rpc_operation'], first['exit']),
+                                     ('execute', 'exec', 'start', 27))
+                    self.assertEqual(first['message'], 'colab exec: exit 27')
+                    self.assertTrue(any(d['phase'] == 'recovery' and d['exit'] == 28 for d in report['diagnostics']))
+                    self.assertTrue(any(d['phase'] == 'cleanup' and d['operation'] == 'usage'
+                                        and d['class'] == 'ValueError' for d in report['diagnostics']))
+                    self.assertTrue((root / 'receipt').exists())
+                else:
+                    self.assertTrue((root / 'report-artifacts/retrieval.json').exists())
+                if mode == 'chunk-budget':
+                    self.assertNotIn('chunk', (root / 'rpc-actions').read_text().splitlines())
 
     def test_complete_partial_false_success_and_recovery_cleanup(self):
         for mode in ("success", "partial", "false-success", "bad-hash", "lost-start-ack", "foreign-ack", "network-fail",

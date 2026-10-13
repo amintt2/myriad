@@ -280,3 +280,36 @@ Les snapshots parent sont `uv-0.12.22-metadata.json` et `uv-0.12.22-python-metad
 Cette vérification de support ne crée pas de nouveau pin Python dans le worker ; Python 3.12.15,
 `uv.lock`, provenance stricte, watchdogs et échéance initiale restent inchangés. Aucun binaire réel
 n'a été téléchargé localement et aucune nouvelle compatibilité Colab n'est revendiquée.
+
+## Récupération après inventaire scellé
+
+La tentative DEV single L4 du 13 octobre 2026, campagne `9559c1a7ee47400aa7c6c00b492a3bc0`,
+source privée `017c0a7` / publique `5fd2929`, de 06:01:01 à 06:05:09 UTC, a reçu un inventaire
+validé de onze fichiers clos, `complete=false`, incluant dataset, smoke, provenance, registre,
+événements serveur, première transcription single affine et verdicts. Aucun payload n'a été
+récupéré : le contrôleur a échoué avant la création du dossier local. Les rapports ne conservaient
+que `RuntimeError` ; la cause de l'épisode et celle de l'échec CLI restent inconnues. Aucun score,
+notamment aucun 0/3, n'est validé. La VM a été libérée, absence et clôture confirmées ; contrôle
+indépendant : 59,62 unités, débit nul, aucune affectation, `phase0=null`. Campagne retour 1,
+contrôle après retour 0. Preuves parent : `C:/tmp/myriad-e17-dev-single-python-live-20261013`.
+
+Le contrôleur réutilise désormais l'inventaire déjà reçu, revalidé contre la requête exacte
+(identité, nonce, sources), au lieu de refaire `cancel` puis `status`. La publication distante
+de cet inventaire scelle les fichiers même si la campagne est incomplète. Le reçu local et
+l'inventaire sont sauvés avant les appels de blocs ; sans inventaire, annulation puis attente
+bornées restent nécessaires. Chaque RPC conserve réconciliation de propriété et surveillance
+du compte/budget ; un compte invalidé reste interdit jusqu'au nettoyage. Aucun retry nouveau.
+Les fichiers `.part` ne sont publiés qu'après SHA-256 conforme. `recovery.json` atteste les
+empreintes récupérées ; `retrieved_complete` exige toujours la validation scientifique complète,
+la clôture et l'absence d'erreur restent nécessaires pour un succès global.
+
+Les diagnostics du contrôleur conservent phase, opération CLI/RPC, classe, retour CLI lorsqu'il
+est disponible et message d'exception : seize entrées au plus, 1 024 caractères chacune après
+le sanitizer existant, lignes surdimensionnées omises. Aucun argument, payload ou sortie CLI
+n'est ajouté au rapport. Les messages distants restent dans les artefacts clos récupérés.
+La première erreur est conservée même si récupération ou nettoyage échouent ensuite ; Probe/E16,
+transport, science, UV 0.12.22, Python, lock, isolement et budgets restent inchangés.
+Les régressions utilisent exclusivement des fixtures et une fausse CLI : elles reproduisent
+le défaut de contrôle, pas la panne réseau réelle. Preuves neuves :
+`C:/tmp/myriad-e17-recovery-20261013`. Prochaine réserve prudente : **0,95 unité**
+(0,55 + 248 s à 5,3 unités/h, arrondi), pas un coût exact ; plafond 20/plancher 15 conservés.

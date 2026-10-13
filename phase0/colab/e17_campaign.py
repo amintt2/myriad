@@ -1,8 +1,10 @@
 """One owned DEV campaign; reuse the audited Probe lifecycle, never allocate during plan preparation."""
 import argparse
 import base64
+import io
 import json
 import math
+import re
 import signal
 import sys
 import tempfile
@@ -12,6 +14,7 @@ import zlib
 from pathlib import Path
 
 import e17_probe
+import safe_cli
 import session_json as lifecycle
 from budget import preflight
 from e17_campaign_remote import decode_response
@@ -43,7 +46,43 @@ class Campaign(e17_probe.Probe):
         self.recovered = self.remote_attempted = False
         self.account_unknown = False
         self.recovery_error = None
+        self.phase = "execute"
+        self.rpc_operation = None
+        self.diagnostics = []
         self.work_deadline = self.deadline - args.recover_seconds
+
+    def diagnose(self, exc, operation):
+        # Sanitize complete lines before truncation; never retain CLI output, arguments or RPC payloads.
+        if len(self.diagnostics) >= 16:
+            return
+        clean = io.StringIO()
+        safe_cli.emit(io.BytesIO(str(exc).encode("utf-8", errors="replace")), clean)
+        message = clean.getvalue()[:1024]
+        match = re.fullmatch(r"colab \w+: exit (\d+)", message)
+        self.diagnostics.append({"phase": self.phase, "operation": operation,
+                                 "rpc_operation": self.rpc_operation, "class": type(exc).__name__,
+                                 "exit": int(match[1]) if match else None, "message": message})
+
+    def cli(self, args, monitor=False):
+        try:
+            return super().cli(args, monitor)
+        except BaseException as exc:
+            self.diagnose(exc, args[0])
+            raise
+
+    def usage(self, allocated):
+        try:
+            return super().usage(allocated)
+        except ValueError as exc:
+            self.diagnose(exc, "usage")
+            raise
+
+    def session(self):
+        try:
+            return super().session()
+        except ValueError as exc:
+            self.diagnose(exc, "sessions")
+            raise
 
     def monitor(self, deadline=None):
         if self.account_unknown:
@@ -68,6 +107,7 @@ class Campaign(e17_probe.Probe):
         return current
 
     def rpc(self, operation, payload=None):
+        self.rpc_operation = operation
         if self.reconcile() != self.owner or self.owner is None:
             raise PermissionError("owned VM absent before campaign RPC")
         self.monitor()
@@ -90,15 +130,21 @@ class Campaign(e17_probe.Probe):
         if not self.remote_attempted:
             return
         self.deadline = min(self.deadline, time.monotonic() + self.a.recover_seconds)
-        self.rpc("cancel")
-        while True:
-            value = self.rpc("status")
-            if value.get("inventory") is not None:
-                self.inventory = validate_inventory(value["inventory"], self.request)
-                break
-            time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
+        # An inventory is published only after the worker closes its files, even when complete is false.
+        if self.inventory is not None:
+            self.inventory = validate_inventory(self.inventory, self.request)
         directory = self.a.output.parent / (self.a.output.stem + "-artifacts")
         directory.mkdir(exist_ok=False)
+        lifecycle.save(directory / "receipt.json", {"request": self.request, "ownership": self.pending,
+                                                    "phase0": self.owner})
+        if self.inventory is None:
+            self.rpc("cancel")
+            while True:
+                value = self.rpc("status")
+                if value.get("inventory") is not None:
+                    self.inventory = validate_inventory(value["inventory"], self.request)
+                    break
+                time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
         lifecycle.save(directory / "retrieval.json", self.inventory)
         for name, info in self.inventory["files"].items():
             temporary = directory / (name + ".part")
@@ -113,9 +159,9 @@ class Campaign(e17_probe.Probe):
                         raise ValueError("artifact chunk exceeds declared coverage")
                     dest.write(data)
                     offset += len(data)
-            temporary.replace(directory / name)
-            if digest((directory / name).read_bytes()) != info["sha256"]:
+            if digest(temporary.read_bytes()) != info["sha256"]:
                 raise ValueError("artifact hash mismatch")
+            temporary.replace(directory / name)
         lifecycle.save(directory / "recovery.json", {"all_inventory_hashes_verified": True,
                                                      "complete_claim": self.inventory["complete"]})
         # Hash all recovered files even after VM failure; completeness is a separate verdict.
@@ -173,19 +219,24 @@ class Campaign(e17_probe.Probe):
             else:
                 raise TimeoutError("VM work envelope exhausted")
         except BaseException as exc:
+            self.diagnose(exc, "execute")
             error = type(exc).__name__
         finally:
             for sig in (signal.SIGTERM, signal.SIGINT):
                 signal.signal(sig, signal.SIG_IGN)
             try:
+                self.phase, self.rpc_operation = "recovery", None
                 self.recover()
             except BaseException as exc:
+                self.diagnose(exc, "recover")
                 self.recovery_error = type(exc).__name__
                 error = error or self.recovery_error
             if self.pending is not None and self.a.receipt.exists():
                 try:
+                    self.phase, self.rpc_operation = "cleanup", None
                     self.cleanup()
                 except BaseException as exc:
+                    self.diagnose(exc, "cleanup")
                     error = error or type(exc).__name__
                     try:
                         self.observations.append(lifecycle.usage(self.cli(["usage"])))
@@ -195,6 +246,7 @@ class Campaign(e17_probe.Probe):
         report = {"schema": 1, "campaign_id": self.campaign, "plan": self.selected,
                   "verdict": "dev-complete" if success else "infrastructure-incomplete", "error": error,
                   "recovery_error": self.recovery_error, "retrieved_complete": self.recovered,
+                  "diagnostics": self.diagnostics,
                   "inventory": self.inventory, "absence_confirmed": self.absent, "closed": self.closed,
                   "usage": self.observations, "prior_e17_units": self.a.spent_units,
                   "reserved_units": self.a.budget_units, "scientific_gain_claimed": False}
