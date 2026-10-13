@@ -233,6 +233,8 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
         return {"status": status, "passed": result.wasSuccessful() if status == "graded" else None,
                 "tests": result.testsRun, "tests_expected": expected, "tests_complete": complete, "fail_fast": True,
                 "failures": len(result.failures), "errors": len(result.errors),
+                "feedback": [{"test": test.id(), "traceback": trace[-4000:]}
+                             for test, trace in [*result.failures, *result.errors]],
                 "calls": calls, "seconds": time.monotonic() - started, "broken": broken}
     finally:
         if old is None:

@@ -4,6 +4,11 @@ Jalon préparé les 2026-10-09/10 ; **premier pilote CPU réel terminé le 2026-
 La consommation électrique reste estimée, jamais mesurée ; les résultats et limites sont détaillés ci-dessous.
 Ce premier banc de code prépare 5c ; il ne constitue pas l'évaluation d'un dépôt logiciel réel.
 
+Depuis le jalon E17 du 2026-10-13, les nouvelles exécutions Aider utilisent la
+[boucle corrigée](14_e17_harnais_aider.md). Les budgets, la boucle et les résultats CPU décrits ci-dessous
+restent ceux du pilote historique ; ses treize artefacts sont immuables. Les trois exercices déjà vus
+sont **DEV seulement** pour E17. Les inférences futures et leurs tests tourneront entièrement sur Colab.
+
 ## Données et présélection
 
 [Aider Polyglot](https://github.com/Aider-AI/polyglot-benchmark/tree/7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f)

@@ -17,13 +17,14 @@ from dataclasses import asdict
 from pathlib import Path
 
 from essaim.agent import GenerationDeadline, GenerationLimit, SYSTEM, run_episode
+from essaim import aider_agent
 from essaim.aider_python import (PILOT, ROOT, collect_sources, copy_task, prepare, provenance, smoke, task_config,
                                 SourceArtifactError, verify)
 from essaim.local_linux import LocalLinuxEnv, VERSION
 from essaim.code_provenance import declarations
 from essaim.terminal_bench import check_tasks, summarize, validate_endpoint
 
-VERSION_PILOT = "code-pilot-v3"
+VERSION_PILOT = "code-pilot-e17-v1"
 RESERVATION_NOTE = "Les plafonds réservés sont des réservations de budget, ni consommation de jetons ni facture."
 PUBLICATION_NOTE = ("Dérivation publique distincte : instantanés inchangés remplacés par références épinglées ; "
                     "chemins home masqués dans les champs textuels. Les commandes ne sont pas un rejeu textuel exact.")
@@ -68,10 +69,11 @@ class DeadlineClient:
 
 class BudgetChat:
     """Reserve each request ceiling, including failed calls and the reference; never call it observed usage."""
-    def __init__(self, client, max_tokens: int, total_tokens: int, seed: int, deadline: float, record):
+    def __init__(self, client, max_tokens: int, total_tokens: int, seed: int, deadline: float, record, strict=False):
         self.client, self.max_tokens, self.remaining = client, max_tokens, total_tokens
         self.seed, self.deadline, self.record = seed, deadline, record
         self.requests = []
+        self.strict = strict
 
     def __call__(self, model: str, messages: list[dict]) -> str:
         remaining_s = self.deadline - time.monotonic()
@@ -114,7 +116,7 @@ class BudgetChat:
                        finish_reason=choice.get("finish_reason"),
                        server_headers={k: response.headers[k] for k in ("server", "x-server-version")
                                        if k in response.headers})
-            return reply
+            return aider_agent.Reply(reply, choice.get("finish_reason")) if self.strict else reply
         except Exception as error:
             row["exception_type"] = type(error).__name__
             import httpx
@@ -141,8 +143,9 @@ def instructions(cache: Path, task: str) -> str:
     docs = "\n\n".join(p.read_text(encoding="utf-8") for p in sorted((base / ".docs").glob("instructions*.md")))
     return (f"Implement the Python exercise {task}. Working directory is the exercise copy. "
             f"Only these source files are submitted: {', '.join(files['solution'])}. "
-            "Official tests are visible. You may run python -m pytest -q *_test.py. Do not alter tests. "
-            "The final verifier restores the original tests and runs outside your interpreter.\n\n" + docs)
+            f"Official tests are visible. To test for submission, run only {aider_agent.TEST}. Do not alter tests. "
+            "The controller tests a source snapshot with the original assertions outside your interpreter. "
+            "Correct failures, test again, then submit only with a green test of unchanged sources.\n\n" + docs)
 
 
 def run_one(args, task: str, mode: str, models: list[str], client, output: Path, campaign_hash: str,
@@ -153,29 +156,51 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
     grade_sources = backend.verify if backend else verify
     started = time.monotonic()
     with (output / f"{mode}__{task}.jsonl").open("w", encoding="utf-8") as log:
+        step_count = 0
         def record(value):
+            nonlocal step_count
+            step_count += value.get("kind") == "step"
             log.write(json.dumps(value, ensure_ascii=False, allow_nan=False) + "\n")
             log.flush()
+        def official_test(sources, remaining):
+            limit = min(args.verify_timeout, remaining)
+            test_start = time.monotonic()
+            grade = grade_sources(args.tasks_dir, task, sources, args.runtime, limit)
+            if grade["status"] == "graded" and time.monotonic() - test_start >= limit:
+                grade = {**grade, "passed": False, "feedback": [{"test": "controller",
+                         "traceback": "Official verification exceeded its time budget; no green test recorded."}]}
+            return grade
         row = {"task": task, "mode": mode, "campaign_hash": campaign_hash, "status": "error", "passed": None}
-        chat = BudgetChat(client, args.max_tokens, args.total_tokens, args.seed, started + args.timeout, record)
+        chat = BudgetChat(client, args.max_tokens, args.total_tokens, args.seed, started + args.timeout, record,
+                          strict=backend is None)
         try:
             with tempfile.TemporaryDirectory(prefix="myriad-agent-") as temporary:
                 work = Path(temporary)
                 allowed = copy(args.tasks_dir, task, work)
                 initial = collect(work, allowed)
                 instruction = instruction_for(args.tasks_dir, task)
-                record({"kind": "start", "task": task, "mode": mode, "instruction": instruction, "system": SYSTEM})
+                system = SYSTEM if backend else aider_agent.SYSTEM
+                record({"kind": "start", "task": task, "mode": mode, "instruction": instruction, "system": system})
                 env = LocalLinuxEnv(work, args.runtime)
                 try:
                     strategy = "single" if mode == "reference" else mode
-                    episode = run_episode(chat, env, instruction, models, strategy, args.max_steps, args.cmd_timeout,
+                    loop = run_episode if backend else aider_agent.run_episode
+                    options = {} if backend else {
+                        "snapshot": lambda: collect(work, allowed),
+                        "test_sources": official_test}
+                    episode = loop(chat, env, instruction, models, strategy, args.max_steps, args.cmd_timeout,
                                           models, max(0.001, chat.deadline - time.monotonic()),
                                           lambda step: record({"kind": "step", **asdict(step)}),
-                                          reference=args.reference if mode == "cascade" else None)
+                                          reference=args.reference if mode == "cascade" else None, **options)
+                except SourceArtifactError:
+                    if backend:
+                        raise
+                    episode = {"stopped": "invalid_source_artifact", "steps": []}
                 finally:
                     env.close()
                     record({"kind": "isolation", "receipt": env.isolation})
-                row.update(stopped=episode["stopped"], steps=len(episode["steps"]))
+                row.update(stopped=episode["stopped"], steps=step_count)
+                sources = None
                 try:
                     sources = collect(work, allowed)
                 except SourceArtifactError:
@@ -191,6 +216,12 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                     # Tests and any agent-written scores/artifacts are discarded, never trusted by the grader.
                     grade = grade_sources(args.tasks_dir, task, sources, args.runtime, args.verify_timeout)
                 row.update(status=grade["status"], passed=grade["passed"], verifier=grade)
+                if not backend and grade["status"] == "graded":
+                    accepted = (episode["stopped"] == "submitted" and sources is not None
+                                and sources == episode.get("tested_sources") and aider_agent.complete_green(grade))
+                    accepted = accepted and grade["seconds"] < args.verify_timeout
+                    row["passed"] = accepted
+                    row["submission_accepted"] = accepted
                 row["episode_seconds"] = time.monotonic() - started - grade["seconds"]
         except Exception as error:
             row.update(status="error", passed=None, exception_type=type(error).__name__)
@@ -314,8 +345,8 @@ def parser(backend=None) -> argparse.ArgumentParser:
     cli.add_argument("--provenance", type=Path,
                      help="JSON nonsecret modèle/serveur/matériel/raisonnement avant inférence")
     cli.add_argument("--max-steps", type=int, default=20)
-    cli.add_argument("--max-tokens", type=int, default=1024)
-    cli.add_argument("--total-tokens", type=int, default=12288)
+    cli.add_argument("--max-tokens", type=int, default=1024 if backend else 4096)
+    cli.add_argument("--total-tokens", type=int, default=12288 if backend else 49152)
     cli.add_argument("--timeout", type=float, default=900)
     cli.add_argument("--cmd-timeout", type=float, default=30)
     cli.add_argument("--verify-timeout", type=float, default=120)
@@ -381,7 +412,8 @@ def execute(args, backend=None) -> int:
                 "dataset_hash": hash_json(manifest), "tasks": pilot, "models": models,
                 "reference": args.reference,
                 "execution_provenance": execution_provenance,
-                "endpoint": url, "system": SYSTEM, "instructions": {t: instruction_for(args.tasks_dir, t) for t in pilot},
+                "endpoint": url, "system": SYSTEM if backend else aider_agent.SYSTEM,
+                "instructions": {t: instruction_for(args.tasks_dir, t) for t in pilot},
                 "limits": {k: getattr(args, k) for k in ("max_steps", "max_tokens", "total_tokens", "timeout",
                            "cmd_timeout", "verify_timeout", "seed")}, "watts": args.watts, "eur_kwh": args.eur_kwh,
                 "platform": platform.platform(), "python": platform.python_version(),
@@ -394,6 +426,8 @@ def execute(args, backend=None) -> int:
         campaign["code_hashes"].update({p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in
                                       [ROOT / "essaim/repo_pilot.py", ROOT / "essaim/repo_tasks.py"]})
         campaign["runtime_versions"]["mpmath"] = importlib.metadata.version("mpmath")
+    else:
+        campaign["code_hashes"]["aider_agent.py"] = hashlib.sha256(Path(aider_agent.__file__).read_bytes()).hexdigest()
     args.output.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output / "manifest.json"
     if manifest_path.exists():

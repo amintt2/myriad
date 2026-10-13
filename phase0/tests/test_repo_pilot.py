@@ -126,12 +126,14 @@ class PrinterSelectionTests(unittest.TestCase):
             self.assertNotIn("python -m pytest", instruction)
             self.assertIn("not the final score", instruction)
 
-    def test_repo_backend_defaults_do_not_change_aider_defaults(self):
+    def test_repo_backend_preserves_historical_budgets_after_aider_e17(self):
         aider = code_pilot.parser().parse_args([])
         repo = code_pilot.parser(repo_tasks).parse_args([])
         self.assertEqual(aider.tasks_dir, ROOT / "data/code-pilot")
         self.assertEqual(repo.tasks_dir, ROOT / "data/repo-pilot")
-        for key in ("max_steps", "max_tokens", "total_tokens", "timeout", "cmd_timeout", "verify_timeout", "seed"):
+        self.assertEqual((aider.max_tokens, aider.total_tokens), (4096, 49152))
+        self.assertEqual((repo.max_tokens, repo.total_tokens), (1024, 12288))
+        for key in ("max_steps", "timeout", "cmd_timeout", "verify_timeout", "seed"):
             self.assertEqual(getattr(aider, key), getattr(repo, key))
 
 

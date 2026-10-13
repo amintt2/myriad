@@ -17,6 +17,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from essaim.agent import GenerationDeadline, GenerationLimit, SUBMIT, run_episode
+from essaim.aider_agent import TEST
 from essaim.aider_python import collect_sources, copy_task, provenance, verify
 from essaim.code_pilot import BudgetChat, campaign_lock, hash_json, model_modes, report, run_one
 from essaim.code_provenance import declarations
@@ -50,7 +51,7 @@ class FakeClient:
 
 
 def answer(text, usage=7, **extra):
-    data = {"model": "fake-model", "choices": [{"message": {"content": text}}], **extra}
+    data = {"model": "fake-model", "choices": [{"message": {"content": text}, "finish_reason": "stop"}], **extra}
     if usage is not None:
         data["usage"] = {"completion_tokens": usage}
     return data
@@ -272,7 +273,7 @@ class HarnessTests(unittest.TestCase):
             cache = root / "cache"
             fixture(cache)
             args = SimpleNamespace(tasks_dir=cache, runtime=root, max_tokens=10, total_tokens=30, seed=0,
-                                   max_steps=3, timeout=10, cmd_timeout=1, verify_timeout=5, reference=None)
+                                   max_steps=2, timeout=10, cmd_timeout=1, verify_timeout=5, reference=None)
             class AgentEnv(FakeEnv):
                 def __init__(self, work, runtime):
                     super().__init__()
@@ -302,13 +303,54 @@ class HarnessTests(unittest.TestCase):
             root = Path(tmp)
             fixture(root / "cache")
             args = SimpleNamespace(tasks_dir=root / "cache", runtime=root, max_tokens=10, total_tokens=30, seed=0,
-                                   max_steps=3, timeout=10, cmd_timeout=1, verify_timeout=5, reference=None)
+                                   max_steps=1, timeout=10, cmd_timeout=1, verify_timeout=5, reference=None)
             client = FakeClient([answer(f"```bash\necho {SUBMIT}\n```", 3)])
             with patch("essaim.code_pilot.LocalLinuxEnv", return_value=FakeEnv()):
                 with patch("essaim.code_pilot.verify", side_effect=IsolationError("broken harness")):
                     row = run_one(args, "affine-cipher", "single", ["a"], client, root, "campaign")
             self.assertEqual(row["status"], "error")
             self.assertIsNone(row["passed"])
+
+    def test_loop_official_snapshot_ignores_forged_visible_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture(root / "cache")
+            args = SimpleNamespace(tasks_dir=root / "cache", runtime=root, max_tokens=4096, total_tokens=16384,
+                                   seed=0, max_steps=4, timeout=10, cmd_timeout=1, verify_timeout=5, reference=None)
+            snapshots = []
+            owner = self
+            class AgentEnv(FakeEnv):
+                def __init__(self, work, runtime):
+                    super().__init__()
+                    self.work = work
+                def run(self, command, timeout_s):
+                    owner.assertEqual(command, "edit")
+                    (self.work / "affine_cipher.py").write_text("corrected source")
+                    (self.work / "affine_cipher_test.py").write_text("raise RuntimeError('forged visible test')")
+                    return 0, "edited"
+            class CandidateEnv(FakeEnv):
+                def __init__(self, work, runtime):
+                    super().__init__()
+                    self.work = work
+                    owner.assertEqual({p.name for p in work.iterdir()}, {"affine_cipher.py", "_call.py"})
+                    snapshots.append((work / "affine_cipher.py").read_text())
+                def run(self, command, timeout_s):
+                    owner.assertNotIn("expected", command)
+                    value = "expected" if snapshots[-1] == "corrected source" else "wrong"
+                    (self.work / "_return.json").write_text(json.dumps({"value": value}))
+                    return 0, "candidate diagnostic"
+            client = FakeClient([answer(f"```bash\n{cmd}\n```", 2)
+                                 for cmd in (TEST, "edit", TEST, f"echo {SUBMIT}")])
+            with patch("essaim.code_pilot.LocalLinuxEnv", AgentEnv), \
+                 patch("essaim.aider_python.LocalLinuxEnv", CandidateEnv):
+                row = run_one(args, "affine-cipher", "single", ["a"], client, root, "campaign")
+            self.assertIs(row["passed"], True, row)
+            self.assertEqual(snapshots, ["def encode(*args): pass", "corrected source", "corrected source"])
+            log = [json.loads(line) for line in (root / "single__affine-cipher.jsonl").read_text().splitlines()]
+            official = [r for r in log if r["kind"] == "step" and "official_test" in r["note"]]
+            self.assertEqual(len(official), 2)
+            self.assertIn("wrong", official[0]["output"])
+            self.assertIn("GREEN", official[1]["output"])
 
     def test_generation_deadline_verifies_existing_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -330,7 +372,7 @@ class HarnessTests(unittest.TestCase):
             root = Path(tmp)
             fixture(root / "cache")
             args = SimpleNamespace(tasks_dir=root / "cache", runtime=root, max_tokens=10, total_tokens=30, seed=0,
-                                   max_steps=3, timeout=10, cmd_timeout=1, verify_timeout=5, reference="ref")
+                                   max_steps=1, timeout=10, cmd_timeout=1, verify_timeout=5, reference="ref")
             client = FakeClient([answer(f"```bash\necho {SUBMIT}\n```", 3)])
             with patch("essaim.code_pilot.LocalLinuxEnv", return_value=FakeEnv()):
                 grade = {"status": "graded", "passed": False, "seconds": 0}
