@@ -287,6 +287,11 @@ if op == 'sessions':
     print(f'[phase0] {endpoint} | Hardware: L4 | Shape: Standard | Variant: GPU' if active.exists()
           else '[colab] No active sessions found on server.')
 elif op == 'usage':
+    if mode in ('usage-status-timeout', 'usage-status-term') and (root / 'status-waiting').exists() and active.exists():
+        if not (root / 'usage-timeout').exists():
+            (root / 'usage-timeout').touch(); time.sleep(30)
+    if mode == 'usage-timeout-once' and active.exists() and not (root / 'usage-timeout').exists():
+        (root / 'usage-timeout').touch(); sys.exit(124)
     if mode == 'chunk-budget' and active.exists() and (root / 'inventory-sent').exists(): sys.exit(0)
     if mode == 'usage-unknown' and active.exists() and (root / 'remote-started').exists(): sys.exit(0)
     if mode in ('final-unknown', 'start-chunk-final-fail') and not active.exists() and (root / 'allocated').exists(): sys.exit(0)
@@ -317,6 +322,10 @@ elif op == 'exec':
         (root / 'cancelled').touch()
         value['cancel_requested'] = True
     elif action == 'status':
+        if mode in ('usage-status-timeout', 'usage-status-term') and not (root / 'status-waiting').exists():
+            (root / 'status-waiting').write_text(str(os.getpid()))
+            time.sleep(30)
+            (root / 'late-status').touch()
         if mode in ('term', 'timeout'): time.sleep(30)
         if mode == 'network-fail': sys.exit(27)
         if mode == 'replaced-session': (root / 'replaced').touch()
@@ -359,6 +368,11 @@ def save(path, value):
         raise OSError('synthetic persistence failure')
     return original(path, value)
 module.lifecycle.save = save
+if os.environ['MODE'] in ('usage-status-timeout', 'usage-status-term'):
+    original_seconds = module.Campaign.operation_seconds
+    def seconds(self, args):
+        return 2 if args[0] == 'exec' and self.rpc_operation == 'status' else original_seconds(self, args)
+    module.Campaign.operation_seconds = seconds
 sys.exit(module.main())
 '''
 
@@ -383,6 +397,75 @@ class Diagnostics(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == "linux", "fake CLI lifecycle processes require Linux/WSL")
 class Processes(unittest.TestCase):
+    def test_status_usage_timeout_reaps_expired_rpc_then_reissues_only_status(self):
+        from tests.test_colab_timeout import alive
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env, command = self.fixture(root, "usage-status-timeout")
+            env['DLLM_CLI_SECONDS'] = '10'
+            command.extend(("--cleanup-seconds", "3", "--grace", ".2"))
+            result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = json.loads((root / "report.json").read_text())
+            self.assertEqual(report["verdict"], "dev-complete")
+            self.assertTrue(report["closed"])
+            self.assertTrue(report["absence_confirmed"])
+            actions = (root / "rpc-actions").read_text().splitlines()
+            self.assertEqual(actions.count("status"), 2)
+            self.assertEqual(actions.count("start"), 1)
+            self.assertNotIn("cancel", actions)
+            self.assertFalse(alive(int((root / "status-waiting").read_text())))
+            self.assertFalse((root / "late-status").exists())
+            self.assertTrue(any(d["class"] == "RpcExpiredAfterAccountWait" for d in report["diagnostics"]))
+            calls = (root / "calls").read_text().splitlines()
+            self.assertEqual(calls.count("new"), 1)
+            self.assertEqual(calls.count("stop"), 1)
+
+    def test_term_during_status_account_wait_closes_without_reissuing_work(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env, command = self.fixture(root, "usage-status-term")
+            env['DLLM_CLI_SECONDS'] = '10'
+            command.extend(("--cleanup-seconds", "3", "--grace", ".2"))
+            process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            try:
+                end = time.monotonic() + 8
+                while not (root / "usage-timeout").exists() and time.monotonic() < end:
+                    time.sleep(.01)
+                self.assertTrue((root / "usage-timeout").exists())
+                process.send_signal(signal.SIGTERM)
+                output, _ = process.communicate(timeout=8)
+                self.assertEqual(process.returncode, 1, output)
+                report = json.loads((root / "report.json").read_text())
+                self.assertEqual(report["error"], "SystemExit")
+                self.assertTrue(report["closed"])
+                self.assertTrue(report["absence_confirmed"])
+                actions = (root / "rpc-actions").read_text().splitlines()
+                self.assertEqual(actions.count("start"), 1)
+                self.assertEqual(actions.count("status"), 1)
+                self.assertNotIn("cancel", actions)
+                self.assertEqual((root / "calls").read_text().splitlines().count("new"), 1)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate()
+    def test_usage_timeout_once_preserves_owned_campaign_and_confirmed_cleanup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env, command = self.fixture(root, "usage-timeout-once")
+            command.extend(("--cleanup-seconds", "3"))
+            result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = json.loads((root / "report.json").read_text())
+            self.assertEqual(report["verdict"], "dev-complete")
+            self.assertTrue(report["closed"])
+            self.assertTrue(report["absence_confirmed"])
+            calls = (root / "calls").read_text().splitlines()
+            self.assertEqual(calls.count("new"), 1)
+            self.assertEqual(calls.count("stop"), 1)
+            self.assertTrue(any(d["exit"] == 124 and d["operation"] == "usage" for d in report["diagnostics"]))
+            self.assertFalse((root / "receipt").exists())
+
     def fixture(self, root, mode):
         bins = root / ".local/bin"
         bins.mkdir(parents=True)

@@ -18,6 +18,58 @@ from campaign import Failure, PLANS, state
 
 
 class Admission(unittest.TestCase):
+    def test_prior_reserve_uses_exact_same_minimum_as_preflight(self):
+        import math
+        from budget import preflight
+        for reserve in (0, 1.15, 2.3, .1, .3, math.nextafter(2.3, 0), math.nextafter(2.3, math.inf), 40):
+            with self.subTest(reserve=reserve):
+                raw = self.usage(59.62)
+                value = e16.admission(raw, reserve)
+                policy = value["policy"]
+                self.assertEqual(value["available_units"], raw["balance_units"] - policy["minimum"])
+                self.assertLessEqual(policy["budget"], value["available_units"])
+                self.assertTrue(value["admitted"])
+                self.assertEqual(preflight(raw, policy), 5.3)
+                self.assertLessEqual(5.3 * (value["seconds"] + 1961) / 3600, policy["budget"])
+                self.assertEqual(value["available_science_seconds"], value["seconds"] - 900)
+                self.assertEqual(policy["minimum"], 15 + reserve)
+        for reserve in (math.nextafter(44.62, 0), 44.62, math.nextafter(44.62, math.inf), 1e6):
+            with self.subTest(reserve=reserve):
+                self.assertFalse(e16.admission(self.usage(59.62), reserve)["admitted"])
+
+    def test_cli_refuses_invalid_prior_reserve_before_any_operation(self):
+        for reserve in ("-1", "nan", "inf", "-inf"):
+            with self.subTest(reserve=reserve), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "report.json"
+                result = subprocess.run([sys.executable, str(COLAB / "e16_supervision.py"),
+                                         "--prior-reserve-units=" + reserve, "--output", str(output)],
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn("finite nonnegative prior reserve required", result.stderr)
+                self.assertFalse(output.exists())
+    def test_prior_reserve_preserves_raw_balance_threshold_and_single_charge(self):
+        from budget import remaining
+        raw = self.usage(59.62)
+        zero = e16.admission(raw, 0)
+        reserved = e16.admission(raw, 1.15)
+        self.assertEqual(zero, e16.admission(raw))
+        self.assertEqual(zero["policy"]["budget"], 44.5)
+        self.assertEqual(reserved["plan"], "e16-1")
+        self.assertEqual(reserved["balance_units"], 59.62)
+        self.assertEqual(raw, self.usage(59.62))
+        self.assertEqual(reserved["prior_reserve_units"], 1.15)
+        self.assertAlmostEqual(reserved["policy"]["budget"], 43.47)
+        self.assertAlmostEqual(reserved["policy"]["minimum"], 16.15)
+        self.assertEqual(reserved["policy"]["prior_reserve"], 1.15)
+        current = {**raw, "assignments": 1, "rate_units_hour": 5.3, "balance_units": 58.62}
+        seconds, _ = remaining(current, reserved["policy"], 59.62, 0, 5.3)
+        self.assertAlmostEqual(seconds, 42.47 / 5.3 * 3600 - 1961)
+        self.assertEqual(e16.admission(self.usage(45), 1.15)["plan"], "e16-1")
+        self.assertEqual(e16.admission(self.usage(44.9), 1.15)["plan"], "e16-mc")
+        for value in (-1, float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                e16.admission(raw, value)
+
     def usage(self, balance):
         return {"schema": 1, "balance_units": balance, "rate_units_hour": 0, "assignments": 0}
 
@@ -170,6 +222,8 @@ elif op == 'new':
     active.touch(); (root / 'allocated').touch()
     if mode == 'new-ambiguous': sys.exit(27)
 elif op == 'stop':
+    if mode == 'prior-reserve':
+        (root / 'receipt-stopped.json').write_text((root / 'receipt').read_text())
     if mode == 'stop-retry' and not (root / 'stop-failed').exists():
         (root / 'stop-failed').touch(); sys.exit(27)
     if mode == 'stop-never': sys.exit(27)
@@ -273,11 +327,11 @@ elif op == 'exec':
             campaign = 'foreign' if mode == 'foreign-bootstrap' else (root / 'colab_campaign_id.txt').read_text()
             jobs = {' '.join(j): 'fini en 1.0 min' for j in PLANS[plan]}
             if mode == 'failed-job': jobs[next(iter(jobs))] = 'ÉCHEC code 1'
-            if mode in ('wait', 'expire'): jobs[next(iter(jobs))] = 'en cours'
+            if mode in ('wait', 'expire', 'expire-valid-account'): jobs[next(iter(jobs))] = 'en cours'
             print(json.dumps({'schema': 1, 'campaign_present': True,
                 'bootstrap': {'step': 'lanceur en marche', 'pid': 123, 'plan': plan,
                               'campaign_id': campaign},
-                'jobs': jobs, 'diagnostics': {'launcher_alive': mode in ('wait', 'expire')}}))
+                'jobs': jobs, 'diagnostics': {'launcher_alive': mode in ('wait', 'expire', 'expire-valid-account')}}))
     else: sys.exit(98)
 else: sys.exit(99)
 '''
@@ -290,11 +344,13 @@ original_init = e16.E16.__init__
 def init(self, args):
     original_init(self, args)
     args.read_seconds, args.grace, args.cleanup_seconds, args.usage_seconds, args.retry_seconds = .7, .1, 3, .1, .01
+    # Distinguish science expiry with a valid account from a usage read cut off at that same boundary.
+    if os.environ['MODE'] == 'expire-valid-account': args.usage_seconds = 30
 e16.E16.__init__ = init
 original_admission = e16.admission
-def admission(value):
-    result = original_admission(value)
-    result['seconds'] = 12 if os.environ['MODE'] == 'expire' else 8
+def admission(value, prior_reserve_units=0):
+    result = original_admission(value, prior_reserve_units)
+    result['seconds'] = 12 if os.environ['MODE'] in ('expire', 'expire-valid-account') else 8
     result['available_science_seconds'] = 7
     return result
 e16.admission = admission
@@ -328,6 +384,27 @@ sys.exit(e16.main())
 
 @unittest.skipUnless(sys.platform == "linux", "hermetic official CLI processes require WSL/Linux")
 class Processes(unittest.TestCase):
+    def test_prior_reserve_is_carried_to_owned_policy_and_raw_accounting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env, command = self.fixture(root, "prior-reserve")
+            command.extend(("--prior-reserve-units", "1.15"))
+            result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=12)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = json.loads((root / "report.json").read_text())
+            self.assertTrue(report["closed"])
+            self.assertTrue(report["absence_confirmed"])
+            self.assertEqual(report["plan"], "e16-1")
+            self.assertEqual(report["admission"]["balance_units"], 59.62)
+            self.assertEqual(report["admission"]["prior_reserve_units"], 1.15)
+            owned = json.loads((root / "receipt-stopped.json").read_text())
+            self.assertEqual(owned["usage_before"]["balance_units"], 59.62)
+            self.assertEqual(owned["budget_policy"]["prior_reserve"], 1.15)
+            self.assertAlmostEqual(owned["budget_policy"]["minimum"], 16.15)
+            self.assertAlmostEqual(owned["budget_policy"]["budget"], 43.47)
+            calls = (root / "calls").read_text().splitlines()
+            self.assertEqual(calls.count("new"), 1)
+            self.assertEqual(calls.count("stop"), 1)
     def fixture(self, root, mode, execute=True):
         bins = root / ".local/bin"
         bins.mkdir(parents=True)
@@ -362,12 +439,14 @@ class Processes(unittest.TestCase):
                  "corrupt-download", "unsafe-inventory", "stop-retry", "stop-lost", "usage-during",
                  "persist-returned-before", "persist-returned-after", "persist-owned-before", "persist-owned-after",
                  "persist-returned-term-before", "persist-owned-term-before", "new-timeout",
-                 "bootstrap-popen", "bootstrap-exited", "bootstrap-gpu", "bootstrap-popen-recovery-failed", "balance-45", "balance-44.9", "expire")
+                 "bootstrap-popen", "bootstrap-exited", "bootstrap-gpu", "bootstrap-popen-recovery-failed",
+                 "balance-45", "balance-44.9", "expire", "expire-valid-account")
         for mode in modes:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 env, command = self.fixture(root, mode)
-                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=17 if mode == "expire" else 12)
+                result = subprocess.run(command, env=env, capture_output=True, text=True,
+                                        timeout=17 if mode.startswith("expire") else 12)
                 success = mode in ("success", "stop-retry", "stop-lost", "balance-45", "balance-44.9")
                 self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
                 calls = (root / "calls").read_text().splitlines()
@@ -383,7 +462,7 @@ class Processes(unittest.TestCase):
                     self.assertEqual(report["plan"], "e16-1" if balance >= 45 else "e16-mc")
                     self.assertEqual(report["admission"]["policy"]["budget"], balance - 15)
                     self.assertTrue(report["admission"]["incompletion_risk"])
-                if mode == "expire":
+                if mode in ("expire", "expire-valid-account"):
                     self.assertEqual(report["verdict"], "incomplete")
                     self.assertTrue(report["recovered"])
                     self.assertTrue(all("partial-" in path for path in report["recovered"]))

@@ -311,15 +311,19 @@ def down():
         attempt += 1
         time.sleep(min(float(os.environ.get("DLLM_RETRY_SECONDS", "1")) * 2 ** min(attempt - 1, 3),
                        max(0, deadline - time.monotonic())))
+    if json.loads(path.read_text(encoding="utf-8")) != saved:
+        raise PermissionError("cleanup receipt replaced: no operation authorized")
+    save(path, {**saved, "cleanup_blocked": True})
     raise TimeoutError(f"CLEANUP PENDING: VM may still be billed; run down again; ownership retained at {path}")
 
 
 def accounting(path, saved, deadline):
+    from budget import validate_usage
     for attempt in range(3):
         try:
             if time.monotonic() >= deadline:
                 raise RuntimeError("accounting deadline exceeded")
-            after = usage(invoke(["usage"], min(120, deadline - time.monotonic())))
+            after = validate_usage(usage(invoke(["usage"], min(120, deadline - time.monotonic()))))
             if json.loads(path.read_text(encoding="utf-8")) != saved:
                 raise PermissionError("accounting receipt replaced: no deletion authorized")
             usage_record(path, saved.get("usage_before"), after, campaign_id=saved.get("campaign_id"),

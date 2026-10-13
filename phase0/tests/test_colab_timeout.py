@@ -72,6 +72,46 @@ def alive(pid):
 
 @unittest.skipUnless(sys.platform == "linux", "Process groups: run under WSL/Linux")
 class ColabTimeout(unittest.TestCase):
+    def test_rpc_is_reaped_while_second_account_process_is_still_reading(self):
+        sys.path.insert(0, str(COLAB))
+        from budget import UsageTimeout, read_account
+        from read_timeout import run
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rpc = root / "rpc.pid"
+            observed = root / "observed.json"
+            reads, account = [], []
+            def read(limit):
+                reads.append(time.monotonic())
+                if len(reads) == 1:
+                    time.sleep(.15)
+                    raise UsageTimeout("synthetic early read timeout")
+                source = """import json, sys, time
+from pathlib import Path
+time.sleep(.5)
+pid = Path(sys.argv[1]).read_text()
+# Missing /proc entry proves the child was waited, rather than merely sent TERM.
+Path(sys.argv[2]).write_text(json.dumps({'reaped': not Path('/proc/' + pid).exists(), 'at': time.monotonic()}))
+time.sleep(.5)
+"""
+                self.assertEqual(run([sys.executable, "-c", source, str(rpc), str(observed)],
+                                     seconds=2, grace=.05, deadline=limit), 0)
+                account.append(time.monotonic())
+                return 100
+            def monitor(deadline, expire):
+                self.assertEqual(read_account(read, started + 5, retry_seconds=.01), 100)
+                return 5
+            started = time.monotonic()
+            source = "import os,sys,time; from pathlib import Path; Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(60)"
+            code = run([sys.executable, "-c", source, str(rpc)], seconds=.4, grace=.05,
+                       monitor=monitor, monitor_expiry=True)
+            value = json.loads(observed.read_text())
+            self.assertEqual(code, 124)
+            self.assertTrue(value["reaped"], "RPC must be reaped while the second account process is alive")
+            self.assertLess(reads[1], started + .4)
+            self.assertGreater(value["at"], started + .4)
+            self.assertLess(value["at"], account[0])
+
     def test_finished_child_does_not_turn_late_monitor_into_success(self):
         sys.path.insert(0, str(COLAB))
         from read_timeout import run
@@ -85,7 +125,7 @@ class ColabTimeout(unittest.TestCase):
         self.assertEqual(code, 124)
         self.assertGreaterEqual(time.monotonic() - started, .3)
 
-    def test_nested_usage_is_bounded_by_operation_before_read_and_global_limits(self):
+    def test_nested_usage_recovers_beyond_rpc_without_accepting_its_late_response(self):
         sys.path.insert(0, str(COLAB))
         import campaign
         cli = '''import json, os, signal, sys, time
@@ -95,7 +135,8 @@ operation = sys.argv[1]
 signal.signal(signal.SIGTERM, signal.SIG_IGN)
 child = os.fork()
 if child == 0: time.sleep(60); sys.exit(0)
-(root / (operation + '.pids')).write_text(json.dumps([os.getpid(), child]))
+path = root / (operation + '.pids')
+path.write_text(json.dumps((json.loads(path.read_text()) if path.exists() else []) + [os.getpid(), child]))
 time.sleep(.1 if operation == 'snapshot' else 3)
 (root / (operation + '.finished')).touch()
 print(json.dumps({'schema': 1, 'balance_units': 100, 'rate_units_hour': 5.3, 'assignments': 1}))
@@ -111,21 +152,24 @@ print(json.dumps({'schema': 1, 'balance_units': 100, 'rate_units_hour': 5.3, 'as
             supervisor = campaign.Supervisor(args, root / "receipt.json")
             supervisor.env.update(TEST_ROOT=directory, PYTHON=sys.executable)
             supervisor.receipt.write_text(json.dumps({'status': 'owned', 'campaign_id': supervisor.campaign_id,
-                'phase0': {'fingerprint': 'a' * 64, 'hardware': 'A100'}, 'usage_before': {'balance_units': 100},
+                'phase0': {'fingerprint': 'a' * 64, 'hardware': 'A100'},
+                'usage_before': {'schema': 1, 'balance_units': 100, 'rate_units_hour': 0, 'assignments': 0},
                 'budget_policy': {'budget': 20, 'minimum': 15, 'rate': 5.3, 'hours': .01,
                                   'cleanup': 3, 'margin': 1}}))
             supervisor.monitoring = True
             started = time.monotonic()
             try:
                 with mock.patch.object(campaign, "WRAPPER", wrapper), \
-                     self.assertRaises(campaign.AccountingFailure) as failure:
+                     self.assertRaises(campaign.Failure) as failure:
                     supervisor.call("snapshot", .5, True)
                 elapsed = time.monotonic() - started
                 self.assertEqual(failure.exception.code, 124)
-                self.assertGreaterEqual(elapsed, .5)
-                self.assertLess(elapsed, 1.5, "nested usage must not wait for its own 5 s or the global 36 s")
+                self.assertNotIsInstance(failure.exception, campaign.AccountingFailure)
+                self.assertGreaterEqual(elapsed, 4)
+                self.assertLess(elapsed, 8, "the account must recover inside the global window")
+                self.assertFalse(supervisor.account_failed)
                 self.assertTrue((root / "snapshot.finished").exists(), "parent must finish during slow usage")
-                self.assertFalse((root / "usage-json.finished").exists())
+                self.assertTrue((root / "usage-json.finished").exists(), "a fresh account read must finish")
                 for operation in ("snapshot", "usage-json"):
                     self.assertTrue((root / (operation + ".pids")).exists())
                     pids = json.loads((root / (operation + ".pids")).read_text())
@@ -140,7 +184,7 @@ print(json.dumps({'schema': 1, 'balance_units': 100, 'rate_units_hour': 5.3, 'as
                             try: os.kill(pid, signal.SIGKILL)
                             except ProcessLookupError: pass
 
-    def test_accounting_timeout_is_not_retried_by_observe_or_execute(self):
+    def test_global_accounting_wait_expiry_is_not_retried_by_observe_or_execute(self):
         sys.path.insert(0, str(COLAB))
         import campaign
         cli = '''import json, os, signal, sys, time
@@ -156,7 +200,8 @@ if operation == 'sessions-json':
 elif operation == 'up':
     (root / 'active').touch()
     Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({'status': 'owned',
-        'campaign_id': os.environ['DLLM_CAMPAIGN_ID'], 'phase0': session, 'usage_before': {'balance_units': 100},
+        'campaign_id': os.environ['DLLM_CAMPAIGN_ID'], 'phase0': session,
+        'usage_before': {'schema': 1, 'balance_units': 100, 'rate_units_hour': 0, 'assignments': 0},
         'budget_policy': {'budget': 20, 'minimum': 15, 'rate': 5.3, 'hours': .01, 'cleanup': 3, 'margin': 1}}))
 elif operation == 'usage-json':
     if os.environ['MODE'] == 'execute' and previous.count('usage-json') < 2:
@@ -166,7 +211,7 @@ elif operation == 'usage-json':
         child = os.fork()
         if child == 0: time.sleep(60); sys.exit(0)
         (root / 'usage.pids').write_text(json.dumps([os.getpid(), child]))
-        (root / 'usage.started').write_text(str(time.monotonic()))
+        if not (root / 'usage.started').exists(): (root / 'usage.started').write_text(str(time.monotonic()))
         time.sleep(10)
 elif operation == 'snapshot': print(json.dumps({'schema': 1, 'campaign_present': False}))
 elif operation == 'pull': pass
@@ -181,7 +226,7 @@ else: sys.exit(80)
                 (root / "cli.py").write_text(cli)
                 wrapper = root / "wrapper.sh"
                 wrapper.write_text('exec "$PYTHON" "$TEST_ROOT/cli.py" "$@"\n')
-                args = argparse.Namespace(hours=.01, budget_units=20, cleanup_seconds=3, min_balance_units=15,
+                args = argparse.Namespace(hours=.001, budget_units=20, cleanup_seconds=3, min_balance_units=15,
                     max_rate_units_hour=5.3, usage_seconds=.001, read_seconds=.4, grace=.02, read_failures=3,
                     poll_seconds=.1, pull_seconds=1, up_seconds=2, transfer_seconds=.4, gpu="A100")
                 supervisor = campaign.Supervisor(args, root / "receipt.json")
@@ -190,7 +235,10 @@ else: sys.exit(80)
                     (root / "active").touch()
                     supervisor.receipt.write_text(json.dumps({'status': 'owned',
                         'campaign_id': supervisor.campaign_id,
-                        'phase0': {'fingerprint': 'a' * 64, 'hardware': 'A100'}}))
+                        'phase0': {'fingerprint': 'a' * 64, 'hardware': 'A100'},
+                        'usage_before': {'schema': 1, 'balance_units': 100, 'rate_units_hour': 0, 'assignments': 0},
+                        'budget_policy': {'budget': 20, 'minimum': 15, 'rate': 5.3, 'hours': .01,
+                                          'cleanup': 3, 'margin': 1}}))
                     supervisor.monitoring = True
                 handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)}
                 try:
@@ -204,14 +252,15 @@ else: sys.exit(80)
                                 self.assertEqual(supervisor.execute(), 124)
                             self.assertEqual(observe.call_count, 1)
                     calls = (root / "calls").read_text().splitlines()
-                    self.assertEqual(calls.count("usage-json"), 1 if mode == "observe" else 3)
+                    self.assertEqual(calls.count("usage-json"), 2 if mode == "observe" else 4)
                     if mode == "execute":
                         self.assertEqual(calls.count("up"), 1)
                         self.assertEqual(calls.count("down"), 1)
-                        self.assertIn("pull", calls)
+                        self.assertNotIn("pull", calls, "unknown account permits only ownership checks and cleanup")
                         self.assertFalse((root / "active").exists())
                         delay = float((root / "cleaned").read_text()) - float((root / "usage.started").read_text())
-                        self.assertLess(delay, 1.5, "cleanup must follow the first failed accounting read")
+                        self.assertGreater(delay, 2, "the account wait must outlive the short RPC")
+                        self.assertLess(delay, 5, "the global deadline must stop the account wait")
                     pids = json.loads((root / "usage.pids").read_text())
                     deadline = time.monotonic() + 1
                     while any(alive(pid) for pid in pids) and time.monotonic() < deadline:

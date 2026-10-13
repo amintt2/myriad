@@ -1,6 +1,41 @@
 """Fail-closed account limits, independent of allocation ownership and cleanup authorization."""
 import math
 import os
+import time
+
+from read_timeout import pause
+
+
+class UsageTimeout(RuntimeError):
+    """Only an expired usage read may enter the bounded account wait."""
+
+
+def read_account(read, deadline, allowance=None, retry_seconds=1):
+    end = min(deadline, time.monotonic() + 600)
+    delay = min(30, retry_seconds)
+    while True:
+        limit = min(end, allowance() if allowance is not None else end)
+        if time.monotonic() >= limit:
+            raise UsageTimeout("account read window exhausted; cleanup required")
+        try:
+            value = read(limit)
+            if time.monotonic() >= limit:
+                raise UsageTimeout("late account response refused; cleanup required")
+            return value
+        except UsageTimeout:
+            available = limit - time.monotonic()
+            if available <= 0:
+                raise
+            pause(min(delay, available))
+            delay = min(30, delay * 2)
+
+
+def account_deadline(usage, observed_at, policy, initial_balance, started, observed_rate):
+    now = time.monotonic()
+    rate = max(policy["rate"], observed_rate, usage["rate_units_hour"])
+    projected = {**usage, "balance_units": max(0, usage["balance_units"] - rate * (now - observed_at) / 3600)}
+    seconds, _ = remaining(projected, policy, initial_balance, now - started, rate)
+    return now + seconds
 
 
 def number(value, name, zero=False):
@@ -33,7 +68,9 @@ def limits():
 def preflight(usage, policy, allocated=False):
     validate_usage(usage, allocated)
     for name, value in policy.items():
-        number(value, name, name == "minimum")
+        number(value, name, name in ("minimum", "prior_reserve"))
+    if policy["minimum"] < 15 + number(policy.get("prior_reserve", 0), "prior reserve", True):
+        raise ValueError("absolute account reserve must include 15 plus prior reserve")
     rate = max(policy["rate"], usage["rate_units_hour"])
     cost = rate * (policy["hours"] + (policy["cleanup"] + policy["margin"]) / 3600)
     if policy["budget"] > usage["balance_units"] - policy["minimum"] or cost > policy["budget"]:
@@ -44,7 +81,9 @@ def preflight(usage, policy, allocated=False):
 def remaining(usage, policy, initial_balance, elapsed, observed_rate):
     validate_usage(usage, True)
     for name, value in policy.items():
-        number(value, name, name == "minimum")
+        number(value, name, name in ("minimum", "prior_reserve"))
+    if policy["minimum"] < 15 + number(policy.get("prior_reserve", 0), "prior reserve", True):
+        raise ValueError("absolute account reserve must include 15 plus prior reserve")
     for name, value in (("initial balance", initial_balance), ("elapsed", elapsed), ("observed rate", observed_rate)):
         number(value, name, True)
     rate = max(policy["rate"], observed_rate, usage["rate_units_hour"])

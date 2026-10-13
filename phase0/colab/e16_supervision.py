@@ -15,7 +15,7 @@ import uuid
 import zlib
 from pathlib import Path
 
-from budget import preflight, validate_usage
+from budget import UsageTimeout, number, preflight, validate_usage
 from campaign import state
 from e17_probe import Probe, cli_signals
 from read_timeout import run
@@ -27,20 +27,22 @@ MAX_FILE = 64 * 1024 * 1024
 MAX_TOTAL = 512 * 1024 * 1024
 
 
-def admission(usage):
+def admission(usage, prior_reserve_units=0):
     validate_usage(usage)
+    number(prior_reserve_units, "prior reserve", True)
     plan = "e16-1" if usage["balance_units"] >= 45 else "e16-mc"
     low, high = (5.5, 7.6) if plan == "e16-1" else (4, 5.6)
     upper_budget = math.ceil(100 * 5.3 * (high + (900 + 1800 + 161) / 3600)) / 100
-    available = usage["balance_units"] - 15
+    minimum = 15 + prior_reserve_units
+    available = usage["balance_units"] - minimum
     budget = min(upper_budget, available)
     # Leave analysis/recovery time inside the operation window, and cleanup/margin outside it.
     seconds = min(high * 3600 + 900, budget / 5.3 * 3600 - 1800 - 161)
     # Avoid binary rounding making preflight cost infinitesimally larger than the cap.
     seconds = math.floor(seconds * 1000000) / 1000000
     science_seconds = seconds - 900
-    policy = {"hours": seconds / 3600, "cleanup": 1800, "margin": 161, "minimum": 15,
-              "rate": 5.3, "budget": budget}
+    policy = {"hours": seconds / 3600, "cleanup": 1800, "margin": 161, "minimum": minimum,
+              "rate": 5.3, "budget": budget, "prior_reserve": prior_reserve_units}
     value = {"plan": plan, "gpu": "A100", "estimated_hours": [low, high],
              "estimated_units": [low * 5.3, high * 5.3], "seconds": seconds, "policy": policy,
              "available_science_seconds": science_seconds, "upper_budget_units": upper_budget,
@@ -48,7 +50,8 @@ def admission(usage):
              "warning": "Ces estimations ne promettent pas de finir ; tous les jobs sont conservés. "
                         "Si la projection dépasse la fenêtre disponible, le risque d’incomplétude est explicite ; "
                         "l’expiration conserve les partiels et clôture la VM.",
-             "balance_units": usage["balance_units"], "available_units": available}
+             "balance_units": usage["balance_units"], "available_units": available,
+             "prior_reserve_units": prior_reserve_units}
     try:
         preflight(usage, policy)
         value["admitted"] = science_seconds > 0
@@ -147,7 +150,7 @@ class E16(Probe):
         self.preflight_only = not args.execute
 
     def prepare(self):
-        choice = admission(self.before)
+        choice = admission(self.before, getattr(self.a, "prior_reserve_units", 0))
         self.admission = choice
         print(json.dumps(choice, sort_keys=True), flush=True)
         lifecycle.save(self.a.output, {"schema": 1, "preflight": choice, "allocated": False, "prepared": False})
@@ -195,21 +198,28 @@ class E16(Probe):
             lifecycle.usage_record(self.a.receipt, self.before, value, campaign_id=self.campaign)
         return value
 
-    def monitor(self, deadline=None):
+    def account_window_deadline(self):
+        # Science expiry bounds its caller; the admitted recovery deadline bounds the account window.
+        return getattr(self, "recovery_deadline", self.deadline)
+
+    def monitor(self, deadline=None, expire=None):
+        if self.account_failed:
+            raise ValueError("account/budget became unknown; only cleanup is allowed")
         if time.monotonic() >= self.deadline:
             raise TimeoutError("operation window expired")
         try:
-            return super().monitor(deadline)
-        except (ValueError, RuntimeError, OSError, TimeoutError):
-            # A read cut off by the science deadline can be retried in the reserved recovery window.
-            if time.monotonic() < self.deadline or self.deadline > self.science_deadline:
+            return super().monitor(deadline, expire)
+        except BaseException as exc:
+            # Operation expiry may use recovery, but an exhausted account wait authorizes only cleanup.
+            if (self.account_waiting or isinstance(exc, UsageTimeout) or time.monotonic() < self.deadline
+                    or self.deadline > self.science_deadline):
                 self.account_failed = True
             raise
 
     def process(self, command, seconds):
         self.reconcile()
         code = run(command, seconds=min(seconds, max(.01, self.deadline - time.monotonic())),
-                   grace=self.a.grace, deadline=self.deadline, monitor=self.monitor,
+                   grace=self.a.grace, deadline=self.deadline, monitor=self.monitor, monitor_expiry=True,
                    preexec_fn=cli_signals, env={**os.environ, "DLLM_REQUIRE_OWNER": "1",
                    "DLLM_CAMPAIGN_RECEIPT": str(self.a.receipt), "DLLM_CAMPAIGN_ID": self.campaign,
                    "DLLM_OPERATION_IDENTITY": json.dumps(lifecycle.identity(json.loads(self.a.receipt.read_text())))},
@@ -379,7 +389,7 @@ class E16(Probe):
             if self.preflight_only:
                 if self.a.receipt.exists() or self.session() is not None:
                     raise PermissionError("existing lifecycle refused")
-                self.before = self.usage(False)
+                self.before = self.wait_usage(False)
                 self.prepare()
                 return 0
             code = super().execute()
@@ -405,11 +415,14 @@ def main():
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--receipt", type=Path, default=lifecycle.receipt_path())
     ap.add_argument("--poll-seconds", type=float, default=60)
+    ap.add_argument("--prior-reserve-units", type=float, default=0)
     args = ap.parse_args()
     if args.execute and args.cleanup_only:
         ap.error("execute and cleanup-only are mutually exclusive")
     if not math.isfinite(args.poll_seconds) or args.poll_seconds <= 0:
         ap.error("finite positive poll interval required")
+    if not math.isfinite(args.prior_reserve_units) or args.prior_reserve_units < 0:
+        ap.error("finite nonnegative prior reserve required")
     try:
         validate_paths(args.output, args.receipt)
     except ValueError as exc:

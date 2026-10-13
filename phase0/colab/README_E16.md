@@ -14,6 +14,24 @@ wsl.exe -e bash -lc 'cd "$1" && bash phase0/colab/colab_phase0.sh e16-supervise 
 wsl.exe -e bash -lc 'cd "$1" && bash phase0/colab/colab_phase0.sh e16-supervise --execute --output "$2"' e16 "$REPO_WSL" "$EXECUTION_JSON"
 ```
 
+Pour l'admission autorisée depuis le solde brut **59,62**, conserver la réserve antérieure
+non réconciliée **1,15 unité** dans les deux commandes, après audit parent :
+
+```bash
+wsl.exe -e bash -lc 'cd "$1" && shift && bash phase0/colab/colab_phase0.sh e16-supervise "$@"' \
+  e16 "$REPO_WSL" --prior-reserve-units 1.15 --output "$PREFLIGHT_JSON"
+wsl.exe -e bash -lc 'cd "$1" && shift && bash phase0/colab/colab_phase0.sh e16-supervise "$@"' \
+  e16 "$REPO_WSL" --execute --prior-reserve-units 1.15 --output "$EXECUTION_JSON"
+```
+
+`--prior-reserve-units` accepte un nombre fini non négatif, défaut 0 compatible. Il ne
+change pas le seuil de choix de plan, calculé sur le solde brut : ici `e16-1`. Le budget
+plafonné devient **43,47**, le minimum protégé **16,15 = 15 + 1,15**. La politique du reçu
+garde cette réserve pendant l'exécution et les reprises du compte. Les relevés restent
+bruts ; la réserve n'est ni soustraite du solde enregistré ni ajoutée à la consommation
+de campagne. Ce n'est pas un coût exact. Garder le paramètre tant que les charges différées
+ne sont pas réconciliées ; aucune réconciliation automatique n'est déduite d'un compteur.
+
 La première commande lit uniquement sessions/usage côté cloud, imprime le choix et le coût,
 vérifie les références existantes puis prépare temporairement le paquet et ses empreintes.
 Elle ne télécharge aucun modèle/jeu et n'alloue rien. La seconde refait l'admission avant son
@@ -102,3 +120,52 @@ adopté : il faut examiner les preuves, sans arrêt automatique d'une VM potenti
 Les pannes de stockage et SIGKILL ne garantissent pas une clôture autonome après mort du
 contrôleur ; le reçu et les preuves restent nécessaires au parent. Aucun repli du bac E11 n'est
 introduit par cette supervision.
+
+## Lecture du compte : décision du 13 octobre à 12 h 40
+
+Les commandes ci-dessus utilisent automatiquement la garde commune E16/E17 et `chain4`.
+Seul un timeout de lecture (`usage`, retour 124) autorise la reprise : pauses de 1, 2, 4, 8,
+16 puis 30 s au maximum (base `retry-seconds` pour Probe/E17). Les lectures, pauses et délai
+de terminaison des processus appartiennent à une seule fenêtre de **600 s maximum** par
+lecture interrompue. Cette fenêtre se termine plus tôt à la borne globale ou à la réserve
+budgétaire, **pas à la courte borne du RPC englobant**. La première lecture peut être coupée
+par cette borne ; les suivantes disposent encore de la fenêtre compte. Le RPC expiré est
+terminé/récolté pendant cette attente et sa réponse tardive n'autorise aucun succès.
+La surveillance partagée reste active dans chaque lecture et pause : elle consulte la borne
+RPC au plus toutes les secondes, avec une attente raccourcie jusqu'à son échéance exacte.
+TERM puis KILL/récolte conservent la grâce bornée ; cette grâce consomme la fenêtre compte,
+sans repousser les échéances ni rendre admissible un résultat RPC tardif. Aucun thread n'est ajouté.
+Après compte frais et budget/propriété revalidés, E17 peut réémettre une seule fois `status`,
+lecture idempotente ; ni `new`, ni `start`, ni épisode ne sont rejoués. Une interruption TERM
+pendant l'attente bloque la récupération et ne permet que la clôture propriétaire.
+Le dernier solde connu est diminué prudemment au tarif plafond pendant l'attente ; les
+réserves de cleanup et de marge restent soustraites, avec un plancher absolu de **15 unités**
+plus toute réserve antérieure explicitement configurée. Le temps d'attente reste dans
+l'enveloppe globale ; les réserves cleanup et marge ne sont pas prolongées.
+
+Aucun nouveau RPC scientifique n'est lancé pendant le compte inconnu. Solde insuffisant,
+forme invalide, affectation étrangère ou erreur CLI autre que 124 déclenchent immédiatement
+la clôture ; ils ne bénéficient pas de cette attente. Une fenêtre épuisée interdit aussi la
+récupération scientifique E16, même dans sa réserve de récupération. Les vérifications de
+propriété nécessaires à l'arrêt restent autorisées. `new` n'est jamais réessayé.
+
+Après épuisement, arrêt répété uniquement de notre session, absence puis compte final valide
+sont requis avant suppression du reçu. La clôture garde sa borne de 1 800 s par défaut :
+une panne durable conserve le reçu et un état explicite (`cleanup_blocked=true` ou
+`released/accounting-pending` après absence), avec un retour d'échec ; ce n'est
+pas une garantie de libération en cas de réseau indisponible ou de mort du contrôleur.
+Reprendre uniquement avec la commande `e16-supervise --cleanup-only` ci-dessus, vers un
+rapport neuf. Pour un reçu E17 ou `chain4` identifié et examiné, la reprise commune est :
+
+```bash
+wsl.exe -e bash -lc 'cd "$1" && bash phase0/colab/chain4.sh --cleanup-only --receipt "$2" --cleanup-seconds 1800' cleanup "$REPO_WSL" "$RECEIPT_WSL"
+```
+
+Ne pas supprimer un reçu bloqué, adopter une session étrangère ou allouer de nouveau pour
+contourner la panne. Ces chemins sont validés avec horloge/CLI synthétiques seulement ;
+aucune stabilité réseau Colab ni nouvelle mesure scientifique n'est attestée.
+
+Le minimum E16 est calculé une fois (`15 + prior_reserve_units`) puis le disponible est
+`balance_units - minimum`, identique au contrôle strict du préflight. Il n'y a aucune epsilon
+abaissant le plancher. À brut 59,62 et réserve 2,3, le minimum vaut 17,3 et le plafond environ
+42,32 ; la fenêtre scientifique reste arrondie vers le bas à la microseconde.

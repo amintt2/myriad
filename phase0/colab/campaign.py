@@ -14,7 +14,7 @@ from pathlib import Path
 from read_timeout import run
 from snapshot import safe_snapshot
 from session_json import identity, lifecycle_lock, receipt_path, save
-from budget import remaining, validate_usage
+from budget import UsageTimeout, account_deadline, read_account, remaining, validate_usage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from colab_jobs import PLANS
@@ -95,10 +95,15 @@ class Supervisor:
                     "DLLM_ACCOUNTING_MARGIN_SECONDS": str(args.usage_seconds + args.read_seconds + args.grace * 2 + 1)}
         self.owner = None
         self.cleanup_lock_fd = None
+        self.last_usage = None
+        self.last_usage_at = self.started
+        self.account_failed = False
 
     def call(self, operation, seconds, structured=False, deadline=None):
         deadline = min(self.deadline, deadline if deadline is not None else math.inf)
         remaining = deadline - time.monotonic()
+        if operation == "usage-json":
+            remaining -= self.a.grace
         if remaining <= 0:
             raise Failure("global deadline exceeded", 124)
         log(f"wrapper {operation}")
@@ -107,6 +112,7 @@ class Supervisor:
                        deadline=deadline,
                        grace=self.a.grace, env=self.env, stdout=output if structured else None,
                        monitor=self.monitor if self.monitoring and operation != "usage-json" else None,
+                       monitor_expiry=self.monitoring and operation != "usage-json",
                        pass_fds=() if self.cleanup_lock_fd is None else (self.cleanup_lock_fd,))
             if code:
                 raise Failure(f"wrapper {operation}: exit {code}", code)
@@ -117,7 +123,9 @@ class Supervisor:
                 except (ValueError, UnicodeError) as e:
                     raise Failure(f"wrapper {operation}: malformed JSON", 65) from e
 
-    def monitor(self, deadline=None):
+    def monitor(self, deadline=None, expire=None):
+        if self.account_failed:
+            raise AccountingFailure("accounting blocked; only cleanup is allowed", 65)
         now = time.monotonic()
         if now >= self.next_usage and self.receipt.exists():
             self.next_usage = now + self.a.usage_seconds
@@ -125,11 +133,39 @@ class Supervisor:
             if saved.get("status") == "owned":
                 saved = self.cleanup_identity()
                 try:
-                    value = validate_usage(self.call("usage-json", self.a.read_seconds, True, deadline=deadline), True)
+                    first = True
+                    def read(limit):
+                        nonlocal first
+                        observed_at = time.monotonic()
+                        read_limit = min(limit, deadline) if first and deadline is not None else limit
+                        first = False
+                        try:
+                            value = validate_usage(self.call("usage-json", self.a.read_seconds, True,
+                                                             deadline=read_limit), True)
+                        except Failure as exc:
+                            if exc.code == 124:
+                                raise UsageTimeout("wrapper usage-json: exit 124") from exc
+                            raise
+                        finally:
+                            if expire is not None:
+                                expire()
+                        self.last_usage, self.last_usage_at = value, observed_at
+                        return value
+                    def allowance():
+                        value = {**(self.last_usage or saved["usage_before"]), "assignments": 1,
+                                 "rate_units_hour": max(self.a.max_rate_units_hour, self.observed_rate,
+                                                        (self.last_usage or saved["usage_before"])["rate_units_hour"])}
+                        return account_deadline(value, self.last_usage_at, saved["budget_policy"],
+                                                saved["usage_before"]["balance_units"], self.started,
+                                                self.observed_rate)
+                    self.account_failed = True
+                    value = read_account(read, self.deadline, allowance)
                     seconds, self.observed_rate = remaining(value, saved["budget_policy"],
                         saved["usage_before"]["balance_units"], time.monotonic() - self.started, self.observed_rate)
-                except (ValueError, KeyError, Failure) as exc:
-                    code = 124 if isinstance(exc, Failure) and exc.code == 124 else 65
+                    self.account_failed = False
+                except (ValueError, KeyError, Failure, UsageTimeout) as exc:
+                    self.account_failed = True
+                    code = 124 if isinstance(exc, UsageTimeout) or isinstance(exc, Failure) and exc.code == 124 else 65
                     raise AccountingFailure("accounting unknown or reserve exhausted; cleanup required", code) from exc
                 self.deadline = min(self.deadline, time.monotonic() + seconds)
                 log("account usage " + json.dumps(value, sort_keys=True))
@@ -272,6 +308,8 @@ class Supervisor:
                         if foreign:
                             self.mark_foreign()
                             raise Failure("preexisting campaign: no recovery or down authorized", 73)
+                    if self.account_failed:
+                        raise AccountingFailure("accounting blocked; final scientific recovery refused", 65)
                     for attempt in range(self.a.read_failures):
                         try:
                             self.ownership()

@@ -146,6 +146,11 @@ if op == 'sessions':
     print(f'[phase0] {endpoint} | Hardware: L4 | Shape: Standard | Variant: GPU'
           if active.exists() else '[colab] No active sessions found on server.')
 elif op == 'usage':
+    if mode in ('usage-timeout-once', 'usage-timeout-always', 'usage-wait-term') and active.exists():
+        if mode != 'usage-timeout-once' or not (root / 'usage-timeout').exists():
+            (root / 'usage-timeout').touch()
+            if mode == 'usage-wait-term': (root / 'usage-waiting').touch()
+            sys.exit(124)
     if mode == 'usage-unknown' and active.exists(): sys.exit(0)
     if mode == 'usage-final-unknown' and (root / 'allocated').exists() and not active.exists(): sys.exit(0)
     if mode == 'usage-unknown-during' and (root / 'probe-started').exists() and active.exists(): sys.exit(0)
@@ -226,6 +231,44 @@ sys.exit(e17_probe.main())
 
 @unittest.skipUnless(sys.platform == "linux", "fake CLI lifecycle processes require Linux/WSL")
 class Processes(unittest.TestCase):
+    def test_usage_timeout_retries_then_valid_or_global_cleanup(self):
+        for mode, success in (("usage-timeout-once", True), ("usage-timeout-always", False)):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                env, command = self.fixture(root, mode)
+                command.extend(("--seconds", "6", "--cleanup-seconds", "3"))
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=12)
+                report, calls = self.check(root, result.stdout + result.stderr, success)
+                self.assertEqual(result.returncode, 0 if success else 1)
+                self.assertEqual(calls.count("new"), 1)
+                self.assertGreater(calls.count("usage"), 3)
+                if not success:
+                    self.assertNotIn("exec", calls)
+                    self.assertEqual(report["error"], "UsageTimeout")
+
+    def test_term_interrupts_usage_wait_and_closes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env, command = self.fixture(root, "usage-wait-term")
+            command.extend(("--seconds", "10", "--retry-seconds", "2", "--cleanup-seconds", "3"))
+            process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            try:
+                deadline = time.monotonic() + 5
+                while not (root / "usage-waiting").exists() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue((root / "usage-waiting").exists())
+                os.kill(process.pid, signal.SIGTERM)
+                output, _ = process.communicate(timeout=8)
+                report, calls = self.check(root, output)
+                self.assertEqual(process.returncode, 1, output)
+                self.assertEqual(report["error"], "SystemExit")
+                self.assertNotIn("exec", calls)
+                self.assertEqual(calls.count("new"), 1)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate()
+
     def test_explicit_ephemeral_uses_same_allocation_and_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

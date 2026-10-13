@@ -13,11 +13,15 @@ import uuid
 from pathlib import Path
 
 import session_json as lifecycle
-from budget import preflight, remaining, validate_usage
+from budget import UsageTimeout, account_deadline, preflight, read_account, remaining, validate_usage
 from e17_probe_remote import FLAGS, NAMESPACES
 from read_timeout import run
 
 HERE = Path(__file__).resolve().parent
+
+
+class RpcExpiredAfterAccountWait(RuntimeError):
+    """The account recovered, but the enclosing RPC response is no longer admissible."""
 
 
 @contextlib.contextmanager
@@ -82,16 +86,27 @@ class Probe:
         self.next_usage = 0
         self.rate = args.max_rate_units_hour
         self.observations = []
+        self.last_usage = None
+        self.last_usage_at = self.started
+        self.account_recoveries = 0
+        self.account_waiting = False
 
     def cli(self, args, monitor=False):
+        recoveries = self.account_recoveries
+        rpc_deadline = min(self.deadline, time.monotonic() + self.operation_seconds(args))
         available = self.deadline - time.monotonic()
+        if args[0] == "usage":
+            available -= self.a.grace  # Reaping belongs inside the account window, including its final read.
+            if available <= 0:
+                raise UsageTimeout("colab usage: exit 124")
         if available <= 0:
             raise TimeoutError("operation deadline exceeded")
         with tempfile.TemporaryFile() as output:
             code = run([sys.executable, str(HERE / "safe_cli.py"), *args],
                        seconds=min(self.operation_seconds(args), available),
-                       grace=self.a.grace, deadline=self.deadline, stdout=output,
+                       grace=self.a.grace, deadline=rpc_deadline, stdout=output,
                        monitor=self.monitor if monitor else None,
+                       monitor_expiry=monitor,
                        preexec_fn=cli_signals,
                        env={**os.environ, "DLLM_REQUIRE_OWNER": "0"},
                        pass_fds=(int(os.environ["DLLM_LIFECYCLE_LOCK_FD"]),)
@@ -99,6 +114,10 @@ class Probe:
             output.seek(0)
             text = output.read().decode("utf-8")
         if code:
+            if args[0] == "usage" and code == 124:
+                raise UsageTimeout("colab usage: exit 124")
+            if code == 124 and monitor and self.account_recoveries > recoveries:
+                raise RpcExpiredAfterAccountWait(f"colab {args[0]}: exit 124")
             raise RuntimeError(f"colab {args[0]}: exit {code}")
         return text
 
@@ -109,17 +128,55 @@ class Probe:
         return lifecycle.parse(self.cli(["sessions"]))["phase0"]
 
     def usage(self, allocated):
+        observed_at = time.monotonic()
         value = validate_usage(lifecycle.usage(self.cli(["usage"])), allocated)
         self.observations.append(value)
+        self.last_usage, self.last_usage_at = value, observed_at
         return value
 
-    def monitor(self, deadline=None):
+    def account_window_deadline(self):
+        return self.deadline
+
+    def wait_usage(self, allocated, first_deadline=None, expire=None):
+        old = self.deadline
+        end = self.account_window_deadline()
+        first, waiting = True, False
+        if allocated:
+            self.account_waiting = True
+        def read(limit):
+            nonlocal first, waiting
+            self.deadline = min(limit, first_deadline) if first and first_deadline is not None else limit
+            first = False
+            try:
+                return self.usage(allocated)
+            except UsageTimeout:
+                waiting = True
+                raise
+            finally:
+                if expire is not None:
+                    expire()
+        def allowance():
+            value = {**(self.last_usage or self.before), "assignments": 1,
+                     "rate_units_hour": max(self.rate, (self.last_usage or self.before)["rate_units_hour"])}
+            return account_deadline(value, self.last_usage_at, self.policy, self.before["balance_units"],
+                                    self.started, self.rate)
+        try:
+            value = read_account(read, end, allowance if allocated else None, self.a.retry_seconds)
+            self.account_recoveries += int(waiting)
+            if allocated:
+                self.account_waiting = False
+            return value
+        finally:
+            self.deadline = old
+
+    def monitor(self, deadline=None, expire=None):
+        if self.account_waiting:
+            raise ValueError("account wait interrupted or exhausted; only cleanup is allowed")
         if time.monotonic() >= self.next_usage:
             self.next_usage = time.monotonic() + self.a.usage_seconds
             old = self.deadline
-            self.deadline = min(old, deadline if deadline is not None else old)
             try:
-                value = self.usage(True)
+                value = self.wait_usage(True, deadline, expire)
                 if value["rate_units_hour"] > self.a.max_rate_units_hour:
                     raise ValueError("observed rate exceeds reserved ceiling")
                 seconds, self.rate = remaining(value, self.policy, self.before["balance_units"],
@@ -168,9 +225,12 @@ class Probe:
                 self.cli(["stop", "-s", "phase0"])
             except PermissionError:
                 raise
-            except (ValueError, RuntimeError, OSError) as exc:
+            except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
                 print(f"cleanup pending: {type(exc).__name__}", flush=True)
             time.sleep(min(self.a.retry_seconds, max(0, self.deadline - time.monotonic())))
+        self.check_receipt()
+        saved = json.loads(self.a.receipt.read_text(encoding="utf-8"))
+        lifecycle.save(self.a.receipt, {**saved, "cleanup_blocked": True, "release_confirmed": self.absent})
         raise TimeoutError("cleanup/accounting pending; receipt retained")
 
     gpu = "L4"
@@ -212,7 +272,7 @@ class Probe:
                 raise PermissionError("existing ownership receipt refused")
             if self.session() is not None:
                 raise PermissionError("existing session refused")
-            self.before = self.usage(False)
+            self.before = self.wait_usage(False)
             self.prepare()
             preflight(self.before, self.policy)
             self.pending = {"schema": 1, "status": "allocation-unconfirmed", "phase0": None,
@@ -250,7 +310,7 @@ class Probe:
                     error = error or type(exc).__name__
                     try:
                         self.observations.append(lifecycle.usage(self.cli(["usage"])))
-                    except (ValueError, RuntimeError, OSError):
+                    except (ValueError, RuntimeError, OSError, TimeoutError):
                         self.observations.append({"final_usage_unknown": True})
         report = {"schema": 1, "campaign_id": self.campaign, "verdict": result["verdict"]
                   if result and self.closed and error is None else

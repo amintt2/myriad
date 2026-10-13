@@ -84,12 +84,12 @@ class Campaign(e17_probe.Probe):
             self.diagnose(exc, "sessions")
             raise
 
-    def monitor(self, deadline=None):
+    def monitor(self, deadline=None, expire=None):
         if self.account_unknown:
             raise ValueError("account/budget became unknown; only cleanup is allowed")
         try:
-            return super().monitor(deadline)
-        except (ValueError, RuntimeError, OSError, TimeoutError):
+            return super().monitor(deadline, expire)
+        except BaseException:
             self.account_unknown = True
             raise
 
@@ -107,10 +107,19 @@ class Campaign(e17_probe.Probe):
         return current
 
     def rpc(self, operation, payload=None):
+        for attempt in range(2):
+            try:
+                return self.rpc_once(operation, payload)
+            except e17_probe.RpcExpiredAfterAccountWait:
+                # Only an idempotent status may be reissued after a recovered account wait, never start/new.
+                if operation != "status" or attempt:
+                    raise
+
+    def rpc_once(self, operation, payload=None):
         self.rpc_operation = operation
+        self.monitor()
         if self.reconcile() != self.owner or self.owner is None:
             raise PermissionError("owned VM absent before campaign RPC")
-        self.monitor()
         source = (HERE / "e17_campaign_remote.py").read_text(encoding="utf-8")
         source += f"\nemit_response(rpc({self.request!r}, {operation!r}, {payload!r}))\n"
         with tempfile.TemporaryDirectory(prefix="e17-rpc-") as directory:
@@ -174,7 +183,7 @@ class Campaign(e17_probe.Probe):
         try:
             if self.a.receipt.exists() or self.session() is not None:
                 raise PermissionError("existing ownership/session refused")
-            self.before = self.usage(False)
+            self.before = self.wait_usage(False)
             preflight(self.before, self.policy)
             self.pending = {"schema": 1, "status": "allocation-unconfirmed", "phase0": None,
                             "campaign_id": self.campaign, "allocation_id": uuid.uuid4().hex,

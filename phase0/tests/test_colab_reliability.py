@@ -90,6 +90,9 @@ elif operation == 'stop':
     active.unlink()
     if mode == 'stop-ack-lost': dns()
 elif operation == 'usage':
+    if mode == 'foreign-account-after-absence' and not active.exists():
+        print('Current balance: 100.00 compute units\nUsage rate: 5.30/hr\nActive assignments: 1')
+        sys.exit(0)
     if mode == 'empty-usage' or mode == 'after-empty' and not active.exists(): sys.exit(0)
     balance = '1.00' if mode == 'low-balance' else '97.50' if mode == 'after' else '100.00'
     print(f'Current balance: {balance} compute units\nUsage rate: ' + ('5.30/hr\nActive assignments: 1'
@@ -102,6 +105,21 @@ else: sys.exit(81)
 
 @unittest.skipUnless(sys.platform == "linux", "real processes require Linux/WSL")
 class Reliability(unittest.TestCase):
+    def test_absence_with_foreign_billed_account_retains_accounting_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env = self.fixture(root, LIFECYCLE_CLI, "foreign-account-after-absence")
+            self.owned(root)
+            result = self.call(env, "down")
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            saved = json.loads((root / "receipt").read_text())
+            self.assertEqual(saved["status"], "released/accounting-pending")
+            self.assertTrue(saved["release_confirmed"])
+            self.assertFalse((root / "active").exists())
+            self.assertEqual((root / "calls").read_text().splitlines().count("stop"), 1)
+            records = [json.loads(line) for line in (root / "receipt.usage.jsonl").read_text().splitlines()]
+            self.assertTrue(all(row["after"] is None for row in records))
+
     def fixture(self, root, source, mode):
         bins = root / "bin"
         bins.mkdir()

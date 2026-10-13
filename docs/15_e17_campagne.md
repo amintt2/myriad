@@ -313,3 +313,24 @@ Les régressions utilisent exclusivement des fixtures et une fausse CLI : elles 
 le défaut de contrôle, pas la panne réseau réelle. Preuves neuves :
 `C:/tmp/myriad-e17-recovery-20261013`. Prochaine réserve prudente : **0,95 unité**
 (0,55 + 248 s à 5,3 unités/h, arrondi), pas un coût exact ; plafond 20/plancher 15 conservés.
+
+## Garde budgétaire du 13 octobre à 12 h 40
+
+La surveillance E17 réutilise la reprise bornée de `Probe` partagée avec E16 : un timeout
+`colab usage` peut être réessayé avec pauses croissantes, dans **600 s maximum**, lectures
+et terminaison incluses. L'échéance globale et le solde prudent peuvent raccourcir cette
+attente ; la courte borne du RPC coupe seulement sa lecture initiale et son exécution.
+Les lectures du compte suivantes continuent dans leur fenêtre. Un RPC expiré est récolté
+et sa réponse rejetée ; après compte frais/budget/propriété validés, seul `status` idempotent
+peut être réémis une fois. Aucune mutation `new`/`start` ni épisode n'est rejouée.
+Ni récupération réservée ni cleanup ne sont prolongés, et TERM pendant compte inconnu
+n'autorise que la clôture propriétaire.
+Pendant l'attente, aucun nouveau RPC scientifique ; consommation estimée au tarif plafond,
+réserves maintenues et plancher absolu 15. Un compte invalide reste un échec immédiat.
+Après épuisement, garde compte bloqué, arrêt répété de notre session, absence et compte final
+valides requis. Sinon, reçu conservé avec état bloqué explicite, aucune réallocation automatique.
+Le [guide opératoire commun](../phase0/colab/README_E16.md#lecture-du-compte--décision-du-13-octobre-à-12-h-40)
+donne les bornes et les commandes de clôture seules pour un reçu identifié.
+`new`, ownership, provenance, sanitizer et critères scientifiques restent stricts.
+Le développement E17 local et VERIF-1 sont hors du périmètre de ce correctif ; aucun Colab
+réel ni contenu TEST scientifique n'a été utilisé pour le valider.

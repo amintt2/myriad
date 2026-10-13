@@ -176,7 +176,8 @@ elif operation == 'up':
     active.touch()
     Path(os.environ['DLLM_CAMPAIGN_RECEIPT']).write_text(json.dumps({**session, 'status': 'owned',
         'campaign_id': os.environ['DLLM_CAMPAIGN_ID'],
-        'usage_before': {'balance_units': 100}, 'budget_policy': {'budget': 20, 'minimum': 15,
+        'usage_before': {'schema': 1, 'balance_units': 100, 'rate_units_hour': 0, 'assignments': 0},
+        'budget_policy': {'budget': 20, 'minimum': 15,
             'rate': 5.3, 'hours': .002, 'cleanup': 3, 'margin': 1}}))
     if mode in ('refused-without-bootstrap', 'foreign-receipt-dns'):
         if mode == 'foreign-receipt-dns':
@@ -484,7 +485,10 @@ else: sys.exit(81)
                 self.assertNotIn("pull", calls)
                 self.assertNotIn("down", calls)
             else:
-                self.assertIn("pull", calls)
+                if mode == "deadline" and "accounting unknown or reserve exhausted" in output:
+                    self.assertNotIn("pull", calls, "expired account wait authorizes only cleanup")
+                else:
+                    self.assertIn("pull", calls)
                 self.assertIn("down", calls)
                 self.assertEqual(calls.count("up"), 1)
             if expected_code:
