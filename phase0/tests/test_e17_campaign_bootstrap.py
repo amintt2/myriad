@@ -19,7 +19,7 @@ import e17_campaign_remote as remote
 import read_timeout
 
 
-def archive(members=None, data=b"#!/bin/sh\nprintf 'uv 0.11.21 (synthetic)\\n'\n"):
+def archive(members=None, data=b"#!/bin/sh\nprintf 'uv 0.12.22 (synthetic)\\n'\n"):
     out = io.BytesIO()
     members = members if members is not None else [(remote.UV_MEMBER, tarfile.REGTYPE)]
     with tarfile.open(fileobj=out, mode="w:gz") as tar:
@@ -33,7 +33,7 @@ def archive(members=None, data=b"#!/bin/sh\nprintf 'uv 0.11.21 (synthetic)\\n'\n
 
 
 class UVBootstrap(unittest.TestCase):
-    def prepare(self, root, data, deadline=None, pins=None, version_output=b"uv 0.11.21 (synthetic)\n", version_code=0):
+    def prepare(self, root, data, deadline=None, pins=None, version_output=b"uv 0.12.22 (synthetic)\n", version_code=0):
         (root / "artifacts").mkdir(exist_ok=True)
         pins = pins or {**remote.UV, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
         def version(command, **kwargs):
@@ -83,9 +83,9 @@ class UVBootstrap(unittest.TestCase):
             self.assertEqual(json.loads((root / "request.json").read_text()), request)
 
     def test_pinned_metadata_matches_parent(self):
-        self.assertEqual(remote.UV["version"], "0.11.21")
-        self.assertEqual(remote.UV["bytes"], 24437894)
-        self.assertEqual(remote.UV["sha256"], "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
+        self.assertEqual(remote.UV["version"], "0.12.22")
+        self.assertEqual(remote.UV["bytes"], 19916278)
+        self.assertEqual(remote.UV["sha256"], "b9980552309f09c15172b8be828555e375097f16deb459795ce7bfd200380f0b")
 
     def test_hash_and_short_or_oversized_download_refused(self):
         data = archive()
@@ -124,7 +124,7 @@ class UVBootstrap(unittest.TestCase):
             self.assertEqual(target.read_bytes(), b"existing")
 
     def test_wrong_version_nonzero_and_unbounded_output_refused(self):
-        for output, code in ((b"uv 0.11.20\n", 0), (b"uv 0.11.21\n", 1), (b"x" * 257, 0)):
+        for output, code in ((b"uv 0.12.21\n", 0), (b"uv 0.12.22\n", 1), (b"x" * 257, 0)):
             with self.subTest(code=code, output_bytes=len(output)), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 with self.assertRaises((RuntimeError, ValueError)):
@@ -165,7 +165,7 @@ class UVBootstrap(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX executable and process-group watchdog")
     def test_real_synthetic_uv_executable_version(self):
-        data = archive(data=b"#!/bin/sh\nprintf 'uv 0.11.21 (synthetic)\\n'\n"
+        data = archive(data=b"#!/bin/sh\nprintf 'uv 0.12.22 (synthetic)\\n'\n"
                             b'ps -o pgid= -p $$ > "$(dirname "$0")/pgid"\n')
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -176,7 +176,7 @@ class UVBootstrap(unittest.TestCase):
                 remote.bootstrap_uv(root, time.monotonic() + 60)
             info = json.loads((root / "artifacts/runtime.json").read_text())["uv_bootstrap"]
             self.assertTrue(info["complete"])
-            self.assertEqual(info["version_observed"], "uv 0.11.21 (synthetic)")
+            self.assertEqual(info["version_observed"], "uv 0.12.22 (synthetic)")
             self.assertEqual(int((root / "installer/bin/pgid").read_text()), os.getpgrp())
 
 

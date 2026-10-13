@@ -91,7 +91,7 @@ Le manifeste porte le reÃ§u de prÃ©flight de campagne et `colab_image` (marq
 noyau rÃ©ellement observÃ©s) ; le runtime conserve cette mÃªme preuve. Le smoke prÃ©cÃ¨de tout
 tÃ©lÃ©chargement de poids ou dÃ©marrage de serveur. Les contraintes du backend restent celles de son audit.
 
-Le runtime dÃ©diÃ© est crÃ©Ã© sur VM par uv 0.11.21, `uv sync --frozen --python 3.12.15` sur le lock existant
+Le runtime dÃ©diÃ© est crÃ©Ã© sur VM par uv 0.12.22, `uv sync --frozen --python 3.12.15` sur le lock existant
 du pilote. Installation bornÃ©e par Ã©tape (600 s) et par l'enveloppe totale ; pas de retry automatique.
 Les archives serveur ont chacune 600 s, chaque poids 1 200 s, lectures rÃ©seau 30 s et hashes/tailles
 obligatoires avant utilisation. Le Python, uv, les packages installÃ©s, le lock, les sources transfÃ©rÃ©es,
@@ -234,10 +234,10 @@ serveur et modèle : le Python système lançant `venv` a reçu un retour 1 d'`e
 Sa cause interne reste inconnue. Les deux artefacts clos ont été récupérés et hashés ;
 la VM a été libérée avec absence et clôture confirmées. Aucun score E17 n'en découle.
 
-Le worker évite désormais cette dépendance initiale : archive autonome officielle UV 0.11.21,
-`uv-x86_64-unknown-linux-gnu.tar.gz`, 24 437 894 octets,
-SHA-256 `8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050`, depuis
-`https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz`.
+Le worker évite désormais cette dépendance initiale : archive autonome officielle UV 0.12.22,
+`uv-x86_64-unknown-linux-gnu.tar.gz`, 19 916 278 octets,
+SHA-256 `b9980552309f09c15172b8be828555e375097f16deb459795ce7bfd200380f0b`, depuis
+`https://github.com/astral-sh/uv/releases/download/0.12.22/uv-x86_64-unknown-linux-gnu.tar.gz`.
 Seul le membre régulier `uv-x86_64-unknown-linux-gnu/uv` est écrit dans une cible neuve
 `installer/bin/uv`, après validation de tous les membres : chemins sortants, liens,
 doublons et fichiers spéciaux refusés, tailles bornées, aucun remplacement de cible.
@@ -256,5 +256,27 @@ En cas d'échec, les fichiers déjà clos restent inventoriés comme incomplets.
 Cette correction est vérifiée uniquement avec des archives et machines synthétiques,
 sans téléchargement du binaire réel sur PC. Elle ne constitue pas une nouvelle observation Colab.
 R00, modèles, lock, budgets, transport et isolement sont conservés. Pour les admissions futures,
-le parent retient une réserve prudente de 0,40 unité pour les tentatives précédentes ;
+le parent retient une réserve prudente de 0,55 unité pour les tentatives précédentes ;
 ce montant n'est pas un coût exact. Un nouvel essai réel reste à faire par le parent après audit et fusion.
+
+
+## Pin UV après la deuxième tentative DEV
+
+La deuxième tentative DEV single L4, `44e65f39ecfd4a1f8fe6b2a7370f7b14`, a installé et validé
+UV 0.11.21 mais `sync` a retourné 2 : Python 3.12.15 absent de sa table de téléchargements embarquée.
+Elle reste `infrastructure-incomplete`, avant dataset, modèle et smoke, sans score. Trois artefacts clos
+ont été récupérés et hashés ; libération et absence confirmées. Le contrôle indépendant indique
+59,62 unités, débit nul, zéro affectation et `phase0=null`. Preuves parent :
+`C:/tmp/myriad-e17-dev-single-uv-live-20261013`. La réserve suivante de 0,55 unité est prudente :
+0,40 + 72 s à 5,3 unités/h, arrondi ; elle ne représente pas un coût exact.
+
+Le pin courant UV 0.12.22 ci-dessus provient des
+[métadonnées officielles du tag exact](https://api.github.com/repos/astral-sh/uv/releases/tags/0.12.22).
+Le support de Python 3.12.15 a été pré-vérifié dans la
+[table officielle du tag 0.12.22](https://github.com/astral-sh/uv/blob/0.12.22/crates/uv-python/download-metadata.json) :
+`cpython-3.12.15-linux-x86_64-gnu`, build `20261001`, SHA-256
+`7bb1659e3235077b7f63d5b6eb6ce653c6fcd6c5041e9d5f73b42ce10421464d`.
+Les snapshots parent sont `uv-0.12.22-metadata.json` et `uv-0.12.22-python-metadata.json` dans ce dossier.
+Cette vérification de support ne crée pas de nouveau pin Python dans le worker ; Python 3.12.15,
+`uv.lock`, provenance stricte, watchdogs et échéance initiale restent inchangés. Aucun binaire réel
+n'a été téléchargé localement et aucune nouvelle compatibilité Colab n'est revendiquée.

@@ -12,9 +12,9 @@ import traceback
 import urllib.request
 from pathlib import Path
 
-UV = {"version": "0.11.21", "python": "3.12.15",
-      "url": "https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz",
-      "bytes": 24437894, "sha256": "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050"}
+UV = {"version": "0.12.22", "python": "3.12.15",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.12.22/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "bytes": 19916278, "sha256": "b9980552309f09c15172b8be828555e375097f16deb459795ce7bfd200380f0b"}
 UV_MEMBER = "uv-x86_64-unknown-linux-gnu/uv"
 
 
