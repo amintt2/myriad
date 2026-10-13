@@ -32,6 +32,10 @@ checkpoint_allowed() {
 }
 
 case "${1:-}" in
+  verif-1)
+    shift
+    exec python3 "$COLAB_DIR/verif1_campaign.py" "$@"
+    ;;
   e16-supervise)
     shift
     exec python3 "$COLAB_DIR/e16_supervision.py" "$@"
