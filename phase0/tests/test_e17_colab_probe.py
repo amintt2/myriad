@@ -30,6 +30,55 @@ def compatible(request):
 
 
 class Validation(unittest.TestCase):
+    def test_ephemeral_remote_observations_without_landlock(self):
+        source, vm_source = "synthetic local module", "synthetic vm module"
+        request = {"sandbox_backend": "ephemeral-vm",
+                   "local_linux_sha256": e17_probe.hashlib.sha256(source.encode()).hexdigest(),
+                   "ephemeral_vm_sha256": e17_probe.hashlib.sha256(vm_source.encode()).hexdigest()}
+        for code, expected in ((0, "compatible"), (1, "incompatible"), (124, "infrastructure-unknown")):
+            with self.subTest(code=code):
+                ready = {"isolation_ready": "ephemeral-vm-v1", "landlock_abi": None, "seccomp": "on",
+                         "namespaces": NAMESPACES}
+                env = mock.Mock(isolation=ready)
+                env.run.return_value = (code, "E17-SYNTHETIC-OK\n" if code == 0 else "")
+                local = SimpleNamespace(LocalLinuxEnv=mock.Mock(), VERSION="linux-shell-v2")
+                vm = SimpleNamespace(colab_markers=lambda: {"hostname_file": True, "drive_binary": True},
+                                     select_backend=mock.Mock(return_value=mock.Mock(return_value=env)))
+                libc = mock.Mock()
+                libc.syscall.return_value = -1
+                with mock.patch.object(e17_probe_remote.platform, "system", return_value="Linux"), \
+                     mock.patch.object(e17_probe_remote.platform, "machine", return_value="x86_64"), \
+                     mock.patch.object(e17_probe_remote.ctypes, "CDLL", return_value=libc), \
+                     mock.patch.object(e17_probe_remote.subprocess, "run",
+                                       return_value=SimpleNamespace(returncode=0, stdout="SECCOMP-DENIED\n")), \
+                     mock.patch.object(e17_probe_remote.importlib.util, "module_from_spec", side_effect=[local, vm]), \
+                     mock.patch.object(e17_probe_remote.importlib.util, "spec_from_file_location",
+                                       return_value=SimpleNamespace(loader=mock.Mock())), \
+                     mock.patch.object(Path, "symlink_to"):
+                    value = e17_probe_remote.observe(request, source, vm_source)
+                self.assertEqual(value["verdict"], expected)
+                self.assertEqual(value["landlock_abi"], -1)
+                self.assertEqual(value["smoke"]["isolation"], ready)
+                env.close.assert_called_once()
+                local.LocalLinuxEnv.assert_not_called()
+                vm.select_backend.assert_called_once_with("ephemeral-vm")
+                e17_probe.validate_result(value, request)
+        self.assertEqual(e17_probe_remote.observe(request, source, "wrong hash")["verdict"],
+                         "infrastructure-unknown")
+
+    def test_ephemeral_requires_markers_and_exact_receipt(self):
+        request = {"sandbox_backend": "ephemeral-vm", "ephemeral_vm_sha256": "a" * 64}
+        value = compatible(request)
+        value.update(landlock_abi=-1, colab_markers={"hostname_file": True, "drive_binary": True})
+        value["smoke"]["isolation"].update(isolation_ready="ephemeral-vm-v1", landlock_abi=None)
+        self.assertIs(e17_probe.validate_result(value, request), value)
+        for change in ({"colab_markers": {}}, {"colab_markers": {"hostname_file": 1, "drive_binary": True}},
+                       {"seccomp": False}, {"namespace_combined": False},
+                       {"smoke": compatible({})["smoke"]}, {"ephemeral_vm_sha256": "b" * 64}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                e17_probe.validate_result({**value, **change}, request)
+
+
     def test_smoke_observation_distinguishes_timeout_failure_and_success(self):
         ready = compatible({})["smoke"]["isolation"]
         source = "synthetic module fixture"
@@ -137,6 +186,9 @@ elif op == 'exec':
             'namespace_combined': True, 'landlock_abi': 7, 'seccomp': True, 'verdict': 'compatible',
             'smoke': {'code': 0, 'output_ok': True, 'isolation': {'isolation_ready': 'linux-shell-v2',
                 'landlock_abi': 7, 'seccomp': 'on', 'namespaces': names}}}
+        if request.get('sandbox_backend') == 'ephemeral-vm':
+            value.update(landlock_abi=-1, colab_markers={'hostname_file': True, 'drive_binary': True})
+            value['smoke']['isolation'].update(isolation_ready='ephemeral-vm-v1', landlock_abi=None)
         if mode == 'incompatible': value.update(verdict='incompatible', namespace_combined=False)
         if mode == 'missing-ack': sys.exit(0)
         if mode == 'forged-success': value['smoke'] = None
@@ -174,6 +226,23 @@ sys.exit(e17_probe.main())
 
 @unittest.skipUnless(sys.platform == "linux", "fake CLI lifecycle processes require Linux/WSL")
 class Processes(unittest.TestCase):
+    def test_explicit_ephemeral_uses_same_allocation_and_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env, command = self.fixture(root, "compatible")
+            command.extend(("--sandbox-backend", "ephemeral-vm"))
+            process = subprocess.run(command, env=env, capture_output=True, text=True, timeout=20)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            value = json.loads((root / "report.json").read_text())
+            self.assertTrue(value["closed"])
+            self.assertEqual(value["sandbox_backend"], "ephemeral-vm")
+            self.assertEqual(value["probe"]["smoke"]["isolation"]["isolation_ready"], "ephemeral-vm-v1")
+            self.assertEqual(len(value["probe"]["ephemeral_vm_sha256"]), 64)
+            calls = (root / "calls").read_text().splitlines()
+            self.assertEqual(calls.count("new"), 1)
+            self.assertEqual(calls.count("stop"), 1)
+
+
     def test_new_timeout_kills_official_cli_before_absence_and_no_late_allocation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

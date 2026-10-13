@@ -134,13 +134,15 @@ def usage_record(path, before, after, error=None, campaign_id=None, release_conf
 
 def capacity(plan, gpu):
     sys.path.insert(0, str(HERE.parent))
-    from colab_jobs import PLANS, SOLO, GGUF, THINK_EXTRA_GIB, GEN_PEERS, GEN_REF
+    from colab_jobs import PLANS, SOLO, GGUF, THINK_EXTRA_GIB, GEN_PEERS, GEN_REF, E16_KINDS, e16_need
     needs = []
     for kind, model, _ in PLANS[plan]:
         if kind in ("gen", "genref"):
             needs.append(sum(GGUF[m][2] for m in {**GEN_PEERS, **GEN_REF}))
         elif kind in ("code-exec", "aa-oracle", "aa-exec"):
             continue
+        elif kind in E16_KINDS:  # E16: the quantized file's own reservation (e16_quant.reserve_gib)
+            needs.append(e16_need(kind, model, _))
         elif kind in ("solo", "code", "aa") or kind.startswith("sot-"):
             needs.append(SOLO[model][2])
         else:

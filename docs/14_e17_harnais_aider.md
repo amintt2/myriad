@@ -57,7 +57,7 @@ minimum du budget de vérification et du temps restant. Un vert arrivé après c
 Le dernier diagnostic possède son budget séparé de vérification, comme historiquement ; il ne transforme
 pas un arrêt par délai ou budget en réussite. Un timeout de commande (`124`) ou une sortie dépassant le
 plafond de collecte (`125`) arrête l'épisode sans réussite. La réduction du feedback à 4 000 caractères
-garde un marqueur de coupure ; elle ne crée aucun verdict. Les limites d'isolation ne sont pas assouplies.
+garde un marqueur de coupure ; elle ne crée aucun verdict. Les budgets ne changent jamais le backend sélectionné.
 
 `single`, `vote`, `cascade` et `reference` partagent ces règles et ces budgets. La pluralité et le départage
 restent ceux d'`agent.py`. Le manifeste des nouvelles campagnes porte `code-pilot-e17-v1`, le nouveau
@@ -78,8 +78,8 @@ d'une commande. Les limites noyau, mémoire/disque non agrégés et runtime du g
 
 Les tests de régression utilisent chat, environnement et verdicts simulés ; ils ne mesurent aucun modèle.
 L'audit gpt-6-astra est confié au parent après le seul commit de ce jalon. Avant une exécution réelle,
-il faudra vérifier les protections sur la VM et refaire le smoke officiel, sans assouplissement si Colab
-ne permet pas les namespaces ou Landlock requis. L'infrastructure actuelle `colab_jobs.py` ne possède
+il faudra vérifier les protections sur la VM et refaire le smoke officiel, sans repli implicite si Colab
+ne permet pas les protections du backend choisi explicitement. L'infrastructure actuelle `colab_jobs.py` ne possède
 pas encore de plan E17 et le superviseur de campagne vise `aa-1` : ce correctif ne lance rien.
 
 La suite préparera un registre conservant chaque révision, ses sources/prompts/budgets, tâches DEV et
@@ -159,3 +159,58 @@ Les tests locaux emploient seulement la CLI factice et des observations synthét
 incompatible, faux succès/accusé absent, sessions/campagnes étrangères, budget/solde, timeout/TERM,
 persistance des transitions après `new`, répétition de `stop`, absence et compte final. Aucun Colab réel
 ni processus du bac distant n'est exécuté par ces tests.
+
+## Backend explicite pour VM Colab jetable
+
+La décision du 13 octobre à 04 h 40 autorise `--sandbox-backend ephemeral-vm` pour E17 Aider,
+dans la CLI du pilote et dans `e17-probe`. Le défaut reste `strict` (`linux-shell-v2`) : Landlock ABI ≥ 3
+ou refus, y compris sur Colab. Aucun échec Landlock ne sélectionne automatiquement un autre backend.
+L'option n'est pas proposée au pilote SymPy ; E11, `colab_jobs.py` et l'app restent inchangés.
+Le futur lanceur devra transmettre cette option explicitement à la sonde, au smoke et au pilote.
+Ce jalon ne crée ni plan de campagne ni adaptation des tâches TEST.
+
+`essaim/ephemeral_vm.py` exige Linux x86_64, un noyau sans marqueur WSL/Microsoft, le fichier système
+`/var/colab/hostname` et le binaire `/opt/google/drive/drive`. Il ne lit aucune variable d'environnement
+pour établir Colab et n'importe pas le paquet `google.colab`, installable ailleurs.
+Ces deux chemins sont utilisés par la [source officielle Colab Drive](https://github.com/googlecolab/colabtools/blob/main/google/colab/drive.py).
+Leur présence sur la VM destinée à la campagne reste à observer par la sonde ; leur absence impose un refus.
+Cette détection reconnaît une image système, sans attester un hôte contre un administrateur qui falsifie ses fichiers.
+Hors Colab, la sélection explicite est refusée avant lecture des tâches, validation d'endpoint ou création du client.
+
+Le backend réutilise le lanceur et la collecte de `LocalLinuxEnv` : processus séparés du contrôleur/notation,
+`unshare` user/mount/pid/net/ipc/uts obligatoire, décès de l'enfant avec son parent, nettoyage du groupe,
+seccomp inchangé après `no_new_privs`, limites AS 512 Mio, CPU arrondi au délai, fichier 16 Mio,
+128 descripteurs, 32 processus et aucun core. Le runtime doit rester système ou uv dédié.
+Le temps mur et la sortie sont toujours bornés (124/125), avec destruction et collecte des descendants.
+Les limites AS/CPU/NPROC ne constituent pas un quota agrégé de toute la VM ; les limites disque historiques restent.
+L'absence de namespaces ou de seccomp refuse l'exécution, sans repli réseau ou local.
+
+Le reçu établi est `ephemeral-vm-v1`, `landlock_abi=null`, `seccomp=on`, avec les six namespaces exacts.
+Il est contrôlé avant acceptation d'une commande. Un préflight synthétique établit ce reçu avant toute requête
+modèle et avant écriture du manifeste. Le manifeste porte backend demandé, version réellement établie,
+reçu et hashes des modules, dont `ephemeral_vm.py` et `sandbox.py` ; ces champs participent au contrôle de reprise.
+Chaque trace porte backend/version et conserve les reçus des commandes ; les appels de vérification conservent
+leur reçu individuel. Smoke, tests dans la boucle et vérification finale reçoivent la même classe d'environnement.
+Les campagnes historiques ne sont pas réécrites et leurs rapports restent lisibles.
+
+Le worker Python du vérificateur installe avant import candidat le crochet d'audit déjà écrit dans E11,
+en réutilisant son texte sans modifier `sandbox.py`. Il borne les accès Python aux fichiers temporaires
+et au runtime, et refuse notamment processus, sockets et ctypes. Ce crochet n'est installé ni dans le
+contrôleur, ni dans bash, ni dans les interpréteurs lancés librement par les commandes du modèle.
+Il ne confine donc pas les lectures/écritures du shell et des programmes natifs dans le système de fichiers
+de la VM. Le namespace mount n'ajoute aucun montage restreint : **il n'y a pas de confinement de fichiers
+par Landlock** dans ce backend. Le seccomp et le namespace réseau restent des barrières noyau distinctes.
+
+La portée autorisée est la notation académique publique de code non adversarial sur une VM jetable
+sans secrets, où serveur, contrôleur et tests tournent ensemble. Les assertions restent dans le processus
+de notation et les appels candidats utilisent des copies neuves, mais ni cette séparation ni le transport JSON
+ne garantissent une attestation contre un programme hostile qui connaît le harnais ou modifie la VM.
+Ce backend ne doit pas être présenté comme une protection pour exécuter du code hostile sur un PC.
+
+La sonde transmet et lie par hashes les sources exactes du backend et du lanceur ; elle observe les marqueurs,
+Landlock à titre diagnostique, namespaces, seccomp et reçu du backend sélectionné. `compatible` en mode
+ephemeral exige tous les autres contrôles, même si Landlock vaut −1 ; le mode strict exige toujours ABI ≥ 3.
+Un smoke 124 demeure `infrastructure-unknown`. Budget, verrou, allocation unique, reçus de responsabilité,
+identité, arrêt, absence et relevé final conservent leurs règles précédentes. Aucun Colab réel n'est lancé
+par le développeur. Le parent doit encore exécuter la sonde explicite et le smoke officiel sur la VM,
+après audit et avant modèle/dataset/campagne ; aucun résultat local ne vaut observation Colab.

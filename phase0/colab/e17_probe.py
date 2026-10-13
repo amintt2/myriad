@@ -36,6 +36,8 @@ def cli_signals():
 
 
 def validate_result(value, request):
+    if request.get("sandbox_backend", "strict") not in ("strict", "ephemeral-vm"):
+        raise ValueError("unknown probe backend")
     if not isinstance(value, dict) or any(value.get(k) != v for k, v in request.items()):
         raise ValueError("probe acknowledgement identity missing or foreign")
     if (type(value.get("schema")) is not int or value["schema"] != 1
@@ -45,10 +47,17 @@ def validate_result(value, request):
         raise ValueError("invalid probe acknowledgement")
     if value["verdict"] == "compatible":
         abi, smoke = value.get("landlock_abi"), value.get("smoke")
-        ready = {"isolation_ready": "linux-shell-v2", "landlock_abi": abi, "seccomp": "on",
+        ephemeral = request.get("sandbox_backend", "strict") == "ephemeral-vm"
+        markers = value.get("colab_markers")
+        ready = {"isolation_ready": "ephemeral-vm-v1" if ephemeral else "linux-shell-v2",
+                 "landlock_abi": None if ephemeral else abi, "seccomp": "on",
                  "namespaces": NAMESPACES}
         if (value.get("system") != "Linux" or value.get("machine") != "x86_64"
-                or type(abi) is not int or abi < 3 or not isinstance(value.get("namespaces"), dict)
+                or type(abi) is not int or (not ephemeral and abi < 3)
+                or (ephemeral and (not isinstance(markers, dict)
+                    or set(markers) != {"hostname_file", "drive_binary"}
+                    or any(v is not True for v in markers.values())))
+                or not isinstance(value.get("namespaces"), dict)
                 or set(value["namespaces"]) != set(NAMESPACES)
                 or any(v is not True for v in value["namespaces"].values())
                 or value.get("namespace_combined") is not True or value.get("seccomp") is not True
@@ -197,10 +206,17 @@ class Probe:
             source = (HERE.parent / "essaim/local_linux.py").read_text(encoding="utf-8")
             request = {"campaign_id": self.campaign, "allocation_id": self.pending["allocation_id"],
                        "phase0": self.owner, "nonce": uuid.uuid4().hex,
+                       "sandbox_backend": getattr(self.a, "sandbox_backend", "strict"),
                        "local_linux_sha256": hashlib.sha256(source.encode()).hexdigest()}
             payload = (HERE / "e17_probe_remote.py").read_text(encoding="utf-8")
             request["probe_sha256"] = hashlib.sha256(payload.encode()).hexdigest()
-            payload += f"\nprint('E17_PROBE ' + json.dumps(observe({request!r}, {source!r}), sort_keys=True))\n"
+            ephemeral_source = None
+            if getattr(self.a, "sandbox_backend", "strict") == "ephemeral-vm":
+                ephemeral_source = (HERE.parent / "essaim/ephemeral_vm.py").read_text(encoding="utf-8")
+                request.update(sandbox_backend="ephemeral-vm",
+                               ephemeral_vm_sha256=hashlib.sha256(ephemeral_source.encode()).hexdigest())
+            payload += ("\nprint('E17_PROBE ' + json.dumps("
+                        f"observe({request!r}, {source!r}, {ephemeral_source!r}), sort_keys=True))\n")
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as script:
                 script.write(payload)
                 script.flush()
@@ -226,7 +242,8 @@ class Probe:
         report = {"schema": 1, "campaign_id": self.campaign, "verdict": result["verdict"]
                   if result and self.closed and error is None else
                   "infrastructure-unknown", "probe": result, "error": error, "absence_confirmed": self.absent,
-                  "closed": self.closed, "usage": self.observations}
+                  "closed": self.closed, "usage": self.observations,
+                  "sandbox_backend": getattr(self.a, "sandbox_backend", "strict")}
         lifecycle.save(self.a.output, report)
         print(json.dumps(report, sort_keys=True), flush=True)
         return 0 if self.closed and error is None and result["verdict"] == "compatible" else 1
@@ -234,6 +251,7 @@ class Probe:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--sandbox-backend", choices=("strict", "ephemeral-vm"), default="strict")
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--receipt", type=Path, default=lifecycle.receipt_path())
     for name, default in (("seconds", 600), ("budget-units", 4), ("min-balance-units", 15),

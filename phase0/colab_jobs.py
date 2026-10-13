@@ -337,6 +337,8 @@ def run_job(job, budget: MemoryBudget) -> bool:
     kind, model, split = job
     if kind in ("gen", "genref", "code-exec", "aa-oracle", "aa-exec"):  # peers' memory already taken by start_peers; the rest: CPU only
         need = 0
+    elif kind in E16_KINDS:  # E16 (e16_quant.py): the reservation depends on the quantized file
+        need = e16_need(kind, model, split)
     elif kind in ("solo", "code", "aa") or kind.startswith("sot-"):
         need = SOLO[model][2]
     else:
@@ -449,6 +451,7 @@ def main():
     # Everything shared is prepared before the parallel part: GGUF files, pinned revisions, data caches.
     for m in models:
         download(m)
+    prepare_e16(jobs)
     sys.path.insert(0, str(HERE))
     from essaim import data
     from essaim.common import resolve_revision
@@ -492,6 +495,68 @@ def main():
     ex.shutdown()
     print(json.dumps(STATE, indent=1, ensure_ascii=False), flush=True)
     sys.exit(0 if all(results) else 1)
+
+
+# E16 (docs/13_e16_quantification.md): bigger models in low-bit GGUF against small models in Q8_0, at the same memory.
+# Additive: SOLO is untouched; the quantized files are in e16_quant.QUANT, one result file set per quantization
+# (suffix _<quant>_colab). Kinds: solo-q (run_solo.py), code-q (run_code.py), code-exec (exec_e16.py, model "e16"),
+# solo-speed (speed_quant.py, llama-bench alone on the GPU). The job's third field is the quantization tag.
+import e16_quant  # noqa: E402
+
+E16_KINDS = ("solo-q", "code-q", "solo-speed")
+NO_MODEL = NO_MODEL + E16_KINDS  # their second field is a model that prepare_e16 downloads itself
+STAGE.update({"solo-q": 0, "code-q": 0, "solo-speed": 2})  # code-exec (stage 1, above) waits for every code-q
+PLANS["e16-1"] = e16_quant.plan()  # MC for the 12 files, code for the 6 bounds, execution, speed
+PLANS["e16-mc"] = e16_quant.plan(code="none")  # MC and speed only (the cheaper first half of e16-1)
+PLANS["e16-code"] = e16_quant.plan(solo=False, speed=False)  # code for the 6 bounds and execution (the other half)
+PLANS["e16-2"] = e16_quant.plan(solo=False, code="rest", speed=False)  # code for the 6 other files, execution of all
+
+
+def e16_need(kind: str, model: str, tag: str) -> int:
+    if kind == "solo-speed":
+        return e16_quant.speed_need_gib()
+    return e16_quant.reserve_gib(e16_quant.get(model, tag))
+
+
+_job_cmd_before_e16 = job_cmd
+
+
+def job_cmd(kind: str, model: str, split: str) -> list[str]:  # noqa: F811  (extends the function above)
+    if kind in ("solo-q", "code-q"):
+        q = e16_quant.get(model, split)
+        script = "run_solo.py" if kind == "solo-q" else "run_code.py"
+        return [sys.executable, script, "--model", model, "--gguf", str(MODELS / q.file), "--suffix", q.suffix,
+                "--parallel", "16"]
+    if kind == "code-exec" and model == e16_quant.EXEC_TAG:
+        return [sys.executable, "exec_e16.py", "--workers", str(exec_workers())]
+    if kind == "solo-speed":
+        return [sys.executable, "speed_quant.py"]
+    return _job_cmd_before_e16(kind, model, split)
+
+
+def prepare_e16(jobs: list[tuple]):
+    """Download the quantized files of the plan, check them against the hashes pinned in QUANT, and make sure the
+    base models' tokenizers are cached (run_solo.py pins the revision); the speed job also needs the Q8_0 files."""
+    wanted = [e16_quant.get(m, t) for k, m, t in jobs if k in ("solo-q", "code-q")]
+    speed = any(j[0] == "solo-speed" for j in jobs)
+    if not wanted and not speed:
+        return
+    sys.path.insert(0, str(HERE))
+    from essaim.common import resolve_revision
+    from essaim.results import file_identity
+    for q in dict.fromkeys(wanted):
+        if not (MODELS / q.file).exists():
+            r = sh([sys.executable, str(HERE / "fastdl.py"), q.repo, q.file, str(MODELS), "16"])
+            if r.returncode != 0:
+                raise RuntimeError(f"téléchargement {q.file} : {r.stdout[-400:]} {r.stderr[-400:]}")
+        ident = file_identity(MODELS / q.file)
+        if ident["sha256"] != q.sha256 or ident["size"] != q.size:
+            raise SystemExit(f"{q.file} ne correspond pas à l'empreinte épinglée dans e16_quant.QUANT : {ident}")
+    if speed:
+        for m in e16_quant.SPEED_Q8:
+            download(m)
+    for m in dict.fromkeys([q.model for q in wanted] + (e16_quant.SPEED_Q8 if speed else [])):
+        resolve_revision(m)
 
 
 if __name__ == "__main__":

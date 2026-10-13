@@ -791,6 +791,14 @@ with an explicit margin where we claim parity, and non-inferiority is weaker tha
 audits deter only peers that cannot recognise canaries, and today's canary contents are recognisable
 (\S\ref{sec:system}). The credit ledger is centralised.
 
+The E17 code-agent harness also provides an explicitly selected Colab-only \texttt{ephemeral-vm}
+backend for public academic grading of non-adversarial model code on disposable VMs without secrets.
+It retains separate candidate and grading processes, resource limits, seccomp and network namespaces,
+but omits Landlock filesystem confinement. Its Python audit hook applies to verifier candidate workers,
+not to arbitrary shell commands or native programs. Neither the JSON result transport nor process separation
+attests grading against an adversarial program. The default local backend still requires Landlock or refuses
+execution; this implementation milestone supplies no new model result or measured Colab compatibility.
+
 \section{Conclusion}
 One parallel inference phase after reservation, regularised vote weights and a conservative sufficient
 stop certificate give a swarm of small heterogeneous models exploratory, unadjusted non-inferiority

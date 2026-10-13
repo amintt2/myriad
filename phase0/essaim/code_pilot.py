@@ -21,6 +21,7 @@ from essaim import aider_agent
 from essaim.aider_python import (PILOT, ROOT, collect_sources, copy_task, prepare, provenance, smoke, task_config,
                                 SourceArtifactError, verify)
 from essaim.local_linux import LocalLinuxEnv, VERSION
+from essaim.ephemeral_vm import select_backend
 from essaim.code_provenance import declarations
 from essaim.terminal_bench import check_tasks, summarize, validate_endpoint
 
@@ -154,12 +155,21 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
     collect = backend.collect_sources if backend else collect_sources
     instruction_for = backend.instructions if backend else instructions
     grade_sources = backend.verify if backend else verify
+    sandbox = getattr(args, "sandbox_backend", "strict")
+    environment = LocalLinuxEnv if sandbox == "strict" else select_backend(sandbox)
+    if sandbox != "strict":
+        if backend:
+            raise ValueError("ephemeral-vm is only supported by E17 Aider")
+        def grade_sources(cache, task, sources, runtime, timeout_s=120):
+            return verify(cache, task, sources, runtime, timeout_s, environment=environment)
     started = time.monotonic()
     with (output / f"{mode}__{task}.jsonl").open("w", encoding="utf-8") as log:
         step_count = 0
         def record(value):
             nonlocal step_count
             step_count += value.get("kind") == "step"
+            value = {"sandbox_backend": sandbox,
+                     "sandbox": environment.version if sandbox != "strict" else VERSION, **value}
             log.write(json.dumps(value, ensure_ascii=False, allow_nan=False) + "\n")
             log.flush()
         def official_test(sources, remaining):
@@ -170,7 +180,8 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                 grade = {**grade, "passed": False, "feedback": [{"test": "controller",
                          "traceback": "Official verification exceeded its time budget; no green test recorded."}]}
             return grade
-        row = {"task": task, "mode": mode, "campaign_hash": campaign_hash, "status": "error", "passed": None}
+        row = {"task": task, "mode": mode, "campaign_hash": campaign_hash, "status": "error", "passed": None,
+               "sandbox_backend": sandbox, "sandbox": environment.version if sandbox != "strict" else VERSION}
         chat = BudgetChat(client, args.max_tokens, args.total_tokens, args.seed, started + args.timeout, record,
                           strict=backend is None)
         try:
@@ -181,7 +192,7 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                 instruction = instruction_for(args.tasks_dir, task)
                 system = SYSTEM if backend else aider_agent.SYSTEM
                 record({"kind": "start", "task": task, "mode": mode, "instruction": instruction, "system": system})
-                env = LocalLinuxEnv(work, args.runtime)
+                env = environment(work, args.runtime)
                 try:
                     strategy = "single" if mode == "reference" else mode
                     loop = run_episode if backend else aider_agent.run_episode
@@ -190,7 +201,8 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                         "test_sources": official_test}
                     episode = loop(chat, env, instruction, models, strategy, args.max_steps, args.cmd_timeout,
                                           models, max(0.001, chat.deadline - time.monotonic()),
-                                          lambda step: record({"kind": "step", **asdict(step)}),
+                                          lambda step: record({"kind": "step", "isolation": env.isolation,
+                                                               **asdict(step)}),
                                           reference=args.reference if mode == "cascade" else None, **options)
                 except SourceArtifactError:
                     if backend:
@@ -198,6 +210,7 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                     episode = {"stopped": "invalid_source_artifact", "steps": []}
                 finally:
                     env.close()
+                    row["isolation"] = env.isolation
                     record({"kind": "isolation", "receipt": env.isolation})
                 row.update(stopped=episode["stopped"], steps=step_count)
                 sources = None
@@ -337,6 +350,9 @@ def parser(backend=None) -> argparse.ArgumentParser:
     cli.add_argument("--tasks-dir", type=Path, default=ROOT / "data" / directory)
     runtime = Path.home() / ".local/share" / ("myriad-" + directory) / "venv"
     cli.add_argument("--runtime", type=Path, default=runtime)
+    if not backend:
+        cli.add_argument("--sandbox-backend", choices=("strict", "ephemeral-vm"), default="strict",
+                         help="ephemeral-vm : opt-in explicite sur VM Colab jetable détectée seulement")
     cli.add_argument("--output", type=Path)
     cli.add_argument("--resume", action="store_true")
     cli.add_argument("--single")
@@ -357,12 +373,19 @@ def parser(backend=None) -> argparse.ArgumentParser:
 
 
 def execute(args, backend=None) -> int:
+    sandbox = getattr(args, "sandbox_backend", "strict")
+    environment = LocalLinuxEnv if sandbox == "strict" else select_backend(sandbox)
+    if backend and sandbox != "strict":
+        raise ValueError("ephemeral-vm is only supported by E17 Aider")
     manifest = backend.provenance() if backend else provenance()
     pilot = backend.PILOT if backend else PILOT
     prepare_tasks = backend.prepare if backend else prepare
     check_smoke = backend.smoke if backend else smoke
     instruction_for = backend.instructions if backend else instructions
     resource = "repo_pilot" if backend else "code_pilot"
+    if sandbox != "strict":
+        def check_smoke(cache, runtime):
+            return smoke(cache, runtime, environment=environment)
     if args.prepare:
         prepare_tasks(args.tasks_dir, manifest)
         print("Sources vérifiées ; pilote fixe : " + ", ".join(pilot))
@@ -408,7 +431,19 @@ def execute(args, backend=None) -> int:
     validate_endpoint(url, key)
     execution_provenance = declarations(args.provenance, sorted({m for peers in models.values() for m in peers}),
                                         args.watts, args.eur_kwh)
-    campaign = {"version": backend.VERSION if backend else VERSION_PILOT, "sandbox": VERSION,
+    # Establish the selected boundary before endpoint/model requests and before writing a campaign manifest.
+    with tempfile.TemporaryDirectory(prefix="myriad-preflight-") as temporary:
+        env = environment(Path(temporary), args.runtime)
+        try:
+            code, out = env.run("printf MYRIAD-ISOLATION-OK", args.cmd_timeout)
+            if code != 0 or out != "MYRIAD-ISOLATION-OK":
+                raise ValueError("sandbox preflight failed")
+            isolation = env.isolation
+        finally:
+            env.close()
+    campaign = {"version": backend.VERSION if backend else VERSION_PILOT,
+                "sandbox": environment.version if sandbox != "strict" else VERSION,
+                "sandbox_backend": sandbox, "isolation": isolation,
                 "dataset_hash": hash_json(manifest), "tasks": pilot, "models": models,
                 "reference": args.reference,
                 "execution_provenance": execution_provenance,
@@ -421,7 +456,8 @@ def execute(args, backend=None) -> int:
                 "runtime_versions": {p: importlib.metadata.version(p) for p in ("httpx", "pytest", "matplotlib")},
                 "code_hashes": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in
                                 [Path(__file__), ROOT / "essaim/agent.py", ROOT / "essaim/local_linux.py",
-                                 ROOT / "essaim/aider_python.py", ROOT / "essaim/code_provenance.py"]}}
+                                 ROOT / "essaim/aider_python.py", ROOT / "essaim/code_provenance.py",
+                                 ROOT / "essaim/ephemeral_vm.py", ROOT / "essaim/sandbox.py"]}}
     if backend:
         campaign["code_hashes"].update({p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in
                                       [ROOT / "essaim/repo_pilot.py", ROOT / "essaim/repo_tasks.py"]})

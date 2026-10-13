@@ -128,12 +128,17 @@ with write("_return.json", "x", encoding="utf-8") as result:
 '''
 
 
-def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeout_s: float = 120) -> dict:
+def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeout_s: float = 120,
+           *, environment=None) -> dict:
     """Run original tests in this trusted process, with RPC stand-ins for the candidate functions.
 
     Only inputs reach candidate subprocesses. Expected values, unittest and the result object stay here.
     This adapter supports the pilot's pure function API only; it deliberately refuses other exercises.
     """
+    environment = environment or LocalLinuxEnv
+    from essaim.ephemeral_vm import EphemeralVMEnv, candidate_guard
+    python_hook = isinstance(environment, type) and issubclass(environment, EphemeralVMEnv)
+    sandbox = "ephemeral-vm" if python_hook else "strict"
     started = time.monotonic()
     if task not in APIS:
         raise ValueError("verification adapter covers only the preselected pilot")
@@ -155,7 +160,8 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
 
     def call(function, args, kwargs):
         call_info = {"function": function, "test": current_test["id"], "complete": False,
-                     "seconds": 0.0, "isolation": None}
+                     "seconds": 0.0, "isolation": None, "sandbox_backend": sandbox,
+                     "python_audit_hook": python_hook}
         calls.append(call_info)
         remaining = timeout_s - (time.monotonic() - started)
         if remaining <= 0:
@@ -169,12 +175,15 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
                 path = task_path(work, relative)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content, encoding="utf-8")
-            (work / "_call.py").write_text(CALL_WORKER, encoding="utf-8")
+            worker = CALL_WORKER
+            if python_hook:
+                worker = candidate_guard(work) + worker
+            (work / "_call.py").write_text(worker, encoding="utf-8")
             cfg = json.dumps({"module": module_name, "function": function, "args": args, "kwargs": kwargs})
             request_start = time.monotonic()
             env = None
             try:
-                env = LocalLinuxEnv(work, runtime)
+                env = environment(work, runtime)
                 code, output = env.run("python _call.py <<'MYRIAD_INPUT'\n" + cfg + "\nMYRIAD_INPUT", min(10, remaining))
                 call_info["diagnostics"] = output
                 if code != 0:
@@ -235,6 +244,8 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
                 "failures": len(result.failures), "errors": len(result.errors),
                 "feedback": [{"test": test.id(), "traceback": trace[-4000:]}
                              for test, trace in [*result.failures, *result.errors]],
+                "sandbox": getattr(environment, "version", "linux-shell-v2"),
+                "sandbox_backend": sandbox,
                 "calls": calls, "seconds": time.monotonic() - started, "broken": broken}
     finally:
         if old is None:
@@ -243,7 +254,7 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
             sys.modules[module_name] = old
 
 
-def smoke(cache: Path, runtime: Path) -> dict:
+def smoke(cache: Path, runtime: Path, *, environment=None) -> dict:
     check_tasks(cache, provenance())
     rows = []
     for task in PILOT:
@@ -251,13 +262,15 @@ def smoke(cache: Path, runtime: Path) -> dict:
         if len(files["solution"]) != 1 or len(files["example"]) != 1:
             raise ValueError("smoke expects one official reference file")
         sources = {files["solution"][0]: (base / files["example"][0]).read_text(encoding="utf-8")}
-        positive = verify(cache, task, sources, runtime)
+        positive = verify(cache, task, sources, runtime, environment=environment)
         module, names = APIS[task]
         incorrect = "\n".join(f"def {name}(*args, **kwargs): return None" for name in names)
-        negative = verify(cache, task, {files["solution"][0]: incorrect}, runtime)
+        negative = verify(cache, task, {files["solution"][0]: incorrect}, runtime, environment=environment)
         if positive["status"] != "graded" or positive["passed"] is not True:
             raise IsolationError(f"official reference failed for {task}: {positive}")
         if negative["status"] != "graded" or negative["passed"] is not False:
             raise IsolationError(f"incorrect solution was not rejected for {task}")
         rows.append({"task": task, "reference": positive, "incorrect": negative})
-    return {"kind": "deterministic_harness_smoke", "tasks": rows, "model_measurement": False}
+    return {"kind": "deterministic_harness_smoke", "tasks": rows, "model_measurement": False,
+            "sandbox_backend": rows[0]["reference"]["sandbox_backend"],
+            "sandbox": getattr(environment or LocalLinuxEnv, "version", "linux-shell-v2")}

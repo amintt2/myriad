@@ -100,7 +100,7 @@ def seccomp() -> None:
         raise IsolationError("seccomp install failed")
 
 
-def launch() -> None:
+def launch(isolate=landlock, version=VERSION) -> None:
     cfg = json.loads(sys.stdin.readline())
     work, runtime = Path(cfg["work"]), Path(cfg["runtime"])
     os.chdir(work)
@@ -108,9 +108,9 @@ def launch() -> None:
                          (resource.RLIMIT_FSIZE, 16 << 20), (resource.RLIMIT_NOFILE, 128),
                          (resource.RLIMIT_NPROC, 32), (resource.RLIMIT_CORE, 0)):
         resource.setrlimit(limit, (value, value))
-    abi = landlock(work, runtime)
+    abi = isolate(work, runtime)
     seccomp()
-    print(json.dumps({"isolation_ready": VERSION, "landlock_abi": abi, "seccomp": "on",
+    print(json.dumps({"isolation_ready": version, "landlock_abi": abi, "seccomp": "on",
                       "namespaces": ["user", "mount", "pid", "net", "ipc", "uts"]}), flush=True)
     os.execve("/usr/bin/bash", ["bash", "--noprofile", "--norc", "-c", cfg["cmd"]], {
         "PATH": f"{runtime}/bin:/usr/bin", "HOME": str(work), "TMPDIR": str(work), "LANG": "C.UTF-8",
@@ -118,18 +118,21 @@ def launch() -> None:
         "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1"})
 
 
-def enter(parent: int) -> None:
+def enter(parent: int, script: str | None = None) -> None:
     """Keep the namespace supervisor tied to its controller, including abrupt controller death."""
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signal.SIGKILL, 0, 0, 0) or os.getppid() != parent:  # PR_SET_PDEATHSIG
         raise IsolationError("controller disappeared before namespace setup")
-    script = str(Path(__file__).resolve())
+    script = script or str(Path(__file__).resolve())
     os.execve("/usr/bin/unshare", ["unshare", "--user", "--map-root-user", "--mount", "--net", "--pid",
               "--ipc", "--uts", "--fork", "--kill-child=KILL", "/usr/bin/python3", "-I", script, "--launch"],
               {"PATH": "/usr/bin:/bin"})
 
 
 class LocalLinuxEnv:
+    launcher = Path(__file__).resolve()
+    version = VERSION
+
     def __init__(self, work: Path, runtime: Path):
         if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
             raise IsolationError("execute only on x86_64 Linux; Windows is orchestration only")
@@ -143,7 +146,7 @@ class LocalLinuxEnv:
     def run(self, cmd: str, timeout_s: float) -> tuple[int, str]:
         if self.closed or not math.isfinite(timeout_s) or timeout_s <= 0:
             raise ValueError("closed environment or invalid timeout")
-        args = ["/usr/bin/python3", "-I", str(Path(__file__).resolve()), "--enter", str(os.getpid())]
+        args = ["/usr/bin/python3", "-I", str(self.launcher), "--enter", str(os.getpid())]
         started = time.monotonic()
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 start_new_session=True, close_fds=True, env={"PATH": "/usr/bin:/bin"})
@@ -188,7 +191,7 @@ class LocalLinuxEnv:
             ready = json.loads(first)
         except ValueError as error:
             raise IsolationError("launcher did not establish isolation") from error
-        if not separator or not isinstance(ready, dict) or ready.get("isolation_ready") != VERSION:
+        if not separator or not isinstance(ready, dict) or ready.get("isolation_ready") != self.version:
             raise IsolationError("missing isolation receipt")
         self.isolation = ready
         return code, out
