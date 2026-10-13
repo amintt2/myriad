@@ -56,3 +56,9 @@ Les fixtures sont synthétiques : fonction, classe à état, plusieurs sources/t
 faux succès imprimé, délais, sortie excessive, nettoyage des enfants et copies synthétiques des trois DEV.
 Les caches et tests DEV réels restent inchangés. Les suites, codes et preuves closes exactes sont dans
 la livraison privée destinée au parent. L'export public est uniquement simulé sur ces sources autorisées.
+
+Extension distincte de la route finale : le défaut local reste `LocalLinuxEnv` strict. Le runner final
+peut fournir explicitement `EphemeralVMEnv`, après marqueurs Colab et gel validé, avec la politique Python
+E11 et son reçu exact ; aucun fallback. Voir `docs/17_e17_final_freeze.md`. Cette extension ne choisit pas
+une révision scientifique et ne résout pas à elle seule le P2 des hooks de module ; son correctif exact
+amont audité est intégré par SHA exact ; le gel scientifique reste à approuver.

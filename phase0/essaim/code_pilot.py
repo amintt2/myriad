@@ -150,7 +150,7 @@ def instructions(cache: Path, task: str) -> str:
 
 
 def run_one(args, task: str, mode: str, models: list[str], client, output: Path, campaign_hash: str,
-            backend=None) -> dict:
+            backend=None, *, final_adapter=None) -> dict:
     copy = backend.copy_task if backend else copy_task
     collect = backend.collect_sources if backend else collect_sources
     instruction_for = backend.instructions if backend else instructions
@@ -162,6 +162,13 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
             raise ValueError("ephemeral-vm is only supported by E17 Aider")
         def grade_sources(cache, task, sources, runtime, timeout_s=120):
             return verify(cache, task, sources, runtime, timeout_s, environment=environment)
+    if final_adapter is not None:
+        if backend is not None:
+            raise ValueError("final adapter cannot select a different scientific loop")
+        copy, collect = final_adapter.copy_task, final_adapter.collect_sources
+        instruction_for = final_adapter.instructions
+        def grade_sources(cache, task, sources, runtime, timeout_s=120):
+            return final_adapter.verify(cache, task, sources, runtime, timeout_s, environment=environment)
     started = time.monotonic()
     with (output / f"{mode}__{task}.jsonl").open("w", encoding="utf-8") as log:
         step_count = 0
@@ -220,6 +227,9 @@ def run_one(args, task: str, mode: str, models: list[str], client, output: Path,
                     # Only post-episode artifacts are candidate failures; initial preparation stays infrastructure.
                     grade = {"status": "graded", "passed": False, "candidate_failure": "invalid_source_artifact",
                              "tests": 0, "tests_expected": None, "tests_complete": False, "seconds": 0}
+                    if final_adapter is not None:
+                        grade.update(sandbox_backend=sandbox, sandbox=environment.version, isolation=None,
+                                     trust_scope="public-benchmark-nonadversarial", adversarial_attestation=False)
                     record({"kind": "changes", "initial": initial, "sources": None,
                             "candidate_failure": grade["candidate_failure"]})
                 else:

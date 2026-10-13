@@ -16,6 +16,8 @@ CAP = 1 << 20
 
 def worker(raw: str, fd: int) -> None:
     cfg = json.loads(raw)
+    if cfg.get("python_audit_hook") is True:
+        exec(Path("_myriad_policy.py").read_text(encoding="utf-8"), {})
     diagnostics = sys.stdout
     records = []
 

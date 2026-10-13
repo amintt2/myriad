@@ -16,6 +16,11 @@ UV = {"version": "0.12.22", "python": "3.12.15",
       "url": "https://github.com/astral-sh/uv/releases/download/0.12.22/uv-x86_64-unknown-linux-gnu.tar.gz",
       "bytes": 19916278, "sha256": "b9980552309f09c15172b8be828555e375097f16deb459795ce7bfd200380f0b"}
 UV_MEMBER = "uv-x86_64-unknown-linux-gnu/uv"
+WORKER_SCRIPT = "e17_campaign_remote.py"
+CONTROLLER_SCRIPT = "e17_vm.py"
+RUNTIME_PROJECT = "code_pilot"
+PROTOCOL_MODULE = "e17_campaign"
+WORKER_PREFLIGHT = None
 
 
 def diagnostic(exc):
@@ -161,7 +166,7 @@ def rpc(request, operation, payload=None):
         output = root / "artifacts"
         output.mkdir()
         with (root / "bootstrap.log").open("wb") as log:
-            process = subprocess.Popen([sys.executable, str(source / "colab/e17_campaign_remote.py"),
+            process = subprocess.Popen([sys.executable, str(source / "colab" / WORKER_SCRIPT),
                                         "--worker", str(root)], stdout=log, stderr=subprocess.STDOUT,
                                        stdin=subprocess.DEVNULL, start_new_session=True)
         owner = {"pid": process.pid, "ticks": ticks(process.pid), "request": request}
@@ -243,10 +248,13 @@ def decode_response(text):
 
 
 def worker(root):
-    sys.path.insert(0, str(root / "phase0"))
     sys.path.insert(0, str(root / "phase0/colab"))
+    # The pure protocol must precede the supervisor with the same e17_campaign module name.
+    sys.path.insert(0, str(root / "phase0"))
     from read_timeout import run
-    from e17_campaign import artifacts, digest, MAX_ARTIFACT_BYTES
+    import importlib
+    protocol = importlib.import_module(PROTOCOL_MODULE)
+    artifacts, digest, MAX_ARTIFACT_BYTES = protocol.artifacts, protocol.digest, protocol.MAX_ARTIFACT_BYTES
     request = json.loads((root / "request.json").read_text())
     output = root / "artifacts"
     error = None
@@ -254,13 +262,17 @@ def worker(root):
     phase, code, detail = "uv-bootstrap", None, None
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     try:
+        if WORKER_PREFLIGHT is not None:
+            phase = "final-preflight"
+            WORKER_PREFLIGHT(root, request)
         install = root / "installer"
         save(output / "runtime.json", {"uv_bootstrap": {"artifact": UV, "phase": phase, "complete": False}})
         commands = [[sys.executable, str(root / "phase0/colab/e17_campaign_remote.py"),
                      "--bootstrap-uv", str(root), str(deadline)],
                     [str(install / "bin/uv"), "sync", "--frozen", "--python", UV["python"],
-                     "--project", str(root / "phase0/code_pilot")],
-                    [str(root / "phase0/code_pilot/.venv/bin/python"), str(root / "phase0/e17_vm.py"), str(root),
+                     "--project", str(root / "phase0" / RUNTIME_PROJECT)],
+                    [str(root / "phase0" / RUNTIME_PROJECT / ".venv/bin/python"),
+                     str(root / "phase0" / CONTROLLER_SCRIPT), str(root),
                      str(deadline)]]
         with (output / "controller.log").open("wb") as log:
             for phase, command in zip(("uv-bootstrap", "uv-sync", "controller"), commands):

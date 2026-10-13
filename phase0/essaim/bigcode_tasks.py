@@ -174,11 +174,15 @@ def result_artifact(raw: str, expected: list[str]) -> dict:
 def evaluate(sources: dict[str, str], official: str, entry_point: str, expected: list[str], runtime: Path,
              timeout_s: float, *, environment=LocalLinuxEnv) -> dict:
     """Use this seam only for hermetic synthetic fixtures or provenance-checked authorized DEV."""
+    from essaim.ephemeral_vm import EphemeralVMEnv, candidate_guard, require_colab
+    ephemeral = isinstance(environment, type) and issubclass(environment, EphemeralVMEnv)
     started = time.monotonic()
     grade = {"status": "error", "passed": None, "tests": 0, "tests_expected": len(expected),
              "tests_complete": False, "failures": 0, "errors": 0, "broken": [], "calls": [], "feedback": [],
              "trust_scope": TRUST_SCOPE, "adversarial_attestation": False, "sandbox_backend": "strict",
-             "sandbox": SANDBOX, "isolation": None, "scorable": False}
+             "sandbox": EphemeralVMEnv.version if ephemeral else SANDBOX,
+             "isolation": None, "scorable": False, "python_audit_hook": ephemeral}
+    grade["sandbox_backend"] = "ephemeral-vm" if ephemeral else "strict"
     env = None
 
     def failed(reason):
@@ -186,6 +190,8 @@ def evaluate(sources: dict[str, str], official: str, entry_point: str, expected:
         grade["calls"] = [{"test": "worker", "complete": True, "candidate_failure": reason}]
 
     try:
+        if ephemeral:
+            require_colab()
         if not math.isfinite(timeout_s) or timeout_s < 0 or not expected or len(set(expected)) != len(expected):
             raise ValueError("invalid verification budget/collection")
         if timeout_s == 0:
@@ -200,8 +206,10 @@ def evaluate(sources: dict[str, str], official: str, entry_point: str, expected:
             (work / "solution.py").write_text(sources["solution.py"], encoding="utf-8")
             (work / "_official.py").write_text(official, encoding="utf-8")
             (work / "_runner.py").write_bytes(Path(bigcode_unittest.__file__).read_bytes())
+            if ephemeral:
+                (work / "_myriad_policy.py").write_text(candidate_guard(work), encoding="utf-8")
             env = environment(work, runtime)
-            cfg = json.dumps({"entry_point": entry_point, "tests_expected": len(expected)})
+            cfg = json.dumps({"entry_point": entry_point, "tests_expected": len(expected), "python_audit_hook": ephemeral})
             remaining = timeout_s - (time.monotonic() - started)
             if remaining <= 0:
                 failed("verification_budget")

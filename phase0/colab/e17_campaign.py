@@ -39,6 +39,16 @@ def require_backend(files):
 
 
 class Campaign(e17_probe.Probe):
+    inventory_validator = staticmethod(validate_inventory)
+    retrieval_validator = staticmethod(validate_retrieved)
+    complete_verdict = "dev-complete"
+
+    def rpc_source(self):
+        return (HERE / "e17_campaign_remote.py").read_text(encoding="utf-8")
+
+    def check_prelaunch(self):
+        pass
+
     def __init__(self, args, selected, files):
         super().__init__(args)
         self.selected, self.files = selected, files
@@ -120,7 +130,7 @@ class Campaign(e17_probe.Probe):
         self.monitor()
         if self.reconcile() != self.owner or self.owner is None:
             raise PermissionError("owned VM absent before campaign RPC")
-        source = (HERE / "e17_campaign_remote.py").read_text(encoding="utf-8")
+        source = self.rpc_source()
         source += f"\nemit_response(rpc({self.request!r}, {operation!r}, {payload!r}))\n"
         with tempfile.TemporaryDirectory(prefix="e17-rpc-") as directory:
             script = Path(directory) / "rpc.py"
@@ -141,7 +151,7 @@ class Campaign(e17_probe.Probe):
         self.deadline = min(self.deadline, time.monotonic() + self.a.recover_seconds)
         # An inventory is published only after the worker closes its files, even when complete is false.
         if self.inventory is not None:
-            self.inventory = validate_inventory(self.inventory, self.request)
+            self.inventory = self.inventory_validator(self.inventory, self.request)
         directory = self.a.output.parent / (self.a.output.stem + "-artifacts")
         directory.mkdir(exist_ok=False)
         lifecycle.save(directory / "receipt.json", {"request": self.request, "ownership": self.pending,
@@ -151,7 +161,7 @@ class Campaign(e17_probe.Probe):
             while True:
                 value = self.rpc("status")
                 if value.get("inventory") is not None:
-                    self.inventory = validate_inventory(value["inventory"], self.request)
+                    self.inventory = self.inventory_validator(value["inventory"], self.request)
                     break
                 time.sleep(min(self.a.poll_seconds, max(0, self.deadline - time.monotonic())))
         lifecycle.save(directory / "retrieval.json", self.inventory)
@@ -174,7 +184,7 @@ class Campaign(e17_probe.Probe):
         lifecycle.save(directory / "recovery.json", {"all_inventory_hashes_verified": True,
                                                      "complete_claim": self.inventory["complete"]})
         # Hash all recovered files even after VM failure; completeness is a separate verdict.
-        self.recovered = validate_retrieved(directory, self.inventory, self.request)
+        self.recovered = self.retrieval_validator(directory, self.inventory, self.request)
 
     def execute(self):
         if self.a.output.exists() or (self.a.output.parent / (self.a.output.stem + "-artifacts")).exists():
@@ -185,6 +195,7 @@ class Campaign(e17_probe.Probe):
                 raise PermissionError("existing ownership/session refused")
             self.before = self.wait_usage(False)
             preflight(self.before, self.policy)
+            self.check_prelaunch()
             self.pending = {"schema": 1, "status": "allocation-unconfirmed", "phase0": None,
                             "campaign_id": self.campaign, "allocation_id": uuid.uuid4().hex,
                             "plan": self.selected["name"], "usage_before": self.before, "budget_policy": self.policy}
@@ -216,13 +227,14 @@ class Campaign(e17_probe.Probe):
             lifecycle.save(self.a.output.parent / (self.a.output.stem + "-request.json"), self.request)
             payload = base64.b64encode(zlib.compress(canonical({k: base64.b64encode(v).decode()
                                                                for k, v in self.files.items()}))).decode()
+            self.check_prelaunch()
             self.remote_attempted = True  # Even a lost start ACK requires identity-bound cancellation/recovery.
             if self.rpc("start", payload).get("started") is not True:
                 raise ValueError("remote start unconfirmed")
             while time.monotonic() < self.work_deadline:
                 value = self.rpc("status")
                 if value.get("inventory") is not None:
-                    self.inventory = validate_inventory(value["inventory"], self.request)
+                    self.inventory = self.inventory_validator(value["inventory"], self.request)
                     break
                 time.sleep(min(self.a.poll_seconds, max(0, self.work_deadline - time.monotonic())))
             else:
@@ -253,7 +265,7 @@ class Campaign(e17_probe.Probe):
                         self.observations.append({"final_usage_unknown": True})
         success = self.recovered and self.closed and error is None
         report = {"schema": 1, "campaign_id": self.campaign, "plan": self.selected,
-                  "verdict": "dev-complete" if success else "infrastructure-incomplete", "error": error,
+                  "verdict": self.complete_verdict if success else "infrastructure-incomplete", "error": error,
                   "recovery_error": self.recovery_error, "retrieved_complete": self.recovered,
                   "diagnostics": self.diagnostics,
                   "inventory": self.inventory, "absence_confirmed": self.absent, "closed": self.closed,

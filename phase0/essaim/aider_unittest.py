@@ -15,7 +15,7 @@ import unittest
 from pathlib import Path
 
 TRUST_SCOPE = "public-benchmark-nonadversarial"
-RESERVED = {"_myriad_runner.py", "_myriad_transport.py"}
+RESERVED = {"_myriad_runner.py", "_myriad_transport.py", "_myriad_policy.py"}
 
 
 def inventory(tests: dict[str, str]) -> list[str]:
@@ -56,6 +56,8 @@ def worker(raw: str, fd: int) -> None:
     """Keep native imports, objects and state inside one isolated unittest process."""
     from _myriad_transport import PROTOCOL
     cfg = json.loads(raw)
+    if cfg.get("python_audit_hook") is True:
+        exec(Path("_myriad_policy.py").read_text(encoding="utf-8"), {})
     records, diagnostics = [], sys.stdout
 
     class Result(unittest.TextTestResult):
@@ -120,24 +122,29 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
            *, environment=None) -> dict:
     from essaim import bigcode_tasks, bigcode_unittest
     from essaim.aider_python import SourceArtifactError, collect_sources, task_config
-    from essaim.ephemeral_vm import EphemeralVMEnv
+    from essaim.ephemeral_vm import EphemeralVMEnv, candidate_guard, require_colab
     from essaim.local_linux import LocalLinuxEnv
     from essaim.terminal_bench import task_path
-    environment = environment or LocalLinuxEnv
+    environment = LocalLinuxEnv if environment is None else environment
+    ephemeral = isinstance(environment, type) and issubclass(environment, EphemeralVMEnv)
     started, env = time.monotonic(), None
     grade = {"status": "error", "passed": None, "tests": 0, "tests_expected": 0, "tests_complete": False,
              "fail_fast": False, "failures": 0, "errors": 0, "broken": [], "calls": [], "feedback": [],
              "trust_scope": TRUST_SCOPE, "adversarial_attestation": False, "sandbox_backend": "strict",
-             "sandbox": LocalLinuxEnv.version, "isolation": None, "source_hashes": {}, "test_hashes": {}}
+             "sandbox": EphemeralVMEnv.version if ephemeral else LocalLinuxEnv.version,
+             "isolation": None, "source_hashes": {}, "test_hashes": {},
+             "python_audit_hook": ephemeral}
+    grade["sandbox_backend"] = "ephemeral-vm" if ephemeral else "strict"
 
     def failed(reason):
         grade.update(status="graded", passed=False, candidate_failure=reason)
         grade["calls"] = [{"test": "worker", "complete": True, "candidate_failure": reason}]
 
     try:
-        if (not math.isfinite(timeout_s) or timeout_s < 0
-                or isinstance(environment, type) and issubclass(environment, EphemeralVMEnv)):
-            raise ValueError("generic verification requires strict isolation and a finite budget")
+        if ephemeral:
+            require_colab()
+        if not math.isfinite(timeout_s) or timeout_s < 0:
+            raise ValueError("generic verification requires explicit isolation and a finite budget")
         base, files = task_config(cache, task)
         solutions, test_files = files["solution"], files["test"]
         declared = [*solutions, *test_files]
@@ -180,12 +187,14 @@ def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeo
                 raise SourceArtifactError("staged snapshot mismatch")
             (work / "_myriad_runner.py").write_bytes(Path(__file__).read_bytes())
             (work / "_myriad_transport.py").write_bytes(Path(bigcode_unittest.__file__).read_bytes())
+            if ephemeral:
+                (work / "_myriad_policy.py").write_text(candidate_guard(work), encoding="utf-8")
             remaining = timeout_s - (time.monotonic() - started)
             if remaining <= 0:
                 failed("verification_budget")
                 return grade
             cfg = json.dumps({"modules": {name: modules[name] for name in sorted(modules, key=lambda n: n.count("."))},
-                              "tests": test_files, "expected": expected})
+                              "tests": test_files, "expected": expected, "python_audit_hook": ephemeral})
             env = environment(work, runtime)
             code, output = env.run("python _myriad_runner.py <<'MYRIAD_INPUT'\n" + cfg + "\nMYRIAD_INPUT", remaining)
             grade["isolation"] = env.isolation

@@ -44,6 +44,10 @@ case "${1:-}" in
     shift
     python3 "$COLAB_DIR/e17_campaign.py" "$@"
     ;;
+  e17-final)
+    shift
+    exec python3 "$COLAB_DIR/e17_final_supervise.py" "$@"
+    ;;
   e17-probe)
     shift
     python3 "$COLAB_DIR/e17_probe.py" "$@"
