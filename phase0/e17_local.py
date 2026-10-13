@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parent
 ASSET = {"file": "llama-b11505-bin-win-vulkan-x64.zip", "bytes": 33442611,
          "sha256": "ace19f118b9e32382ec9b9b123aa19e8fdf54981fb82e82977b5298efaf01d49"}
 WIRE_LIMIT = 2 << 20
+BIGCODE_TASKS = ["BigCodeBench_120", "BigCodeBench_184"]
 
 
 def file_hash(path):
@@ -415,7 +416,76 @@ class PipeClient:
             self.process.stdout.close()
 
 
-def validate_smoke(value):
+def benchmark_adapter(benchmark):
+    if benchmark == "aider":
+        from essaim import code_pilot
+        return code_pilot, TASKS, "code_pilot"
+    if benchmark == "bigcode":
+        from essaim import bigcode_pilot
+        if bigcode_pilot.tasks.PILOT != BIGCODE_TASKS:
+            raise ValueError("BigCodeBench is limited to the two authorized DEV tasks")
+        return bigcode_pilot, BIGCODE_TASKS, "bigcode_pilot"
+    raise ValueError("unsupported local DEV benchmark")
+
+
+def strict_receipt(receipt):
+    from essaim.local_linux import VERSION
+    return (isinstance(receipt, dict) and receipt.get("isolation_ready") == VERSION
+            and receipt.get("seccomp") == "on" and type(receipt.get("landlock_abi")) is int
+            and receipt["landlock_abi"] >= 3
+            and receipt.get("namespaces") == ["user", "mount", "pid", "net", "ipc", "uts"])
+
+
+def validate_bigcode_smoke(value):
+    from essaim import aider_agent, bigcode_tasks
+    from essaim.local_linux import VERSION
+    if (value.get("kind") != "official_unittest_dev_smoke" or value.get("model_measurement") is not False
+            or value.get("trust_scope") != bigcode_tasks.TRUST_SCOPE
+            or value.get("adversarial_attestation") is not False
+            or [r.get("task") for r in value.get("tasks", [])] != BIGCODE_TASKS):
+        raise ValueError("BigCodeBench public nonadversarial DEV smoke coverage missing")
+    for row, count in zip(value["tasks"], (6, 5)):
+        if set(row.get("negative", {})) != {"wrong", "exit0", "load_exception"}:
+            raise ValueError("BigCodeBench negative controls missing")
+        for grade, passed in [(row["reference"], True), *[(g, False) for g in row["negative"].values()]]:
+            if (grade.get("status") != "graded" or grade.get("passed") is not passed
+                    or grade.get("scorable") is not True or grade.get("tests_expected") != count
+                    or grade.get("trust_scope") != bigcode_tasks.TRUST_SCOPE
+                    or grade.get("adversarial_attestation") is not False
+                    or grade.get("sandbox_backend") != "strict" or grade.get("sandbox") != VERSION
+                    or not strict_receipt(grade.get("isolation")) or not grade.get("calls")
+                    or passed and (not aider_agent.complete_green(grade)
+                                   or any(grade.get(k) != 0 for k in
+                                          ("skipped", "expected_failures", "unexpected_successes")))):
+                raise ValueError("incomplete, false green or nonstrict BigCodeBench smoke")
+
+
+def validate_bigcode_episode(row, task, mode):
+    from essaim import aider_agent, bigcode_tasks
+    grade = row.get("verifier", {})
+    if (row.get("task") != task or row.get("mode") != mode
+            or row.get("trust_scope") != bigcode_tasks.TRUST_SCOPE
+            or row.get("adversarial_attestation") is not False):
+        raise ValueError("BigCodeBench episode identity/trust scope mismatch")
+    if row.get("status") != "graded":
+        return  # The common controller records this incomplete attempt and refuses campaign completion.
+    if (type(row.get("passed")) is not bool or grade.get("status") != "graded"
+            or grade.get("trust_scope") != bigcode_tasks.TRUST_SCOPE
+            or grade.get("adversarial_attestation") is not False or grade.get("sandbox_backend") != "strict"):
+        raise ValueError("BigCodeBench final grade scope mismatch")
+    if grade.get("candidate_failure") not in ("invalid_source_artifact", "verification_budget"):
+        if not strict_receipt(grade.get("isolation")):
+            raise ValueError("BigCodeBench final verifier isolation receipt missing")
+    if row["passed"] and (row.get("submission_accepted") is not True or not aider_agent.complete_green(grade)
+                          or grade.get("tests_expected") != (6 if task == BIGCODE_TASKS[0] else 5)):
+        raise ValueError("BigCodeBench success requires complete official verification")
+
+
+def validate_smoke(value, benchmark="aider"):
+    if benchmark == "bigcode":
+        validate_bigcode_smoke(value)
+        return
+    benchmark_adapter(benchmark)
     from e17_vm import SMOKE_TESTS
     if (value.get("sandbox_backend") != "strict" or value.get("model_measurement") is not False
             or [row.get("task") for row in value.get("tasks", [])] != TASKS):
@@ -436,7 +506,29 @@ def validate_smoke(value):
                     raise ValueError("strict verifier isolation receipt missing")
 
 
-def stage_dev(cache, output):
+def stage_dev(cache, output, benchmark="aider"):
+    if benchmark == "bigcode":
+        from essaim import bigcode_tasks
+        from essaim.terminal_bench import task_path
+        benchmark_adapter(benchmark)
+        view = bigcode_tasks.provenance()
+        expected = {t + ".json" for t in BIGCODE_TASKS}
+        if set(view["files"]) != expected or view["dev"] != BIGCODE_TASKS:
+            raise ValueError("BigCodeBench staging must contain exactly DEV 120/184")
+        rows = {}
+        for name in sorted(expected):
+            raw = task_path(cache, name).read_bytes()
+            if bigcode_tasks.digest(raw) != view["files"][name]:
+                raise ValueError("existing BigCodeBench DEV asset differs from original pin")
+            rows[name] = raw
+        save(output / "dataset-manifest.json", view)
+        data = output / "data"
+        data.mkdir()
+        for name, raw in rows.items():
+            (data / name).write_bytes(raw)
+        bigcode_tasks.check_data(data)
+        return data, view
+    benchmark_adapter(benchmark)
     from essaim import aider_python
     from essaim.terminal_bench import check_tasks, task_path
     view = dev_manifest(aider_python.provenance())
@@ -462,8 +554,10 @@ def execute(args):
     agent_source = (ROOT / "essaim/aider_agent.py").read_text(encoding="utf-8").replace("\r\n", "\n").encode()
     if digest(agent_source) != R00_AGENT_SHA256:
         raise ValueError("R00 changed; register a revision before any measurement")
+    benchmark = getattr(args, "benchmark", "aider")
+    pilot, tasks, resource = benchmark_adapter(benchmark)
     args.output.mkdir()  # Exclusive fresh directory, including preflight and smoke.
-    from essaim import code_pilot as pilot
+    from essaim import code_pilot
     from essaim.local_linux import LocalLinuxEnv
     import importlib.metadata
     import tempfile
@@ -473,12 +567,23 @@ def execute(args):
                 "simulation": "local-sequential", "distributed": False, "scientific_gain_claimed": False,
                 "mode": args.mode, "unknown_modes": [m for m in ("single", "vote", "cascade", "reference")
                                                        if m != args.mode], "complete": False}
+    context = {"benchmark": benchmark, "partition": "DEV", "tasks": tasks,
+               "test_frozen": False, "ready_for_test": False}
+    if benchmark == "bigcode":
+        context.update(adapter_version=pilot.tasks.VERSION, trust_scope=pilot.tasks.TRUST_SCOPE,
+                       adversarial_attestation=False)
+    registry.update(context)
     registry["metadata_hashes"] = {name: file_hash(ROOT.parent / "docs" / name) for name in
                                    ("e17_proposition_p01.md", "e17_selection_pre_mesure.json")}
     save(args.output / "registry.json", registry)
     client = None
     with (args.output / "worker.log").open("xb") as log:
         try:
+            cache, view = None, None
+            if benchmark == "bigcode":
+                # Check runtime pins and stage only authorized DEV before even starting the Windows relay.
+                pilot.tasks.check_runtime()
+                cache, view = stage_dev(args.tasks_dir, args.output, benchmark)
             with tempfile.TemporaryDirectory(prefix="myriad-local-preflight-") as temporary:
                 env = LocalLinuxEnv(Path(temporary), args.runtime.resolve())
                 try:
@@ -492,21 +597,28 @@ def execute(args):
                       "models": models, "output": win_path(args.output), "execute": args.action == "run"}
             client = PipeClient([str(args.windows_python), win_path(Path(__file__)), "--worker"], config, log)
             observed = client.receive(180)["ready"]
-            runtime = {"windows": observed, "python": sys.version, "python_sha256": file_hash(Path(sys.executable)),
-                       "lock_sha256": file_hash(ROOT / "code_pilot/uv.lock"), "sandbox_backend": "strict",
+            sources = ["code_pilot", "aider_agent", "aider_python", "agent", "local_linux", "code_provenance",
+                       "terminal_bench", "ephemeral_vm", "sandbox"]
+            packages = ("httpx", "pytest", "matplotlib")
+            if benchmark == "bigcode":
+                sources += ["bigcode_pilot", "bigcode_tasks", "bigcode_unittest"]
+                packages = json.loads((ROOT / resource / "runtime.json").read_text())["packages"]
+            runtime = {**context, "windows": observed, "python": sys.version,
+                       "python_sha256": file_hash(Path(sys.executable)),
+                       "lock_sha256": file_hash(ROOT / resource / "uv.lock"), "sandbox_backend": "strict",
                        "isolation": isolation, "kernel": platform.release(),
-                       "packages": {p: importlib.metadata.version(p) for p in ("httpx", "pytest", "matplotlib")},
+                       "packages": {p: importlib.metadata.version(p) for p in packages},
                        "sources": {p.name: file_hash(p) for p in [Path(__file__), ROOT / "e17_vm.py",
                            ROOT / "e17_campaign.py", *[ROOT / "essaim" / (n + ".py") for n in
-                           ("code_pilot", "aider_agent", "aider_python", "agent", "local_linux", "code_provenance",
-                            "terminal_bench", "ephemeral_vm", "sandbox")]]}}
+                           sources]]}}
             save(args.output / "runtime.json", runtime)
             if args.action == "preflight":
                 return 0
-            cache, view = stage_dev(args.tasks_dir, args.output)
-            smoke = pilot.smoke(cache, args.runtime)
+            if benchmark == "aider":
+                cache, view = stage_dev(args.tasks_dir, args.output)
+            smoke = (pilot.tasks.smoke if benchmark == "bigcode" else pilot.smoke)(cache, args.runtime)
             save(args.output / "smoke.json", smoke)
-            validate_smoke(smoke)
+            validate_smoke(smoke, benchmark)
             if args.action == "smoke":
                 return 0
             hardware = {"cpu": "Intel Core i5-10400F", "host_memory_gib": 32,
@@ -527,19 +639,23 @@ def execute(args):
             for key, value in LIMITS.items():
                 common.extend(("--" + key.replace("_", "-"), str(value)))
             run_args = pilot.parser().parse_args(common)
-            manifest = {"runtime": runtime, "execution_provenance": provenance, "limits": LIMITS,
-                        "models": modes, "tasks": TASKS, "dataset_hash": pilot.hash_json(view),
+            manifest = {**context, "runtime": runtime, "execution_provenance": provenance, "limits": LIMITS,
+                        "models": modes, "tasks": tasks, "dataset_hash": code_pilot.hash_json(view),
+                        "provenance_sha256": file_hash(args.output / "provenance.json"),
                         "system": pilot.aider_agent.SYSTEM, "sandbox_backend": "strict",
                         "isolation": isolation, "simulation": "local-sequential"}
             save(args.output / "manifest.json", manifest)
             rows = []
-            for task in TASKS:
+            for task in tasks:
                 registry["attempts"].append({"task": task, "mode": args.mode, "state": "started"})
                 save(args.output / "registry.json", registry)
                 loading_before, requests_before = client.loading_seconds, client.request_seconds
-                row = pilot.run_one(run_args, task, args.mode, models, client, args.output, pilot.hash_json(manifest))
+                row = pilot.run_one(run_args, task, args.mode, models, client, args.output,
+                                    code_pilot.hash_json(manifest))
                 rows.append(row)
                 save(args.output / "verdicts.json", rows)
+                if benchmark == "bigcode":
+                    validate_bigcode_episode(row, task, args.mode)
                 client.synchronize()  # Seal this episode's transport before recording times or starting another task.
                 registry["attempts"][-1].update(state=row["status"], transcript_sha256=row["transcript_sha256"],
                                                loading_seconds=client.loading_seconds - loading_before,
@@ -571,6 +687,7 @@ def main():
         return 0
     cli = argparse.ArgumentParser(description="E17 DEV local strict, sources et modèles existants seulement")
     cli.add_argument("action", choices=("preflight", "smoke", "run"))
+    cli.add_argument("--benchmark", choices=("aider", "bigcode"), default="aider")
     cli.add_argument("--mode", choices=("single", "vote"), default="single")
     cli.add_argument("--output", type=Path, required=True)
     cli.add_argument("--runtime", type=Path, required=True)

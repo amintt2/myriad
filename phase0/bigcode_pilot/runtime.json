@@ -1,0 +1,511 @@
+{
+  "python": "3.12.15",
+  "binary": {
+    "size": 30975640,
+    "sha256": "0886fb76ceec8ff568d23079b5da6342bb41675e216e11525d4d6a9e65988d10"
+  },
+  "lock": {
+    "size": 49924,
+    "sha256": "2c5bdee8e0742ea163d7e228fc22e1f3f9cf903ad3d1e16aa0a6d65ec17b490e"
+  },
+  "packages": {
+    "Pygments": "2.21.0",
+    "anyio": "4.15.1",
+    "certifi": "2026.7.22",
+    "cloudpickle": "3.1.2",
+    "contourpy": "1.3.3",
+    "cycler": "0.12.1",
+    "fonttools": "4.66.1",
+    "h11": "0.16.0",
+    "httpcore": "1.0.9",
+    "httpx": "0.28.1",
+    "idna": "3.20",
+    "iniconfig": "2.3.1",
+    "joblib": "1.6.0",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.10.8",
+    "numpy": "1.26.4",
+    "packaging": "26.3",
+    "pandas": "2.2.3",
+    "pillow": "12.3.0",
+    "pluggy": "1.6.0",
+    "pyarrow": "19.0.1",
+    "pyparsing": "3.3.3",
+    "pytest": "8.4.2",
+    "python-dateutil": "2.9.0.post0",
+    "pytz": "2024.2",
+    "scikit-learn": "1.5.2",
+    "scipy": "1.14.1",
+    "six": "1.17.0",
+    "threadpoolctl": "3.7.0",
+    "typing_extensions": "4.16.0",
+    "tzdata": "2026.5"
+  },
+  "licenses": {
+    "Pygments": {
+      "version": "2.21.0",
+      "expression": "BSD-2-Clause",
+      "classifiers": [],
+      "files": {
+        "Pygments/licenses/AUTHORS": {
+          "size": 11048,
+          "sha256": "71a83872ad82f57be692cf827e048e2cd51d45169cfa1ea3f28706d97a872c0f"
+        },
+        "Pygments/licenses/LICENSE": {
+          "size": 1331,
+          "sha256": "a9d66f1d526df02e29dce73436d34e56e8632f46c275bbdffc70569e882f9f17"
+        }
+      },
+      "reviewed_licence": "BSD-2-Clause"
+    },
+    "anyio": {
+      "version": "4.15.1",
+      "expression": "MIT",
+      "classifiers": [],
+      "files": {
+        "anyio/licenses/LICENSE": {
+          "size": 1081,
+          "sha256": "5361ac9dc58f2ef5fd2e9b09c68297c17f04950909bbc8023bdb82eacf22c2b0"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "certifi": {
+      "version": "2026.7.22",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+      ],
+      "files": {
+        "certifi/licenses/LICENSE": {
+          "size": 989,
+          "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7"
+        }
+      },
+      "reviewed_licence": "MPL-2.0 (controller TLS only)"
+    },
+    "cloudpickle": {
+      "version": "3.1.2",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "cloudpickle/licenses/LICENSE": {
+          "size": 1754,
+          "sha256": "3029ea34173e9fdc233ad315dc6b100bd1ea71f529b1c1af97664a272fdc55f5"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "contourpy": {
+      "version": "1.3.3",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "contourpy/LICENSE": {
+          "size": 1534,
+          "sha256": "34170979fc64f4f5e6dfa66ef27dec314ffffc5852000c60f4836ec1dfbf156e"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "cycler": {
+      "version": "0.12.1",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "cycler/LICENSE": {
+          "size": 1497,
+          "sha256": "f1218143d766da3fea66f13396b7f15df46a83303f29bf96ba6e98eb4d42f408"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "fonttools": {
+      "version": "4.66.1",
+      "expression": null,
+      "classifiers": [],
+      "files": {
+        "fonttools/licenses/LICENSE": {
+          "size": 1072,
+          "sha256": "6787208f83f659ccbc2223b2fde952ffa6f7e8aca62f1a8a2bf5bc51bb1b2383"
+        },
+        "fonttools/licenses/LICENSE.external": {
+          "size": 20022,
+          "sha256": "94a83aaee0729a0f302d34acc4acecbd9d58366f262429075fe557e4a54b2e69"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "h11": {
+      "version": "0.16.0",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "files": {
+        "h11/licenses/LICENSE.txt": {
+          "size": 1124,
+          "sha256": "37db5bb85926db28a427a25867f10b1232003aea1be69ccb851138adb8e6f361"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "httpcore": {
+      "version": "1.0.9",
+      "expression": "BSD-3-Clause",
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "httpcore/licenses/LICENSE.md": {
+          "size": 1518,
+          "sha256": "fdcb59154c74cbaba16a11242f7740bea9f23d6feb5547917d8c5f94a80392a5"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "httpx": {
+      "version": "0.28.1",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "httpx/licenses/LICENSE.md": {
+          "size": 1508,
+          "sha256": "4ec59d544f12b5f539a3a716fd321ac58ccd8030b465221f2c880200cdf28d8d"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "idna": {
+      "version": "3.20",
+      "expression": "BSD-3-Clause",
+      "classifiers": [],
+      "files": {
+        "idna/licenses/LICENSE.md": {
+          "size": 1541,
+          "sha256": "1a9a4f0e3d479a27240ddd59a9137a66ab4a0f9dfdc8ca6188cc0bfd85187f04"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "iniconfig": {
+      "version": "2.3.1",
+      "expression": "MIT",
+      "classifiers": [],
+      "files": {
+        "iniconfig/licenses/LICENSE": {
+          "size": 1098,
+          "sha256": "3409fa91f7ace557894632676656e32264fe5ef7581535725dc9a23774551bd4"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "joblib": {
+      "version": "1.6.0",
+      "expression": "BSD-3-Clause",
+      "classifiers": [],
+      "files": {
+        "joblib/licenses/LICENSE.txt": {
+          "size": 1527,
+          "sha256": "42612911c1872c5e4b43f6ae0e8ee59467cd350332241cf72ce90640264fae6a"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "kiwisolver": {
+      "version": "1.5.1",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "kiwisolver/licenses/LICENSE": {
+          "size": 3289,
+          "sha256": "529c40e5f67f2f88904657a9f7879ae2f8dc76bc9bfef9cb10d988b48804ed61"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "matplotlib": {
+      "version": "3.10.8",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: Python Software Foundation License"
+      ],
+      "files": {
+        "matplotlib/LICENSE": {
+          "size": 40129,
+          "sha256": "dbb9ad7495a83b0f2f48c94b06e23020587d82f8d1492dcb717fb1ebc2f86c18"
+        }
+      },
+      "reviewed_licence": "PSF-derived permissive licence"
+    },
+    "numpy": {
+      "version": "1.26.4",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "numpy/LICENSE.txt": {
+          "size": 47721,
+          "sha256": "1107b0c831e918d4f1dbc28a33190c77215ef278d4a4c4009572088770d4334a"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause; bundled notices including GCC runtime exception; bundled libquadmath LGPL-2.1-or-later"
+    },
+    "packaging": {
+      "version": "26.3",
+      "expression": "Apache-2.0 OR BSD-2-Clause",
+      "classifiers": [],
+      "files": {
+        "packaging/licenses/LICENSE": {
+          "size": 197,
+          "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48"
+        },
+        "packaging/licenses/LICENSE.APACHE": {
+          "size": 10174,
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        },
+        "packaging/licenses/LICENSE.BSD": {
+          "size": 1344,
+          "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5"
+        }
+      },
+      "reviewed_licence": "Apache-2.0 OR BSD-2-Clause"
+    },
+    "pandas": {
+      "version": "2.2.3",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "pandas/LICENSE": {
+          "size": 62399,
+          "sha256": "1dea2e80ed1cbd0233f84cee4486b29689f133babaccf4d295e51c43051f3216"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "pillow": {
+      "version": "12.3.0",
+      "expression": "MIT-CMU",
+      "classifiers": [],
+      "files": {
+        "pillow/licenses/LICENSE": {
+          "size": 70307,
+          "sha256": "dda12a98c1979cf3d94df1cff45d27a4cb3f04a60c76f76902ac54cac03ec0ce"
+        }
+      },
+      "reviewed_licence": "MIT-CMU"
+    },
+    "pluggy": {
+      "version": "1.6.0",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "files": {
+        "pluggy/licenses/LICENSE": {
+          "size": 1110,
+          "sha256": "d6b65e6c213a5d0b577911d34d6e5949b9f59d76c238c5071a2f3fc16cfb2606"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "pyarrow": {
+      "version": "19.0.1",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: Apache Software License"
+      ],
+      "files": {
+        "pyarrow/LICENSE.txt": {
+          "size": 110423,
+          "sha256": "229dbe29e4e1344e95172f6f3a4277ec0da5c7850cb03897c47f3a24b7afce08"
+        }
+      },
+      "reviewed_licence": "Apache-2.0; bundled notices"
+    },
+    "pyparsing": {
+      "version": "3.3.3",
+      "expression": "MIT",
+      "classifiers": [],
+      "files": {
+        "pyparsing/licenses/LICENSE": {
+          "size": 1062,
+          "sha256": "a5425f9dc14ac74d4c5f0b679e941f2442e32cca7452a4418d5b1a49893ebe4e"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "pytest": {
+      "version": "8.4.2",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "files": {
+        "pytest/licenses/AUTHORS": {
+          "size": 7369,
+          "sha256": "c2017d6288262cf9c39aecc8e51df3422a9f2bbca1e4b55d28491022070c7577"
+        },
+        "pytest/licenses/LICENSE": {
+          "size": 1091,
+          "sha256": "ca836a5f9ecca3b2f350230faa20a48fb8b145653b5568d784862df864706b9b"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "python-dateutil": {
+      "version": "2.9.0.post0",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License",
+        "License :: OSI Approved :: Apache Software License"
+      ],
+      "files": {
+        "python-dateutil/LICENSE": {
+          "size": 2889,
+          "sha256": "ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e"
+        }
+      },
+      "reviewed_licence": "Apache-2.0 OR BSD-3-Clause"
+    },
+    "pytz": {
+      "version": "2024.2",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "files": {
+        "pytz/LICENSE.txt": {
+          "size": 1088,
+          "sha256": "be8b1a37ebe26c592a90f6c0eb33103a7f383ce2f4d7498c0af9a526990a07b8"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "scikit-learn": {
+      "version": "1.5.2",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "scikit-learn/COPYING": {
+          "size": 1532,
+          "sha256": "75684d16f4662ab842ed5af9482ac01939aee83c8243d89993616d959d3053f8"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "scipy": {
+      "version": "1.14.1",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "files": {
+        "scipy/LICENSE.txt": {
+          "size": 46805,
+          "sha256": "18128be14d9ea3bc9440075a898a948e3327e96886d01678ee8e052510571580"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause; bundled notices including GCC runtime exception; bundled libquadmath LGPL-2.1-or-later"
+    },
+    "six": {
+      "version": "1.17.0",
+      "expression": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "files": {
+        "six/LICENSE": {
+          "size": 1066,
+          "sha256": "4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0"
+        }
+      },
+      "reviewed_licence": "MIT"
+    },
+    "threadpoolctl": {
+      "version": "3.7.0",
+      "expression": "BSD-3-Clause",
+      "classifiers": [],
+      "files": {
+        "threadpoolctl/licenses/LICENSE": {
+          "size": 1507,
+          "sha256": "81ac619075248b06e53660b652d10e485f4675f5d0ae0f97ea22370da1f7e23b"
+        }
+      },
+      "reviewed_licence": "BSD-3-Clause"
+    },
+    "typing_extensions": {
+      "version": "4.16.0",
+      "expression": "PSF-2.0",
+      "classifiers": [],
+      "files": {
+        "typing_extensions/licenses/LICENSE": {
+          "size": 13936,
+          "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+        }
+      },
+      "reviewed_licence": "PSF-2.0"
+    },
+    "tzdata": {
+      "version": "2026.5",
+      "expression": null,
+      "classifiers": [],
+      "files": {
+        "tzdata/licenses/LICENSE": {
+          "size": 625,
+          "sha256": "df58f69ea88683035d720b5375bcef0cf5aeaa98a1d098d572e0992c378deb46"
+        },
+        "tzdata/licenses/licenses/LICENSE_APACHE": {
+          "size": 11357,
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      },
+      "reviewed_licence": "Apache-2.0; IANA public domain data"
+    }
+  },
+  "python_licence": {
+    "url": "https://raw.githubusercontent.com/python/cpython/v3.12.15/LICENSE",
+    "date": "2026-10-10",
+    "licence": "PSF-2.0 and historical permissive notices",
+    "size": 13936,
+    "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+  },
+  "bundled_components": [
+    {
+      "package": "numpy",
+      "file": "libquadmath-96973f99.so.0.0.0",
+      "size": 247609,
+      "sha256": "934c22ded0e7d169c4d4678876c96051adf3d94545da962f60b41659b075da3b",
+      "licence": "LGPL-2.1-or-later"
+    },
+    {
+      "package": "scipy",
+      "file": "libquadmath-96973f99.so.0.0.0",
+      "size": 247609,
+      "sha256": "934c22ded0e7d169c4d4678876c96051adf3d94545da962f60b41659b075da3b",
+      "licence": "LGPL-2.1-or-later"
+    },
+    {
+      "package": "scipy",
+      "file": "libquadmath-96973f99-934c22de.so.0.0.0",
+      "size": 250985,
+      "sha256": "6ed5137f412781ad7863439fb543613f620b43c32b63292a0029246162f5bbc6",
+      "licence": "LGPL-2.1-or-later"
+    }
+  ]
+}

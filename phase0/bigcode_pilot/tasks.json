@@ -1,0 +1,153 @@
+{
+  "version": "bigcode-dev-unittest-v1",
+  "dataset": {
+    "repository": "bigcode/bigcodebench-hard",
+    "revision": "298d2cc7b96612e15e47313c3603ee124cee0c1f",
+    "split": "v0.1.4",
+    "variant": "instruct",
+    "population": 148,
+    "licence": "Apache-2.0",
+    "licence_evidence": "full_card",
+    "hard_subset_fields_match_full": true
+  },
+  "sources": {
+    "hard_parquet": {
+      "url": "https://huggingface.co/datasets/bigcode/bigcodebench-hard/resolve/298d2cc7b96612e15e47313c3603ee124cee0c1f/data/v0.1.4-00000-of-00001.parquet",
+      "date": "2026-10-10",
+      "size": 551905,
+      "sha256": "73a4270b43feb81abefad7bb1b592937c768ea45c3263bedc1cabd30a9a6ce79"
+    },
+    "hard_card": {
+      "url": "https://huggingface.co/datasets/bigcode/bigcodebench-hard/resolve/298d2cc7b96612e15e47313c3603ee124cee0c1f/README.md",
+      "date": "2026-10-10",
+      "size": 1161,
+      "sha256": "a59f83c4c465688e309ccc6c577a28758797220aed061c2862620a894f36fd56"
+    },
+    "full_card": {
+      "url": "https://huggingface.co/datasets/bigcode/bigcodebench/resolve/b74c0d0bf70d2c0bc459be537895cca163007f1a/README.md",
+      "date": "2026-10-10",
+      "size": 8828,
+      "sha256": "ecf83775f5b479deb66704ddc7ea53df59a61468077d52037f21eee6450be932"
+    },
+    "full_parquet": {
+      "url": "https://huggingface.co/datasets/bigcode/bigcodebench/resolve/b74c0d0bf70d2c0bc459be537895cca163007f1a/data/v0.1.4-00000-of-00001.parquet",
+      "date": "2026-10-10",
+      "size": 2362110,
+      "sha256": "d9a4965821c9507ebdfb551c288656b2d5fe553234f5183044333ca8a4018267"
+    },
+    "README.md": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/README.md",
+      "date": "2026-10-10",
+      "size": 11351,
+      "sha256": "4aa8cbfa3111e92db886583d554a3c9e8f14561d47261d6441c069835e3bdc28"
+    },
+    "ADVANCED_USAGE.md": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/ADVANCED_USAGE.md",
+      "date": "2026-10-10",
+      "size": 16416,
+      "sha256": "13de3b69f2f851519daebf0183bd23077e7ab16a62c72e6e159fa343adeafe08"
+    },
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/LICENSE",
+      "date": "2026-10-10",
+      "size": 11438,
+      "sha256": "a858540b8dfd0c74db6953edaae85bde0b671643a7e2fb04a065f4dfd25fc28c"
+    },
+    "bigcodebench/data/bigcodebench.py": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/bigcodebench/data/bigcodebench.py",
+      "date": "2026-10-10",
+      "size": 2255,
+      "sha256": "cac3e3a8425a1fc56816caf6133c193866aadd729c0bb735d8a00a387178007a"
+    },
+    "bigcodebench/eval/__init__.py": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/bigcodebench/eval/__init__.py",
+      "date": "2026-10-10",
+      "size": 7366,
+      "sha256": "d5fd553559ac1b76659ebc32ae30e3e779449ecd31c5201f2301319ceeee01fe"
+    },
+    "bigcodebench/sanitize.py": {
+      "url": "https://raw.githubusercontent.com/bigcode-project/bigcodebench/09dd993f46c3fbf3a799465bb96d524edcb0b199/bigcodebench/sanitize.py",
+      "date": "2026-10-10",
+      "size": 9353,
+      "sha256": "c3b34cd425b0eb62afaf84f4268af787d317ce552685dd6d9b396442c91f47e4"
+    }
+  },
+  "origin": {
+    "commit": "0f7110daef31097784cd3e708f771463523938b6",
+    "manifest_sha256": "be5d41a2df6d53c2e7a4f2d361f698eac1ee30babb50d0b5e2c894a49587eb0c",
+    "historical_code_commit": "716d3fc9fb75a1fe72733d87bd40eadc750a673c"
+  },
+  "dev": [
+    "BigCodeBench_120",
+    "BigCodeBench_184"
+  ],
+  "files": {
+    "BigCodeBench_120.json": {
+      "size": 8850,
+      "sha256": "f3b9363bba53ff6afd9b8ca3cec8e16de3828161bbd14e583a592a7386354e14"
+    },
+    "BigCodeBench_184.json": {
+      "size": 5980,
+      "sha256": "9ce5c49c3f3af6eb051d24a475c6a58692b738b834b0cf8d2c29a4c09fb42b89"
+    }
+  },
+  "tasks": {
+    "BigCodeBench_120": {
+      "task_id": "BigCodeBench/120",
+      "licence": "Apache-2.0",
+      "sources": [
+        "solution.py"
+      ],
+      "tests": [
+        "test_reproducibility_with_seed",
+        "test_series_length",
+        "test_invalid_date_types",
+        "test_start_date_after_end_date",
+        "test_return_type",
+        "test_date_within_range"
+      ],
+      "official_test_sha256": "0e13ead95fa4ca5096d3c3a26210d1b8e66cf00cbf8a57b133cb5258fd978f50",
+      "assertion_sites": 8
+    },
+    "BigCodeBench_184": {
+      "task_id": "BigCodeBench/184",
+      "licence": "Apache-2.0",
+      "sources": [
+        "solution.py"
+      ],
+      "tests": [
+        "test_case_1",
+        "test_case_2",
+        "test_case_3",
+        "test_case_4",
+        "test_case_5"
+      ],
+      "official_test_sha256": "36bf93b0890d4f8076b691703bd7e0384ca666dd395b2c0d9e1ff63fec5725b2",
+      "assertion_sites": 5
+    }
+  },
+  "resources": {
+    "official_tests.json": {
+      "size": 9574,
+      "sha256": "1fc7abec063ac44ddc0bbda83e50a7afed416591b82951c5be866a263e305497"
+    },
+    "runtime.json": {
+      "size": 14720,
+      "sha256": "6cc64996163848736fc76c9f721a45beb04d30f8146eb20de40011bfed8dbb5f"
+    },
+    "pyproject.toml": {
+      "size": 306,
+      "sha256": "aeb2d5891b7ba4b1c1070acb5aeb0d641b55105d4ff6c41f4518120326e61586"
+    },
+    "uv.lock": {
+      "size": 49924,
+      "sha256": "2c5bdee8e0742ea163d7e228fc22e1f3f9cf903ad3d1e16aa0a6d65ec17b490e"
+    },
+    "licenses/Apache-2.0.txt": {
+      "size": 11438,
+      "sha256": "a858540b8dfd0c74db6953edaae85bde0b671643a7e2fb04a065f4dfd25fc28c"
+    }
+  },
+  "trust_scope": "public-benchmark-nonadversarial",
+  "adversarial_attestation": false
+}

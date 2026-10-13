@@ -1,7 +1,8 @@
 # E17 — mise au point DEV locale R00
 
 La décision du 13 octobre à 12 h 40 autorise la mise au point locale. Ce lanceur prépare uniquement
-les trois DEV historiques : affine-cipher, beer-song, book-store. L'audit parent précède le smoke officiel
+par défaut les trois DEV Aider historiques : affine-cipher, beer-song, book-store. Le dispatch explicite
+`--benchmark bigcode` sélectionne seulement les DEV BigCodeBench 120/184. L'audit parent précède le smoke officiel
 et toute inférence. Aucun téléchargement, installation, serveur distant, traqueur ou identité n'est nécessaire.
 
 Le contrôleur et les vérificateurs restent dans le runtime Python WSL existant du pilote Aider, avec
@@ -58,6 +59,23 @@ Les hypothèses énergétiques restent 100 W et 0,25 EUR/kWh, non mesurées. Les
 cache DEV sont uniquement lus. La vue copiée contient uniquement les trois DEV et leurs attributions ;
 les métadonnées historiques de sélection restent intactes. Aucun fichier scientifique TEST n'est ouvert.
 
+Pour BigCodeBench, le runtime WSL historique dédié est sélectionné explicitement : Python 3.12.15,
+binaire, 31 distributions, lock, notices et composants compilés vérifiés par `bigcode_tasks.check_runtime`.
+La vérification et le staging précèdent la création du relais Windows, même en preflight. Seuls les fichiers
+120/184 épinglés sont lus et copiés ; aucun parquet, 199 ou TEST 208/211. Le smoke exige les références
+6/6 + 5/5, les trois négatifs de chaque tâche et un reçu Landlock strict pour chaque vérification entière.
+Le grade unittest porte le reçu à la racine, alors qu'Aider le porte par appel de fonction ; le dispatch
+valide chaque schéma séparément. Une panne mécanique interdit la première requête modèle.
+
+La portée BigCodeBench reste `public-benchmark-nonadversarial`, `adversarial_attestation=false` ; la
+limite historique forgée+exit73 et la limitation de tampering unittest ne sont pas corrigées ou masquées.
+Les sorties d'un attaquant volontaire ne sont pas attestées. Le [guide BigCodeBench](16_e17_bigcode_dev.md)
+détaille cette frontière et les assertions exactes. L'adaptateur appelle la même boucle R00 via PipeClient.
+Les champs benchmark/partition/tasks et, pour BigCodeBench, adapter_version/trust_scope/attestation sont
+conservés dans registry/runtime/manifest. `test_frozen=false` et `ready_for_test=false` interdisent d'interpréter
+ce dispatch comme un gel TEST. `provenance.json` garde l'enveloppe exacte `models` du validateur existant ;
+son SHA est lié au manifeste portant le benchmark, sans champ supplémentaire incompatible avec declarations.
+
 ## Commandes parent après audit
 
 Depuis WSL, définir les ressources existantes suivantes, sans installer ni télécharger quoi que ce soit :
@@ -86,6 +104,31 @@ cd "$MYRIAD_ROOT/phase0"
 ```
 
 Depuis Git Bash, préfixer l'appel du script WSL par `MSYS_NO_PATHCONV=1`.
+L'option `--benchmark aider` est facultative : l'ancienne API preflight/smoke/run et son défaut restent valides.
+Pour BigCodeBench, après audit parent, dans le même environnement WSL et avec les mêmes assets Windows :
+
+```bash
+export MYRIAD_BIGCODE_RUNTIME="$HOME/.local/share/myriad-bigcode-pilot/venv"
+export MYRIAD_BIGCODE_DEV_CACHE="$HOME/.local/share/myriad-bigcode-pilot/data"
+bigcode_common=(--benchmark bigcode --runtime "$MYRIAD_BIGCODE_RUNTIME"
+    --windows-python "$MYRIAD_WINDOWS_PYTHON"
+    --binary "$(wslpath -w "$MYRIAD_ASSETS/tools/llama.cpp-bin/llama-server.exe")"
+    --archive "$(wslpath -w "$MYRIAD_ASSETS/tools/llama-b11505-bin-win-vulkan-x64.zip")"
+    --models-dir "$(wslpath -w "$MYRIAD_ASSETS/models")" --tasks-dir "$MYRIAD_BIGCODE_DEV_CACHE")
+"$MYRIAD_BIGCODE_RUNTIME/bin/python" e17_local.py preflight "${bigcode_common[@]}" --mode single \
+    --output "$MYRIAD_LOCAL_PROOFS/bigcode-preflight-single"
+"$MYRIAD_BIGCODE_RUNTIME/bin/python" e17_local.py smoke "${bigcode_common[@]}" --mode single \
+    --output "$MYRIAD_LOCAL_PROOFS/bigcode-smoke-single"
+# Arrêter si preflight ou smoke ne rend pas 0 ; audit et décisions DEV Aider restent requis.
+"$MYRIAD_BIGCODE_RUNTIME/bin/python" e17_local.py run "${bigcode_common[@]}" --mode single \
+    --output "$MYRIAD_LOCAL_PROOFS/bigcode-run-single"
+"$MYRIAD_BIGCODE_RUNTIME/bin/python" e17_local.py run "${bigcode_common[@]}" --mode vote \
+    --output "$MYRIAD_LOCAL_PROOFS/bigcode-run-vote"
+```
+
+Chaque run refait le smoke avant tout appel. Les références officielles n'ont pas été exécutées pendant
+le raccordement ; le parent doit confirmer ce smoke sans alléger les assertions ou remplacer une tâche.
+Le pont stdio est utilisé pour les deux benchmarks ; aucun accès HTTP Windows depuis WSL n'est supposé.
 Chaque sortie doit être absente : aucune reprise implicite ni écrasement, même pour preflight/smoke.
 Les références officielles et les négatifs passent avant la première requête modèle de chaque tentative.
 Les deux mesures sont distinctes : single d'abord, vote Qwen puis Granite ensuite. La boucle
@@ -98,12 +141,14 @@ sans démonstration distribuée. Le relais a une borne de session de 7 200 s ; c
 
 `registry.json` conserve chaque tentative commencée, les hashes de transcriptions et les temps de chargement
 et requêtes par épisode. Les modes non mesurés restent inconnus. `complete=true` exige les trois épisodes
-graded et une fermeture du serveur confirmée ; une interruption laisse `complete=false`, éventuellement
+graded Aider, ou les deux épisodes graded BigCodeBench, et une fermeture du serveur confirmée ;
+une interruption laisse `complete=false`, éventuellement
 `failure.json`, sans résumé ni score. Un candidat peut échouer avec une notation complète. Aucune sortie
 partielle n'est une note de campagne. Les traces gardent le comportement R00, y compris refus de soumission
 sans test officiel vert et traitement des réponses tronquées.
 
 Le chemin Windows natif et les pipes ont été testés avec des processus et réponses synthétiques. La
 connexion réelle au modèle, l'allocation Vulkan à ce contexte, le smoke officiel sur cette combinaison et
-la mesure DEV attendent l'audit parent. Cascade, 27B, BigCodeBench, TEST, gel et article restent hors périmètre.
+la mesure DEV attendent l'audit parent. BigCodeBench est raccordé techniquement en DEV seulement.
+Cascade, 27B, TEST, gel et article restent hors périmètre.
 Ne pas présenter un smoke synthétique comme une validation scientifique ni comme une vraie inférence.
