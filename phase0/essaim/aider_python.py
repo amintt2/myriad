@@ -129,12 +129,16 @@ with write("_return.json", "x", encoding="utf-8") as result:
 
 
 def verify(cache: Path, task: str, sources: dict[str, str], runtime: Path, timeout_s: float = 120,
-           *, environment=None) -> dict:
+           *, environment=None, generic: bool = False) -> dict:
     """Run original tests in this trusted process, with RPC stand-ins for the candidate functions.
 
     Only inputs reach candidate subprocesses. Expected values, unittest and the result object stay here.
-    This adapter supports the pilot's pure function API only; it deliberately refuses other exercises.
+    The historical pilot keeps its pure-function RPC path. Other exercises use original unittest files
+    in the strict public-benchmark worker; generic=True is an explicit equivalence seam for DEV only.
     """
+    if task not in APIS or generic:
+        from essaim.aider_unittest import verify as verify_generic
+        return verify_generic(cache, task, sources, runtime, timeout_s, environment=environment)
     environment = environment or LocalLinuxEnv
     from essaim.ephemeral_vm import EphemeralVMEnv, candidate_guard
     python_hook = isinstance(environment, type) and issubclass(environment, EphemeralVMEnv)

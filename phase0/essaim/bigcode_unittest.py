@@ -68,11 +68,11 @@ def worker(raw: str, fd: int) -> None:
     os._exit(0)
 
 
-def supervise(raw: str) -> dict:
+def supervise(raw: str, *, worker_path: str | None = None) -> dict:
     read_fd, write_fd = None, None
     try:
         read_fd, write_fd = os.pipe()
-        child = subprocess.Popen([sys.executable, __file__, "--worker", str(write_fd)],
+        child = subprocess.Popen([sys.executable, worker_path or __file__, "--worker", str(write_fd)],
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  close_fds=True, pass_fds=(write_fd,))
     except Exception as error:
