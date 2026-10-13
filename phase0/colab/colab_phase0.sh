@@ -32,6 +32,10 @@ checkpoint_allowed() {
 }
 
 case "${1:-}" in
+  e17-probe)
+    shift
+    python3 "$COLAB_DIR/e17_probe.py" "$@"
+    ;;
   resume-up)
     plan="${2:?plan}"; gpu="${3:?original gpu}"
     DLLM_OPERATION_IDENTITY=$(python3 "$COLAB_DIR/session_json.py" identity)

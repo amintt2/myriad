@@ -86,3 +86,76 @@ La suite préparera un registre conservant chaque révision, ses sources/prompts
 traces, puis figera le harnais avant une seule mesure sur TEST jamais consulté. Le serveur, le contrôleur,
 la boucle agent et les tests seront tous sur la VM ; le PC transmettra seulement le code et récupérera
 les résultats. Allocation, contrôle du solde, récupération et libération resteront au parent, après audit.
+
+## Sonde Colab avant modèles
+
+Le chemin `colab_phase0.sh e17-probe` prépare **une seule tentative L4**, sans `colab_jobs.py`,
+modèle, serveur, jeu de données ou installation de paquet. Le développeur ne lance que la CLI factice ;
+le lancement réel reste au parent après audit. Aucun résultat WSL ne vaut observation de compatibilité Colab.
+Le wrapper appelle un superviseur dédié, sous le verrou de cycle de vie partagé avec les autres opérations.
+Un reçu déjà présent, une session existante, un compte illisible/alloué ou un budget incompatible
+interdisent `new`. Un `new` ambigu n'est jamais réessayé et n'autorise aucun arrêt d'une identité inconnue.
+
+Défauts configurables : préparation/sonde au plus **600 s**, budget **4 unités**, plancher **15**,
+nettoyage **1 800 s**, tarif plafond **5,3 unités/h**, lecture **120 s**, grâce **5 s**, relevé pendant
+les appels distants toutes les **30 s**. La marge comptable vaut lecture + deux grâces + 31 s, soit **161 s**.
+L'enveloppe conservatrice est donc `5,3 × (600 + 1800 + 161) / 3600 = 3,770361…`, inférieure à 4.
+Réserver 4 exige au moins 19 unités au préflight. Le relevé historique 59,62 / zéro allocation est une
+information passée, **à revérifier au lancement parent** ; il n'est pas inclus comme observation nouvelle.
+Un tarif supérieur au plafond, un solde devenu inconnu ou une réserve atteinte entraîne la clôture.
+
+Le petit programme distant autonome mesure noyau/Linux/x86_64, ABI Landlock et les namespaces
+user/mount/net/pid/ipc/uts séparément puis ensemble, avec les drapeaux exacts de `LocalLinuxEnv`.
+Il installe aussi le filtre seccomp inchangé dans un processus jetable et vérifie le refus de socket.
+Enfin, il importe la source exacte de `local_linux.py` dans un répertoire temporaire, crée un runtime
+dédié dont `bin/python` pointe vers `/usr/bin/python3`, puis exécute dans `LocalLinuxEnv` uniquement
+`assert 2 + 2 == 4` et une sentinelle. Aucun assouplissement du bac, aucune source scientifique transmise.
+Les fichiers temporaires sont supprimés par le contrôleur distant ; la VM est libérée ensuite.
+
+Le JSON récupéré par `exec -f` doit avoir un accusé unique, la campagne, l'identité de session/allocation,
+un nonce frais et les empreintes des sources exécutées (UTF-8 avec fins de lignes normalisées à la lecture).
+CLI 0 seul, accusé manquant/périmé, faux verdict compatible ou isolement incomplet sont refusés.
+`compatible` exige toutes les observations positives et le reçu complet du vrai `LocalLinuxEnv`.
+`incompatible` décrit un refus observé des exigences ; `infrastructure-unknown` décrit une observation
+impossible, un timeout, une panne réseau ou une clôture non confirmée. Un smoke retournant 124 reste
+`infrastructure-unknown`, même avec un reçu d'isolation établi. Une lecture périodique pendant un exec
+garde sa borne propre sans réduire durablement le délai global, sauf réduction liée au budget du compte.
+Les valeurs machine et noyau restent dans le JSON. Cette sonde ne prouve ni sécurité générale contre un candidat hostile ni qualité d'un modèle.
+
+Une erreur/TERM après `new` confirmé, même pendant une sauvegarde avant ou après remplacement atomique,
+conserve l'autorité en mémoire : réconciliation bornée, arrêt de la seule identité épinglée, absence explicite,
+puis relevé final obligatoire. La réception de TERM/INT est différée pendant `new` jusqu'à l'enregistrement
+en mémoire de son retour. Ce masque différé reste dans le contrôleur : TERM/INT sont débloqués dans
+l'enfant avant l'exécution de safe_cli, afin que son gestionnaire de signal puisse arrêter le groupe du CLI officiel
+sur timeout externe. Les signaux répétés sont ignorés pendant le nettoyage borné. Le snapshot impossible
+n'empêche pas la clôture. Une identité ou un reçu remplacé, ou une campagne préexistante détectée, interdit
+tout arrêt étranger. Les échecs d'arrêt sont réessayés ; après absence, seules les lectures du compte reprennent.
+Le reçu n'est supprimé qu'après relevé final durable. Le JSON final distingue observation brute, erreur,
+absence et clôture ; seul `compatible` avec clôture complète rend 0, tout autre résultat rend 1.
+
+Commande portable **réservée au parent**, depuis Git Bash, chemins WSL fournis par variables :
+
+```bash
+MSYS_NO_PATHCONV=1 wsl.exe -e bash -lc '
+  repo=$1; evidence=$2
+  mkdir -p "$evidence"
+  bash "$repo/phase0/colab/colab_phase0.sh" e17-probe \
+    --output "$evidence/probe.json" \
+    --seconds 600 --budget-units 4 --min-balance-units 15 \
+    --cleanup-seconds 1800 --max-rate-units-hour 5.3
+' bash "$REPO_WSL" "$PROBE_WSL"
+```
+
+Le reçu partagé par défaut reste sous `$HOME/.local/state/myriad-colab/ownership.json` ; `--receipt`
+permet un chemin explicite, à partager avec `DLLM_CAMPAIGN_RECEIPT` pour les autres opérations.
+Ne pas créer plusieurs chemins de verrou pour allouer en parallèle. Un résultat négatif suffit : arrêter
+après nettoyage, sans boucle d'allocations. Si la clôture échoue, conserver reçu/JSON et faire vérifier le
+parent ; `DLLM_CAMPAIGN_RECEIPT=… bash colab_phase0.sh down` peut reprendre une propriété complète ou
+la comptabilité après absence. Une allocation ambiguë exige une réconciliation explicite par le parent,
+jamais une adoption automatique. SIGKILL, panne du PC ou du stockage peuvent interrompre le superviseur :
+le reçu durable reste alors une preuve de responsabilité, pas une preuve de libération.
+
+Les tests locaux emploient seulement la CLI factice et des observations synthétiques : compatible,
+incompatible, faux succès/accusé absent, sessions/campagnes étrangères, budget/solde, timeout/TERM,
+persistance des transitions après `new`, répétition de `stop`, absence et compte final. Aucun Colab réel
+ni processus du bac distant n'est exécuté par ces tests.
